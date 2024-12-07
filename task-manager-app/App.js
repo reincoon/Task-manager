@@ -1,15 +1,22 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { db, auth } from './firebaseConfig';
+import AppNavigator from './navigation/AppNavigator';
+import { useEffect } from 'react';
+import { signInAnonymously } from 'firebase/auth';
 
-export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
-}
+const App = () => {
+  useEffect(() => {
+    const initializeAnonymousUser = async () => {
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+      }
+    };
+    initializeAnonymousUser();
+  }, []);
+
+  return <AppNavigator />;
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -19,3 +26,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+export default App;
