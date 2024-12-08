@@ -1,5 +1,8 @@
-import { signOut, deleteUser, updateProfile, signInAnonymously, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { signOut, deleteUser, updateProfile, signInAnonymously, reauthenticateWithCredential, EmailAuthProvider, linkWithCredential } from 'firebase/auth';
 import { Alert } from 'react-native';
+import { db } from '../firebaseConfig';
+import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
+import { CommonActions } from '@react-navigation/native';
 
 export const handleLogOut = async (auth, setLoading, setUser, setName, setIsAnonymous, navigation) => {
     setLoading(true);
@@ -16,6 +19,45 @@ export const handleLogOut = async (auth, setLoading, setUser, setName, setIsAnon
     } finally {
         setLoading(false);
     }
+};
+
+export const handleUpgradeAnonymousAccount = async (auth, email, password, name, setLoading, navigation) => {
+    setLoading(true);
+    try {
+        const currentUser = auth.currentUser;
+        const credential = EmailAuthProvider.credential(email, password);
+        // Link anonymous account to the new credential
+        const userCredential = await linkWithCredential(currentUser, credential);
+        const upgradedUser = userCredential.user;
+
+        // Update the user's display name
+        await updateProfile(upgradedUser, { displayName: name });
+
+        // Transfer tasks from anonymous user to the upgraded user
+        await transferTasks(currentUser.uid, upgradedUser.uid);
+
+        Alert.alert('Success', 'Account upgraded successfully!');
+        navigation.dispatch(
+            CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'HomeStack' }],
+            })
+        );
+    } catch (error) {
+        Alert.alert('Error', error.message);
+    } finally {
+        setLoading(false);
+    }
+};
+
+const transferTasks = async (anonymousUid, newUid) => {
+    const anonymousTasksRef = collection(db, `tasks/${anonymousUid}/taskList`);
+    const newTasksRef = collection(db, `tasks/${newUid}/taskList`);
+    const tasksSnapshot = await getDocs(anonymousTasksRef);
+    const taskPromises = tasksSnapshot.docs.map((taskDoc) =>
+        setDoc(doc(newTasksRef, taskDoc.id), taskDoc.data())
+    );
+    await Promise.all(taskPromises);
 };
 
 export const handleDeleteAccount = async (auth, setLoading, setUser, setName, setIsAnonymous, navigation) => {

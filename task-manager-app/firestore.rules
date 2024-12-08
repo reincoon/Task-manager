@@ -12,8 +12,20 @@ service cloud.firestore {
     // Make sure to write security rules for your app before that time, or else
     // all client requests to your Firestore database will be denied until you Update
     // your rules
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 1, 5);
+    //match /{document=**} {
+    //  allow read, write: if request.time < timestamp.date(2025, 1, 5);
+    //}
+
+    // Rules for tasks collection
+    match /tasks/{userId}/taskList/{taskId} {
+      // Allow access only if the user's ID matches the collection path
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rules for subtasks
+    match /tasks/{userId}/taskList/{taskId}/subtasks/{subtaskId} {
+      // Inherit the same permissions from the parent task
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
