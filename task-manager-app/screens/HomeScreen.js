@@ -1,10 +1,14 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, SafeAreaView } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
+import { db, auth } from '../firebaseConfig';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 const HomeScreen = ({ navigation }) => {
     const [visible, setVisible] = useState(false);
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const hideMenu = () => setVisible(false);
     const showMenu = () => setVisible(true);
@@ -13,6 +17,40 @@ const HomeScreen = ({ navigation }) => {
         console.log(`Selected: ${option}`);
         hideMenu();
     };
+
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+            if (!currentUser) {
+                // Clear tasks if user is not logged in
+                setTasks([]);
+                return;
+            }
+        
+            const userId = currentUser.uid;
+            const tasksRef = collection(db, `tasks/${userId}/taskList`);
+            const q = query(tasksRef, where('userId', '==', userId));
+            
+            const unsubscribeTasks = onSnapshot(q, (snapshot) => {
+                const fetchedTasks = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                setTasks(fetchedTasks);
+                setLoading(false);
+            });
+    
+            return () => unsubscribeTasks();
+        })
+        return () => unsubscribe();
+    }, []);
+
+    const renderTaskItem = ({ item }) => (
+        <View style={styles.taskItem}>
+            <Text style={styles.taskTitle}>{item.title}</Text>
+            <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+            <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+        </View>
+    )
 
     return (
         <SafeAreaView style={styles.container}>
@@ -38,19 +76,22 @@ const HomeScreen = ({ navigation }) => {
             </View>
 
             {/* Example Task List */}
-            <FlatList
-                data={[
-                    { id: '1', title: 'Task 1', project: 'Project A', priority: 'High', dueDate: '2022-12-31' },
-                    { id: '2', title: 'Task 2', project: 'Project B', priority: 'Medium', dueDate: '2022-12-31' },
-                    { id: '3', title: 'Task 3', project: 'Project A', priority: 'Low', dueDate: '2022-12-31' },
-                ]}
-                keyExtractor={ (item) => item.id}
-                renderItem={({ item }) => (
-                    <View style={styles.taskItem}>
-                        <Text>{item.title}</Text>
-                    </View>
-                )}
-            />
+            {loading ? (
+                <Text style={styles.loadingText}>Loading to-do lists...</Text>
+            ) : tasks.length > 0 ? (
+                <FlatList
+                    data={tasks}
+                    keyExtractor={ (item) => item.id}
+                    // renderItem={({ item }) => (
+                    //     <View style={styles.taskItem}>
+                    //         <Text>{item.title}</Text>
+                    //     </View>
+                    // )}
+                    renderItem={renderTaskItem}
+                />
+            ) : (
+                <Text style={styles.noTasksText}>No tasks available. Create a new to-do list!</Text>
+            )}
 
             {/* Floating Action button */}
             <TouchableOpacity
@@ -98,6 +139,26 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 2,
+    },
+    taskTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    taskDetails: {
+        fontSize: 14,
+        color: '#666',
+    },
+    loadingText: {
+        textAlign: 'center',
+        marginTop: 20,
+        fontSize: 16,
+        color: '#666',
+    },
+    noTasksText: {
+        textAlign: 'center',
+        marginTop: 20,
+        fontSize: 16,
+        color: '#999',
     },
     floatingButton: {
         position: 'absolute',
