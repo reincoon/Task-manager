@@ -1,53 +1,93 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, SafeAreaView, TextInput, Alert } from 'react-native';
+import { View, Text, Button, StyleSheet, SafeAreaView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { auth } from '../firebaseConfig';
-import { signOut, deleteUser, updateProfile } from 'firebase/auth';
+import { signOut, deleteUser, updateProfile, signInAnonymously, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 
 const SettingsScreen = ({ navigation }) => {
     const [user, setUser] = useState(null);
     const [name, setName] = useState('');
     const [isEditingName, setIsEditingName] = useState(false);
     const [isAnonymous, setIsAnonymous] = useState(false);
+    const [loading, setLoading] = useState(false);
 
+    // useEffect(() => {
+    //     const currentUser = auth.currentUser;
+    //     setUser(currentUser);
+    //     if (currentUser) {
+    //         setName(currentUser.displayName || '');
+    //         setIsAnonymous(currentUser.isAnonymous);
+    //     }
+    // }, [auth.currentUser]);
     useEffect(() => {
-        const currentUser = auth.currentUser;
-        setUser(currentUser);
-        if (currentUser) {
-            setName(currentUser.displayName || '');
-            setIsAnonymous(currentUser.isAnonymous);
-        }
+        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+            setUser(currentUser);
+            if (currentUser) {
+                setName(currentUser.displayName || '');
+                setIsAnonymous(currentUser.isAnonymous);
+            } else {
+                setUser(null);
+                setName('');
+                setIsAnonymous(false);
+            }
+        });
+
+        return unsubscribe;
     }, []);
 
     const handleLogOut = async () => {
+        setLoading(true);
         try {
             await signOut(auth);
+            await signInAnonymously(auth);
             Alert.alert('Success', 'Logged out successfully!');
-            setUser({ email: 'Guest' });
-            setName('Guest');
+            setUser(auth.currentUser);
+            setName('');
             setIsAnonymous(true);
             navigation.navigate('HomeStack');
         } catch (error) {
             Alert.alert('Error', error.message);
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleDeleteAccount = async () => {
-        try {
-            const currentUser = auth.currentUser;
-            if (currentUser) {
-                await deleteUser(currentUser);
-                Alert.alert('Success', 'Account deleted successfully!');
-                setUser(null);
-                setName('');
-                setIsAnonymous(false);
-                navigation.navigate('HomeStack');
-            }
-        } catch (error) {
-            Alert.alert('Error', error.message);
-        }
+        Alert.prompt(
+            "Delete Account",
+            "Please enter your password to delete the account",
+            async (password) => {
+                if (!password) {
+                    Alert.alert('Error', 'Password cannot be empty');
+                    return;
+                }
+                setLoading(true);
+                try {
+                    const currentUser = auth.currentUser;
+                    const credential = EmailAuthProvider.credential(currentUser.email, password);
+                    await reauthenticateWithCredential(currentUser, credential);
+                    await deleteUser(currentUser);
+                    await signInAnonymously(auth);
+                    Alert.alert('Success', 'Account deleted successfully!');
+                    setUser(auth.currentUser);
+                    setName('');
+                    setIsAnonymous(true);
+                    navigation.navigate('HomeStack');
+                } catch (error) {
+                    Alert.alert('Error', error.message);
+                } finally {
+                    setLoading(false);
+                }
+            },
+            'secure-text'
+        );
     };
 
     const handleSaveName = async () => {
+        if (!name.trim()) {
+            Alert.alert('Error', 'Name cannot be empty');
+            return;
+        }
+
         try {
             const currentUser = auth.currentUser;
             if (currentUser) {
@@ -60,6 +100,11 @@ const SettingsScreen = ({ navigation }) => {
         }
     };
 
+    const handleCancelEdit = () => {
+        setName(user?.displayName || '');
+        setIsEditingName(false);
+    };
+
     const handleChangePassword = () => {
         navigation.navigate('ChangePassword');
     };
@@ -67,63 +112,39 @@ const SettingsScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <Text style={styles.title}>Settings</Text>
-            {user ? (
+            {loading ? (
+                <ActivityIndicator size="large" color="blue" />
+            ) : user ? (
                 <>
                     <View style={styles.userInfoContainer}>
-                        {/* <Text style={styles.userInfo}>Name: {user.displayName || 'N/A'}</Text> */}
-                        {/* <Text style={styles.userInfo}>Email: {user.email}</Text> */}
                         <Text style={styles.userInfo}>Email: {isAnonymous ? 'Guest' : user.email}</Text>
                         {isAnonymous ? (
                             <>
                                 <Text style={styles.guestMessage}>
                                     You are logged in as a guest. To save your data, please log in or sign up.
                                 </Text>
-                                <Button
-                                    title="Log In"
-                                    onPress={() => navigation.navigate('Login')}
-                                    color="blue"
-                                />
-                                <Button
-                                    title="Sign Up"
-                                    onPress={() => navigation.navigate('SignUp')}
-                                    color="green"
-                                />
+                                <Button title="Log In" onPress={() => navigation.navigate('Login')} color="blue" />
+                                <Button title="Sign Up" onPress={() => navigation.navigate('SignUp')} color="green" />
                             </>
                         ) : (
                             <>
                                 {isEditingName ? (
                                     <View style={styles.nameEditContainer}>
-                                        <TextInput
-                                            style={styles.input}
-                                            value={name}
-                                            onChangeText={setName}
-                                            placeholder="Enter your name"
-                                        />
+                                        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Enter your name" />
                                         <Button title="Save" onPress={handleSaveName} />
+                                        <Button title="Cancel" onPress={handleCancelEdit} color="red" />
                                     </View>
                                 ) : (
                                     <>
                                         <Text style={styles.userInfo}>
                                             Name: {user.displayName || 'N/A'}
                                         </Text>
-                                        <Button
-                                            title="Edit Name"
-                                            onPress={() => setIsEditingName(true)}
-                                            color="blue"
-                                        />
+                                        <Button title="Edit Name" onPress={() => setIsEditingName(true)} color="blue" />
                                     </>
                                 )}
-                                <Button
-                                    title="Change Password"
-                                    onPress={handleChangePassword}
-                                    color="blue"
-                                />
+                                <Button title="Change Password" onPress={handleChangePassword} color="blue" />
                                 <Button title="Log Out" onPress={handleLogOut} color="orange" />
-                                <Button
-                                    title="Delete Account"
-                                    onPress={handleDeleteAccount}
-                                    color="red"
-                                />
+                                <Button title="Delete Account" onPress={handleDeleteAccount} color="red" />
                             </>
                         )}
                     </View>

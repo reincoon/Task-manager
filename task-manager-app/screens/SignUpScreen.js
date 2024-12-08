@@ -11,9 +11,15 @@ const SignUpScreen = ({ navigation }) => {
     const [confirmPassword, setConfirmPassword] = useState('');
 
     const handleSignUp = async () => {
-        if (!name) Alert.alert('Error', 'Name is required');
+        if (!name) { 
+            Alert.alert('Error', 'Name is required');
+            return;
+        };
 
-        if (password !== confirmPassword) Alert.alert('Error', 'Passwords do not match');
+        if (password !== confirmPassword) {
+            Alert.alert('Error', 'Passwords do not match');
+            return;
+        };
 
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
