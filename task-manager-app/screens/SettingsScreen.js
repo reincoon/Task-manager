@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, Button, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { auth } from '../firebaseConfig';
-import { handleLogOut, handleDeleteAccount, handleSaveName, handleCancelEdit } from '../helpers/authFunctions';
-import { handleChangePassword } from '../helpers/navigationFunctions';
+import { handleLogOut, handleDeleteAccount, handleSaveName, handleCancelEdit, handleChangePassword } from '../helpers/authFunctions';
 import EditNameForm from '../components/EditNameForm';
 import GuestView from '../components/GuestView';
 
@@ -57,7 +56,7 @@ const SettingsScreen = ({ navigation }) => {
                                 <Text style={styles.userInfo}>Name: {user.displayName || 'N/A'}</Text>
                                 <Button title="Edit Name" onPress={() => setIsEditingName(true)} color="blue" />
                                 <Button title="Change Password" onPress={() => handleChangePassword(navigation)} color="blue" />
-                                <Button title="Log Out" onPress={() => handleLogOut(auth, setLoading, setUser, setName, setIsAnonymous, navigation)} color="orange" />
+                                <Button title="Log Out" onPress={() => handleLogOut(auth, setLoading, setUser, setName, setIsAnonymous, navigation, setTasks = () => {})} color="orange" />
                                 <Button title="Delete Account" onPress={() => handleDeleteAccount(auth, setLoading, setUser, setName, setIsAnonymous, navigation)} color="red" />
                             </>
                         )}

@@ -5,7 +5,7 @@ import { auth } from '../firebaseConfig';
 // import { CommonActions } from '@react-navigation/native';
 import { handleUpgradeAnonymousAccount } from '../helpers/authFunctions';
 
-const SignUpScreen = ({ navigation }) => {
+const SignUpScreen = ({ navigation, route }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
@@ -37,7 +37,8 @@ const SignUpScreen = ({ navigation }) => {
         // } catch (error) {
         //     Alert.alert('Error', error.message);
         // }
-        await handleUpgradeAnonymousAccount(auth, email, password, name, setLoading, navigation);
+        const setTasks = route.params?.setTasks;
+        await handleUpgradeAnonymousAccount(auth, email, password, name, setLoading, setTasks, navigation);
     };
 
     return (

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, Alert
 import { Ionicons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
 import { db, auth } from '../firebaseConfig';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 const HomeScreen = ({ navigation }) => {
     const [visible, setVisible] = useState(false);
@@ -19,18 +19,19 @@ const HomeScreen = ({ navigation }) => {
     };
 
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+        let unsubscribeTasks;
+        const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
             if (!currentUser) {
                 // Clear tasks if user is not logged in
                 setTasks([]);
+                setLoading(false);
                 return;
             }
         
             const userId = currentUser.uid;
             const tasksRef = collection(db, `tasks/${userId}/taskList`);
-            const q = query(tasksRef, where('userId', '==', userId));
             
-            const unsubscribeTasks = onSnapshot(q, (snapshot) => {
+            unsubscribeTasks = onSnapshot(tasksRef, (snapshot) => {
                 const fetchedTasks = snapshot.docs.map((doc) => ({
                     id: doc.id,
                     ...doc.data(),
@@ -38,10 +39,13 @@ const HomeScreen = ({ navigation }) => {
                 setTasks(fetchedTasks);
                 setLoading(false);
             });
-    
-            return () => unsubscribeTasks();
-        })
-        return () => unsubscribe();
+        });
+        return () => {
+            if (unsubscribeTasks) {
+                unsubscribeTasks();
+            };
+            unsubscribeAuth();
+        };
     }, []);
 
     const renderTaskItem = ({ item }) => (
@@ -50,7 +54,7 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
             <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
         </View>
-    )
+    );
 
     return (
         <SafeAreaView style={styles.container}>

@@ -4,13 +4,15 @@ import { db } from '../firebaseConfig';
 import { collection, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { CommonActions } from '@react-navigation/native';
 
-export const handleLogOut = async (auth, setLoading, setUser, setName, setIsAnonymous, setTasks, navigation) => {
+export const handleLogOut = async (auth, setLoading, setUser, setName, setIsAnonymous, navigation, setTasks = () => {}) => {
     setLoading(true);
     try {
         await signOut(auth);
-        await signInAnonymously(auth);
-        setTasks([]);
-        setUser(auth.currentUser);
+        const anonymousUser = await signInAnonymously(auth);
+        if (typeof setTasks === 'function') {
+            setTasks([]);
+        }
+        setUser(anonymousUser);
         setName('');
         setIsAnonymous(true);
         Alert.alert('Success', 'Logged out successfully!');
@@ -22,7 +24,7 @@ export const handleLogOut = async (auth, setLoading, setUser, setName, setIsAnon
     }
 };
 
-export const handleUpgradeAnonymousAccount = async (auth, email, password, name, setLoading, navigation) => {
+export const handleUpgradeAnonymousAccount = async (auth, email, password, name, setLoading, setTasks, navigation) => {
     setLoading(true);
     try {
         const currentUser = auth.currentUser;
@@ -39,7 +41,9 @@ export const handleUpgradeAnonymousAccount = async (auth, email, password, name,
         await updateProfile(upgradedUser, { displayName: name });
 
         // Transfer tasks from anonymous user to the upgraded user
-        await transferTasks(currentUser.uid, upgradedUser.uid);
+        if (typeof setTasks === 'function') {
+            await transferTasks(currentUser.uid, upgradedUser.uid, setTasks);
+        }
 
         Alert.alert('Success', 'Account upgraded successfully!');
         navigation.dispatch(
@@ -55,16 +59,32 @@ export const handleUpgradeAnonymousAccount = async (auth, email, password, name,
     }
 };
 
-const transferTasks = async (anonymousUid, newUid) => {
+const transferTasks = async (anonymousUid, newUid, setTasks) => {
     const anonymousTasksRef = collection(db, `tasks/${anonymousUid}/taskList`);
     const newTasksRef = collection(db, `tasks/${newUid}/taskList`);
     const tasksSnapshot = await getDocs(anonymousTasksRef);
-    const taskPromises = tasksSnapshot.docs.map(async (taskDoc) => {
-        const taskData = taskDoc.data();
-        await setDoc(doc(newTasksRef, taskDoc.id), taskData);
-        await deleteDoc(doc(anonymousTasksRef, taskDoc.id));
-    });
-    await Promise.all(taskPromises);
+    // const taskPromises = tasksSnapshot.docs.map(async (taskDoc) => {
+    //     const taskData = taskDoc.data();
+    //     await setDoc(doc(newTasksRef, taskDoc.id), taskData);
+    //     await deleteDoc(doc(anonymousTasksRef, taskDoc.id));
+    // });
+    // await Promise.all(taskPromises);
+    if (!tasksSnapshot.empty) {
+        const taskPromises = tasksSnapshot.docs.map(async (taskDoc) => {
+            const taskData = taskDoc.data();
+            await setDoc(doc(newTasksRef, taskDoc.id), taskData);
+            await deleteDoc(doc(anonymousTasksRef, taskDoc.id));
+        });
+        await Promise.all(taskPromises);
+    }
+
+    // Fetch updated tasks for the permanent account
+    const updatedTasksSnapshot = await getDocs(newTasksRef);
+    const updatedTasks = updatedTasksSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+    }));
+    setTasks(updatedTasks);
 };
 
 export const handleDeleteAccount = async (auth, setLoading, setUser, setName, setIsAnonymous, setTasks, navigation) => {
@@ -137,4 +157,8 @@ export const handleSaveName = async (auth, name, setIsEditingName) => {
 export const handleCancelEdit = (setName, currentName, setIsEditingName) => {
     setName(currentName || '');
     setIsEditingName(false);
+};
+
+export const handleChangePassword = (navigation) => {
+    navigation.navigate('ChangePassword');
 };
