@@ -1,9 +1,12 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
+import { initializeFirestore, memoryLocalCache } from 'firebase/firestore';
 import { getAnalytics } from "firebase/analytics";
 
 import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Firebase configuration object
 const firebaseConfig = {
     apiKey: "AIzaSyCBr97rReWLjS0vGPkQlojsM6KObmZF3kQ",
     authDomain: "task-manager-7049b.firebaseapp.com",
@@ -14,7 +17,17 @@ const firebaseConfig = {
     measurementId: "G-DSD5CGSQ73"
 };
 
-const db = getFirestore(app);
-const auth = getAuth(app);
+// Initialise Firebase app
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-export { db, auth };
+// Initialise Firestore with offline storage
+const db = initializeFirestore(app, {
+    localCache: memoryLocalCache(),
+});
+
+// Initialise Firebase Authentication with React Native persistence
+const auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+});
+
+export { db, auth, app };
