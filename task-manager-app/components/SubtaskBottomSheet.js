@@ -1,13 +1,16 @@
-import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, ScrollView } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { useState, useRef, useMemo } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+// import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import NotificationPicker from './NotificationPicker';
 import { NOTIFICATION_OPTIONS } from '../helpers/constants';
 import { cyclePriority } from '../helpers/priority';
+import { formatDateTime } from '../helpers/date';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import DateTimeSelector from './DateTimeSelector';
 
-const BOTTOM_SHEET_HEIGHT_COLLAPSED = 300;
-const BOTTOM_SHEET_HEIGHT_EXPANDED = '90%';
+// const BOTTOM_SHEET_HEIGHT_COLLAPSED = 300;
+// const BOTTOM_SHEET_HEIGHT_EXPANDED = '90%';
 
 const SubtaskBottomSheet = ({
     visible,
@@ -16,32 +19,46 @@ const SubtaskBottomSheet = ({
     setCurrentSubtask,
     onSave,
 }) => {
-    const [expanded, setExpanded] = useState(false);
-    const [showDatePicker, setShowDatePicker] = useState(false);
+    // const [expanded, setExpanded] = useState(false);
+    // const [showDatePicker, setShowDatePicker] = useState(false);
 
-    if (!visible) return null;
+    const bottomSheetRef = useRef(null);
 
-    const toggleExpand = () => {
-        setExpanded(!expanded);
+    const snapPoints = useMemo(() => ['50%', '90%'], []);
+    if (!visible) {
+        return null;
+    }
+
+    // const handleDateChange = (event, selectedDate) => {
+    //     setShowDatePicker(false);
+    //     if (selectedDate) {
+    //         setCurrentSubtask({ ...currentSubtask, dueDate: selectedDate });
+    //     }
+    // };
+    const handleDateChange = (newDate) => {
+        setCurrentSubtask({ ...currentSubtask, dueDate: newDate });
     };
 
-    const handleDateChange = (event, selectedDate) => {
-        setShowDatePicker(false);
-        if (selectedDate) {
-            setCurrentSubtask({ ...currentSubtask, dueDate: selectedDate });
-        }
+    const handleCloseSheet = () => {
+        onClose();
     };
 
     return (
         <View style={styles.overlay}>
-            <Animated.View style={[styles.container, expanded ? styles.expanded : styles.collapsed]}>
-                <View style={styles.handleBarContainer}>
-                    <TouchableOpacity onPress={toggleExpand}>
-                        <View style={styles.handleBar} />
-                    </TouchableOpacity>
-                </View>
-
-                <ScrollView contentContainerStyle={styles.content}>
+            <BottomSheet
+                ref={bottomSheetRef}
+                index={1} // expanded sheet
+                snapPoints={snapPoints}
+                onChange={(index) => {
+                    if (index === -1) {
+                        // the sheet is closed
+                        handleCloseSheet();
+                    }
+                }}
+                enablePanDownToClose={true}
+                onClose={handleCloseSheet}
+            >
+                <BottomSheetScrollView contentContainerStyle={styles.content}>
                     <Text style={styles.title}>Add Subtask</Text>
                     <TextInput
                         style={styles.input}
@@ -76,20 +93,13 @@ const SubtaskBottomSheet = ({
                         </Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.button} onPress={() => setShowDatePicker(true)}>
+                    {/* <TouchableOpacity style={styles.button} onPress={() => setShowDatePicker(true)}>
                         <Text style={styles.buttonText}>
-                            Due Date: {currentSubtask.dueDate.toLocaleString()}
+                            Due Date: {formatDateTime(currentSubtask.dueDate)}
                         </Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
 
-                    {showDatePicker && (
-                        <DateTimePicker
-                            value={currentSubtask.dueDate}
-                            mode="datetime"
-                            display="default"
-                            onChange={handleDateChange}
-                        />
-                    )}
+                    <DateTimeSelector date={currentSubtask.dueDate} onDateChange={handleDateChange} />
 
                     <NotificationPicker
                         selectedValue={currentSubtask.reminder}
@@ -103,50 +113,25 @@ const SubtaskBottomSheet = ({
                         <TouchableOpacity style={styles.saveButton} onPress={onSave}>
                             <Ionicons name="checkmark" size={24} color="white" />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+                        <TouchableOpacity style={styles.cancelButton} onPress={handleCloseSheet}>
                             <Ionicons name="close" size={24} color="white" />
                         </TouchableOpacity>
                     </View>
-                </ScrollView>
-            </Animated.View>
+                </BottomSheetScrollView>
+            </BottomSheet>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     overlay: {
-        position: 'absolute',
-        bottom: 0,
-        width: '100%',
-        height: '100%',
-        justifyContent: 'flex-end',
-    },
-    container: {
-        backgroundColor: '#f5f5f5',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        overflow: 'hidden',
-    },
-    collapsed: {
-        height: BOTTOM_SHEET_HEIGHT_COLLAPSED,
-    },
-    expanded: {
-        height: BOTTOM_SHEET_HEIGHT_EXPANDED,
-    },
-    handleBarContainer: {
-        width: '100%',
-        alignItems: 'center',
-        paddingVertical: 10,
-    },
-    handleBar: {
-        width: 60,
-        height: 5,
-        borderRadius: 3,
-        backgroundColor: '#ccc',
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.3)',
     },
     content: {
-        paddingHorizontal: 20,
-        flex: 1,
+        // paddingHorizontal: 20,
+        // flex: 1,
+        padding: 20,
         paddingBottom: 30,
     },
     title: {

@@ -5,6 +5,8 @@ import AppNavigator from './navigation/AppNavigator';
 import { useEffect } from 'react';
 import { signInAnonymously } from 'firebase/auth';
 import * as Notifications from 'expo-notifications';
+import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Notification handler
 Notifications.setNotificationHandler({
@@ -25,7 +27,11 @@ const App = () => {
     initializeAnonymousUser();
   }, []);
 
-  return <AppNavigator />;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppNavigator />
+    </GestureHandlerRootView>
+  );
 };
 
 const styles = StyleSheet.create({

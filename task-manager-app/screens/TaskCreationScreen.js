@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+// import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../firebaseConfig';
 import { collection, addDoc } from 'firebase/firestore';
@@ -9,12 +9,16 @@ import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
 import { requestNotificationPermissions, scheduleNotification } from '../helpers/notifications';
 import { NOTIFICATION_OPTIONS, NOTIFICATION_TIME_OFFSETS } from '../helpers/constants';
 import { cyclePriority } from '../helpers/priority';
+import { formatDateTime } from '../helpers/date';
+import DateTimeSelector from '../components/DateTimeSelector';
+import { scheduleTaskNotification } from '../helpers/notificationsHelpers';
+import SubtaskList from '../components/SubtaskList';
 
 const TaskCreationScreen = ({ navigation }) => {
     const [taskTitle, setTaskTitle] = useState('');
     const [notes, setNotes] = useState('');
     const [dueDate, setDueDate] = useState(new Date());
-    const [showDatePicker, setShowDatePicker] = useState(false);
+    // const [showDatePicker, setShowDatePicker] = useState(false);
     const [notification, setNotification] = useState('None');
     const [priority, setPriority] = useState('Low');
     const [subtasks, setSubtasks] = useState([]);
@@ -32,13 +36,6 @@ const TaskCreationScreen = ({ navigation }) => {
     useEffect(() => {
         requestNotificationPermissions();
     }, []);
-
-    const handleDateChange = (event, selectedDate) => {
-        setShowDatePicker(false);
-        if (selectedDate) {
-            setDueDate(selectedDate);
-        }
-    };
 
     const handleSaveTask = async () => {
         if (!taskTitle.trim()) {
@@ -67,15 +64,7 @@ const TaskCreationScreen = ({ navigation }) => {
             await addDoc(taskRef, taskData);
 
             // Schedule Notification
-            if (notification !== 'None') {
-                const offset = NOTIFICATION_TIME_OFFSETS[notification] || 0;
-                const notificationTime = new Date(dueDate.getTime() + offset);
-                await scheduleNotification(
-                    taskTitle, 
-                    `Reminder for task: ${taskTitle}`, 
-                    notificationTime
-                );
-            }
+            await scheduleTaskNotification(taskTitle, notification, dueDate);
 
             Alert.alert('Success', 'Task created successfully');
             navigation.navigate('Home');
@@ -91,16 +80,9 @@ const TaskCreationScreen = ({ navigation }) => {
         }
 
         // Schedule Subtask Notification
-        if (currentSubtask.reminder !== 'None') {
-            const offset = NOTIFICATION_TIME_OFFSETS[currentSubtask.reminder] || 0;
-            const notificationTime = new Date(currentSubtask.dueDate.getTime() + offset);
-            scheduleNotification(
-                currentSubtask.title,
-                `Reminder for subtask: ${currentSubtask.title}`,
-                notificationTime
-            );
-        }
+        await scheduleTaskNotification(currentSubtask.title, currentSubtask.reminder, currentSubtask.dueDate);
 
+        // Add the subtask
         setSubtasks([...subtasks, currentSubtask]);
         setCurrentSubtask({
             title: '',
@@ -141,17 +123,7 @@ const TaskCreationScreen = ({ navigation }) => {
                     multiline
                 />
 
-                <TouchableOpacity style={styles.button} onPress={() => setShowDatePicker(true)}>
-                    <Text style={styles.buttonText}>Set Due Date: {dueDate.toLocaleDateString()}</Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                    <DateTimePicker
-                        value={dueDate}
-                        mode="datetime"
-                        display="default"
-                        onChange={handleDateChange}
-                    />
-                )}
+                <DateTimeSelector date={dueDate} onDateChange={setDueDate} />
 
                 <View style={{ marginBottom: 20 }}>
                     <Text style={{ marginBottom: 10, fontWeight: '600' }}>Reminder:</Text>
@@ -177,19 +149,7 @@ const TaskCreationScreen = ({ navigation }) => {
                     <Text style={styles.buttonText}>Add Subtask</Text>
                 </TouchableOpacity>
 
-                {subtasks.length > 0 && (
-                    <View style={{ marginTop: 20 }}>
-                        <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 10 }}>Subtasks</Text>
-                        {subtasks.map((item, index) => (
-                            <View key={index} style={styles.subtaskItem}>
-                                <Text>{item.title} (Priority: {item.priority})</Text>
-                                <Text>Due: {item.dueDate.toLocaleDateString()} {item.dueDate.toLocaleTimeString()}</Text>
-                                {item.reminder !== 'None' && <Text>Reminder: {item.reminder}</Text>}
-                                {item.isRecurrent && <Text>Recurrent: Yes</Text>}
-                            </View>
-                        ))}
-                    </View>
-                )}
+                <SubtaskList subtasks={subtasks} />
             </ScrollView>
             
             {/* Subtask Bottom Sheet */}
@@ -248,9 +208,6 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#ccc',
         padding: 10,
-    },
-    subtaskList: {
-        marginTop: 20,
     },
 });
 
