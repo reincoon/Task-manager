@@ -116,9 +116,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         try {
             // if saved cancel old notification and schedule new one
             let newNotificationId = taskNotificationId;
-            const reminderChanged = (originalTask.notification !== notification) || (originalTask.dueDate.getTime() !== dueDate.getTime());
+            const mainReminderChanged  = (originalTask.notification !== notification) || (originalTask.dueDate.getTime() !== dueDate.getTime());
             // If reminder changed, aattempt to reschedule
-            if (reminderChanged) {
+            if (mainReminderChanged ) {
                 // Cancel old notification
                 if (taskNotificationId) {
                     await cancelTaskNotification(taskNotificationId);
@@ -129,12 +129,15 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
             // Handle subtasks notifications changes
             let updatedSubtasks = [...subtasks];
+            
             for (let i = 0; i < updatedSubtasks.length; i++) {
                 const subtask = updatedSubtasks[i];
                 const originalSubtask = originalTask.subtasks[i] || {};
-                const subtaskChanged = (originalSubtask.reminder !== subtask.reminder) ||
-                                       (originalSubtask.dueDate && (new Date(originalSubtask.dueDate).getTime() !== subtask.dueDate.getTime()));
-                if (subtaskChanged) {
+                const reminderChanged = originalSubtask.reminder !== subtask.reminder;
+                const dueDateChanged = (originalSubtask.dueDate && 
+                    (new Date(originalSubtask.dueDate).getTime() !== subtask.dueDate.getTime()));
+
+                if (reminderChanged || dueDateChanged) {
                     // Cancel old subtask notification
                     if (subtask.notificationId) {
                         await cancelTaskNotification(subtask.notificationId);
@@ -147,6 +150,11 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     updatedSubtasks[i] = { ...subtask, notificationId: newSubtaskNotificationId };
                 }
             }
+
+            updatedSubtasks = updatedSubtasks.map(s => ({
+                ...s,
+                dueDate: s.dueDate.toISOString()  // Store as ISO string
+            }));
 
             const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
             await updateDoc(taskDocRef, {
@@ -186,26 +194,30 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         }
 
         // Schedule Subtask Notification
-        let newSubtaskNotificationId = null;
-        if (currentSubtask.reminder !== 'None') {
-            newSubtaskNotificationId = await scheduleTaskNotification(currentSubtask.title, currentSubtask.reminder, currentSubtask.dueDate);
+        // let newSubtaskNotificationId = null;
+        let subtaskDueDate = currentSubtask.dueDate;
+
+        if (!(subtaskDueDate instanceof Date) || isNaN(subtaskDueDate.getTime())) {
+            subtaskDueDate = new Date();
         }
+
+        // if (currentSubtask.reminder !== 'None') {
+        //     newSubtaskNotificationId = await scheduleTaskNotification(currentSubtask.title, currentSubtask.reminder, subtaskDueDate);
+        // }
+
+        const updatedSubtask = {
+            ...currentSubtask,
+            dueDate: subtaskDueDate,
+            // notificationId: newSubtaskNotificationId
+        };
 
         if (editingSubtaskIndex !== null) {
             // Editing existing subtask
             const updatedSubtasks = [...subtasks];
-            updatedSubtasks[editingSubtaskIndex] = {
-                ...currentSubtask,
-                notificationId: newSubtaskNotificationId
-            };
+            updatedSubtasks[editingSubtaskIndex] = updatedSubtask;
             setSubtasks(updatedSubtasks);
         } else {
-            // Adding new subtask
-            const newSubtask = {
-                ...currentSubtask,
-                notificationId: newSubtaskNotificationId,
-            };
-            setSubtasks([...subtasks, newSubtask]);
+            setSubtasks([...subtasks, updatedSubtask]);
         }
         // Reset current subtask and close sheet
         setCurrentSubtask({
@@ -226,7 +238,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             { text: 'Cancel', style: 'cancel' },
             { text: 'Delete', style: 'destructive', onPress: async () => {
                 const userId = auth.currentUser?.uid;
-                if (!userId) return;
+                if (!userId) {
+                    return;
+                }
                 const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
 
                 // Cancel to-do list notification
@@ -251,7 +265,16 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     // Edit a subtask
     const handleEditSubtask = (index) => {
         const subtaskToEdit = subtasks[index];
-        setCurrentSubtask(subtaskToEdit);
+        // Check date is valid
+        let safeDueDate = subtaskToEdit.dueDate;
+        if (!(safeDueDate instanceof Date) || isNaN(safeDueDate.getTime())) {
+            safeDueDate = new Date();
+        }
+
+        setCurrentSubtask({
+            ...subtaskToEdit,
+            dueDate: safeDueDate
+        });
         setEditingSubtaskIndex(index);
         setShowSubtaskForm(true);
     };
