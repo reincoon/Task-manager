@@ -4,6 +4,16 @@ import { db, auth } from './firebaseConfig';
 import AppNavigator from './navigation/AppNavigator';
 import { useEffect } from 'react';
 import { signInAnonymously } from 'firebase/auth';
+import * as Notifications from 'expo-notifications';
+
+// Notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const App = () => {
   useEffect(() => {

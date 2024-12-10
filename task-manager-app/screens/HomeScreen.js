@@ -1,20 +1,31 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
 import { db, auth } from '../firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { PRIORITY_ORDER } from '../helpers/constants';
 
 const HomeScreen = ({ navigation }) => {
     const [visible, setVisible] = useState(false);
+    const [rawTasks, setRawTasks] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [sortOption, setSortOption] = useState(null);
 
     const hideMenu = () => setVisible(false);
     const showMenu = () => setVisible(true);
 
     const handleMenuOption = (option) => {
-        console.log(`Selected: ${option}`);
+        if (option === 'Sort by Priority') {
+            setSortOption('priority');
+        } else if (option === 'Sort by Date') {
+            setSortOption('date');
+        } else if (option === 'Sort Alphabetically') {
+            setSortOption('alphabetical');
+        } else {
+            setSortOption(null);
+        }
         hideMenu();
     };
 
@@ -23,7 +34,7 @@ const HomeScreen = ({ navigation }) => {
         const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
             if (!currentUser) {
                 // Clear tasks if user is not logged in
-                setTasks([]);
+                setRawTasks([]);
                 setLoading(false);
                 return;
             }
@@ -36,7 +47,8 @@ const HomeScreen = ({ navigation }) => {
                     id: doc.id,
                     ...doc.data(),
                 }));
-                setTasks(fetchedTasks);
+
+                setRawTasks(fetchedTasks);
                 setLoading(false);
             });
         });
@@ -48,12 +60,33 @@ const HomeScreen = ({ navigation }) => {
         };
     }, []);
 
+    // Sort tasks whenever rawTasks or sortOption changes
+    useEffect(() => {
+        let sortedTasks = [...rawTasks];
+        if (sortOption === 'priority') {
+            // Sort by priority
+            sortedTasks.sort((a, b) => {
+                return (PRIORITY_ORDER[a.priority] || 999) - (PRIORITY_ORDER[b.priority] || 999);
+            });
+        } else if (sortOption === 'date') {
+            // Sort by date
+            sortedTasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+        } else if (sortOption === 'alphabetical') {
+            // Sort alphabetically
+            sortedTasks.sort((a, b) => a.title.localeCompare(b.title));
+        }
+        setTasks(sortedTasks);
+    }, [rawTasks, sortOption]);
+
     const renderTaskItem = ({ item }) => (
-        <View style={styles.taskItem}>
+        <TouchableOpacity 
+            style={styles.taskItem}
+            onPress={() => navigation.navigate('TaskDetails', { taskId: item.id })}
+        >
             <Text style={styles.taskTitle}>{item.title}</Text>
             <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
             <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-        </View>
+        </TouchableOpacity>
     );
 
     return (
@@ -86,11 +119,6 @@ const HomeScreen = ({ navigation }) => {
                 <FlatList
                     data={tasks}
                     keyExtractor={ (item) => item.id}
-                    // renderItem={({ item }) => (
-                    //     <View style={styles.taskItem}>
-                    //         <Text>{item.title}</Text>
-                    //     </View>
-                    // )}
                     renderItem={renderTaskItem}
                 />
             ) : (
