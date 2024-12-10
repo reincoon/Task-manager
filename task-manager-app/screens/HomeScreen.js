@@ -81,7 +81,7 @@ const HomeScreen = ({ navigation }) => {
     const renderTaskItem = ({ item }) => (
         <TouchableOpacity 
             style={styles.taskItem}
-            onPress={() => navigation.navigate('TaskDetails', { taskId: item.id })}
+            onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
         >
             <Text style={styles.taskTitle}>{item.title}</Text>
             <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>

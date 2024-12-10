@@ -9,7 +9,7 @@ import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
 import { requestNotificationPermissions, scheduleNotification } from '../helpers/notifications';
 import { NOTIFICATION_OPTIONS, NOTIFICATION_TIME_OFFSETS } from '../helpers/constants';
 import { cyclePriority } from '../helpers/priority';
-import { formatDateTime } from '../helpers/date';
+// import { formatDateTime } from '../helpers/date';
 import DateTimeSelector from '../components/DateTimeSelector';
 import { scheduleTaskNotification } from '../helpers/notificationsHelpers';
 import SubtaskList from '../components/SubtaskList';

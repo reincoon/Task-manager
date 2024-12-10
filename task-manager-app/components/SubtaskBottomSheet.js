@@ -1,16 +1,11 @@
-import { useState, useRef, useMemo } from 'react';
+import { useRef, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-// import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import NotificationPicker from './NotificationPicker';
 import { NOTIFICATION_OPTIONS } from '../helpers/constants';
 import { cyclePriority } from '../helpers/priority';
-import { formatDateTime } from '../helpers/date';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import DateTimeSelector from './DateTimeSelector';
-
-// const BOTTOM_SHEET_HEIGHT_COLLAPSED = 300;
-// const BOTTOM_SHEET_HEIGHT_EXPANDED = '90%';
 
 const SubtaskBottomSheet = ({
     visible,
@@ -19,9 +14,6 @@ const SubtaskBottomSheet = ({
     setCurrentSubtask,
     onSave,
 }) => {
-    // const [expanded, setExpanded] = useState(false);
-    // const [showDatePicker, setShowDatePicker] = useState(false);
-
     const bottomSheetRef = useRef(null);
 
     const snapPoints = useMemo(() => ['50%', '90%'], []);
@@ -29,12 +21,6 @@ const SubtaskBottomSheet = ({
         return null;
     }
 
-    // const handleDateChange = (event, selectedDate) => {
-    //     setShowDatePicker(false);
-    //     if (selectedDate) {
-    //         setCurrentSubtask({ ...currentSubtask, dueDate: selectedDate });
-    //     }
-    // };
     const handleDateChange = (newDate) => {
         setCurrentSubtask({ ...currentSubtask, dueDate: newDate });
     };
@@ -93,12 +79,6 @@ const SubtaskBottomSheet = ({
                         </Text>
                     </TouchableOpacity>
 
-                    {/* <TouchableOpacity style={styles.button} onPress={() => setShowDatePicker(true)}>
-                        <Text style={styles.buttonText}>
-                            Due Date: {formatDateTime(currentSubtask.dueDate)}
-                        </Text>
-                    </TouchableOpacity> */}
-
                     <DateTimeSelector date={currentSubtask.dueDate} onDateChange={handleDateChange} />
 
                     <NotificationPicker
@@ -129,8 +109,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.3)',
     },
     content: {
-        // paddingHorizontal: 20,
-        // flex: 1,
         padding: 20,
         paddingBottom: 30,
     },
