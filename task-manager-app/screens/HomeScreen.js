@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
 import { db, auth } from '../firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { PRIORITY_ORDER } from '../helpers/constants';
+import { PRIORITIES } from '../helpers/priority'
 
 const HomeScreen = ({ navigation }) => {
     const [visible, setVisible] = useState(false);
@@ -12,6 +13,7 @@ const HomeScreen = ({ navigation }) => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sortOption, setSortOption] = useState(null);
+    const [viewMode, setViewMode] = useState('list');
 
     const hideMenu = () => setVisible(false);
     const showMenu = () => setVisible(true);
@@ -23,6 +25,12 @@ const HomeScreen = ({ navigation }) => {
             setSortOption('date');
         } else if (option === 'Sort Alphabetically') {
             setSortOption('alphabetical');
+        } else if (option === 'Kanban View') {
+            // Switch to Kanban view
+            setViewMode('kanban');
+        } else if (option === 'List View') {
+            // Switch to List view
+            setViewMode('list');
         } else {
             setSortOption(null);
         }
@@ -89,6 +97,52 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
+    const renderListView = () => {
+        return loading ? (
+            <Text style={styles.loadingText}>Loading to-do lists...</Text>
+        ) : tasks.length > 0 ? (
+            <FlatList
+                data={tasks}
+                keyExtractor={(item) => item.id}
+                renderItem={renderTaskItem}
+            />
+        ) : (
+            <Text style={styles.noTasksText}>No tasks available. Create a new to-do list!</Text>
+        );
+    };
+
+    const renderKanbanView = () => {
+        // Group tasks by priority
+        const tasksByPriority = PRIORITIES.map(priorityLevel => ({
+            priority: priorityLevel,
+            tasks: tasks.filter(t => t.priority === priorityLevel)
+        }));
+
+        return (
+            <ScrollView horizontal style={{ flex: 1 }}>
+                {tasksByPriority.map((column, index) => (
+                    <View key={index} style={styles.kanbanColumn}>
+                        <Text style={styles.kanbanColumnTitle}>{column.priority}</Text>
+                        {column.tasks.length > 0 ? (
+                            column.tasks.map(task => (
+                                <TouchableOpacity 
+                                    key={task.id} 
+                                    style={styles.kanbanTaskItem}
+                                    onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: task.id })}
+                                >
+                                    <Text style={styles.taskTitle}>{task.title}</Text>
+                                    <Text style={styles.taskDetails}>Due: {new Date(task.dueDate).toLocaleString()}</Text>
+                                </TouchableOpacity>
+                            ))
+                        ) : (
+                            <Text style={styles.noTasksText}>No tasks</Text>
+                        )}
+                    </View>
+                ))}
+            </ScrollView>
+        );
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Header section */}
@@ -112,7 +166,9 @@ const HomeScreen = ({ navigation }) => {
                 </Menu>
             </View>
 
-            {/* Example Task List */}
+            {viewMode === 'list' ? renderListView() : renderKanbanView()}
+
+            {/* Example Task List
             {loading ? (
                 <Text style={styles.loadingText}>Loading to-do lists...</Text>
             ) : tasks.length > 0 ? (
@@ -123,7 +179,7 @@ const HomeScreen = ({ navigation }) => {
                 />
             ) : (
                 <Text style={styles.noTasksText}>No tasks available. Create a new to-do list!</Text>
-            )}
+            )} */}
 
             {/* Floating Action button */}
             <TouchableOpacity
@@ -207,6 +263,30 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 4,
         elevation: 5,
+    },
+    kanbanColumn: {
+        width: 200,
+        padding: 10,
+        marginVertical: 10,
+        marginLeft: 10,
+        backgroundColor: '#eee',
+        borderRadius: 10,
+    },
+    kanbanColumnTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
+    kanbanTaskItem: {
+        backgroundColor: 'white',
+        padding: 10,
+        borderRadius: 8,
+        marginBottom: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
 });
 
