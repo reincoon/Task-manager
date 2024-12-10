@@ -4,11 +4,15 @@ import * as Notifications from 'expo-notifications';
 
 export async function scheduleTaskNotification(title, notificationKey, dueDate) {
     if (notificationKey === 'None') {
-        return; // no notification needed
+        return null; // no notification needed
     }
 
     const offset = NOTIFICATION_TIME_OFFSETS[notificationKey] || 0;
     const notificationTime = new Date(dueDate.getTime() + offset);
+    // ensure notificationTime is in future
+    if (notificationTime.getTime() <= Date.now()) {
+        return null;
+    }
     return await scheduleNotification(title, `Reminder for task: ${title}`, notificationTime);
 }
 

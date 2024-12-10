@@ -1,5 +1,4 @@
 import * as Notifications from 'expo-notifications';
-import { Alert } from 'react-native';
 
 export const requestNotificationPermissions = async () => {
     const { status } = await Notifications.requestPermissionsAsync();
@@ -10,13 +9,13 @@ export const requestNotificationPermissions = async () => {
 
 export const scheduleNotification = async (title, message, time) => {
     if (!(time instanceof Date)) {
-        Alert.alert('Error', 'Invalid notification time.');
-        return;
+        console.warn('Invalid notification time, skipping scheduling.');
+        return null;
     }
 
     if (time.getTime() <= Date.now()) {
         // No schedule if time is in the past
-        return;
+        return null;
     }
 
     try {
@@ -27,5 +26,6 @@ export const scheduleNotification = async (title, message, time) => {
         return notificationId;
     } catch (error) {
         console.error('Error scheduling notification:', error);
+        return null;
     }
 };

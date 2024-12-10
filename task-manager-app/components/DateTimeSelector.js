@@ -43,6 +43,8 @@ const DateTimeSelector = ({ date, onDateChange }) => {
         }
     };
 
+    const safeDate = (date instanceof Date && !isNaN(date.getTime())) ? date : new Date();
+
     return (
         <View>
             <TouchableOpacity 
@@ -55,14 +57,14 @@ const DateTimeSelector = ({ date, onDateChange }) => {
                 onPress={openPicker}
             >
                 <Text style={{ color: '#fff', textAlign: 'center' }}>
-                    Set Due Date: {formatDateTime(date)}
+                    Set Due Date: {formatDateTime(safeDate)}
                 </Text>
             </TouchableOpacity>
     
             {/* iOS combined datetime picker */}
             {showDatePicker && Platform.OS === 'ios' && (
                 <DateTimePicker
-                    value={date}
+                    value={safeDate}
                     mode="datetime"
                     display="default"
                     onChange={onDateSelected}
@@ -72,7 +74,7 @@ const DateTimeSelector = ({ date, onDateChange }) => {
             {/* Android date picker */}
             {showDatePicker && Platform.OS === 'android' && (
                 <DateTimePicker
-                    value={date}
+                    value={safeDate}
                     mode="date"
                     display="default"
                     onChange={onDateSelected}
@@ -82,7 +84,7 @@ const DateTimeSelector = ({ date, onDateChange }) => {
             {/* Android time picker, shown after date is selected */}
             {showTimePicker && Platform.OS === 'android' && (
                 <DateTimePicker
-                    value={date}
+                    value={safeDate}
                     mode="time"
                     display="default"
                     onChange={onTimeSelected}

@@ -29,6 +29,11 @@ const SubtaskBottomSheet = ({
         onClose();
     };
 
+    const validSubtaskDate = (currentSubtask.dueDate instanceof Date && !isNaN(currentSubtask.dueDate.getTime())) 
+        ? currentSubtask.dueDate 
+        : new Date();
+
+
     return (
         <View style={styles.overlay}>
             <BottomSheet
@@ -79,7 +84,7 @@ const SubtaskBottomSheet = ({
                         </Text>
                     </TouchableOpacity>
 
-                    <DateTimeSelector date={currentSubtask.dueDate} onDateChange={handleDateChange} />
+                    <DateTimeSelector date={validSubtaskDate} onDateChange={handleDateChange} />
 
                     <NotificationPicker
                         selectedValue={currentSubtask.reminder}

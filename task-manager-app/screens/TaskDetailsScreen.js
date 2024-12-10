@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../firebaseConfig';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import NotificationPicker from '../components/NotificationPicker';
 import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
 import { requestNotificationPermissions } from '../helpers/notifications';
 import { NOTIFICATION_OPTIONS } from '../helpers/constants';
 import { cyclePriority } from '../helpers/priority';
-import { formatDateTime } from '../helpers/date';
+// import { formatDateTime } from '../helpers/date';
 import DateTimeSelector from '../components/DateTimeSelector';
 import { scheduleTaskNotification, cancelTaskNotification } from '../helpers/notificationsHelpers';
 import SubtaskList from '../components/SubtaskList';
@@ -29,8 +29,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         priority: 'Low',
         reminder: 'None',
         isRecurrent: false,
+        notificationId: null
     });
-
+    const [editingSubtaskIndex, setEditingSubtaskIndex] = useState(null);
     // original task is stored to revert in case if cancelled
     const [originalTask, setOriginalTask] = useState(null); 
     // notificationId is stored to keep in case if cancelled
@@ -59,15 +60,24 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
             const data = taskSnapshot.data();
             // Convert to-do list dueDate to Date object
-            const mainDueDate = new Date(data.dueDate);
+            let mainDueDate = new Date(data.dueDate);
+            if (isNaN(mainDueDate.getTime())) {
+                mainDueDate = new Date();
+            }
             // Convert each subtask's dueDate to a Date object
             let fetchedSubtasks = data.subtasks || [];
             fetchedSubtasks = fetchedSubtasks.map(subtask => {
+                let validDueDate = new Date(subtask.dueDate);
+                if (isNaN(validDueDate.getTime())) {
+                    // If invalid, default to current date or dueDate of the task
+                    validDueDate = new Date();
+                }
                 return {
                     ...subtask,
-                    dueDate: subtask.dueDate ? new Date(subtask.dueDate) : new Date(),
-                };
+                    dueDate: validDueDate,
+                };    
             });
+
             setTaskTitle(data.title);
             setNotes(data.notes || '');
             setDueDate(mainDueDate);
@@ -107,7 +117,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             // if saved cancel old notification and schedule new one
             let newNotificationId = taskNotificationId;
             const reminderChanged = (originalTask.notification !== notification) || (originalTask.dueDate.getTime() !== dueDate.getTime());
-
+            // If reminder changed, aattempt to reschedule
             if (reminderChanged) {
                 // Cancel old notification
                 if (taskNotificationId) {
@@ -181,19 +191,88 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             newSubtaskNotificationId = await scheduleTaskNotification(currentSubtask.title, currentSubtask.reminder, currentSubtask.dueDate);
         }
 
-        const newSubtask = {
-            ...currentSubtask,
-            notificationId: newSubtaskNotificationId,
-        };
-        setSubtasks([...subtasks, newSubtask]);
+        if (editingSubtaskIndex !== null) {
+            // Editing existing subtask
+            const updatedSubtasks = [...subtasks];
+            updatedSubtasks[editingSubtaskIndex] = {
+                ...currentSubtask,
+                notificationId: newSubtaskNotificationId
+            };
+            setSubtasks(updatedSubtasks);
+        } else {
+            // Adding new subtask
+            const newSubtask = {
+                ...currentSubtask,
+                notificationId: newSubtaskNotificationId,
+            };
+            setSubtasks([...subtasks, newSubtask]);
+        }
+        // Reset current subtask and close sheet
         setCurrentSubtask({
             title: '',
             dueDate: new Date(),
             priority: 'Low',
             reminder: 'None',
             isRecurrent: false,
+            notificationId: null
         });
+        setEditingSubtaskIndex(null);
         setShowSubtaskForm(false);
+    };
+
+    // Delete the entire to-do lisy
+    const handleDeleteTask = async () => {
+        Alert.alert('Delete To-Do List', 'Are you sure you want to delete this to-do list?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', style: 'destructive', onPress: async () => {
+                const userId = auth.currentUser?.uid;
+                if (!userId) return;
+                const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+
+                // Cancel to-do list notification
+                if (taskNotificationId) {
+                    await cancelTaskNotification(taskNotificationId);
+                }
+
+                // Cancel all subtasks notifications
+                for (const subtask of subtasks) {
+                    if (subtask.notificationId) {
+                        await cancelTaskNotification(subtask.notificationId);
+                    }
+                }
+
+                await deleteDoc(taskDocRef);
+                Alert.alert('Deleted', 'Task deleted successfully');
+                navigation.goBack();
+            }}
+        ]);
+    };
+
+    // Edit a subtask
+    const handleEditSubtask = (index) => {
+        const subtaskToEdit = subtasks[index];
+        setCurrentSubtask(subtaskToEdit);
+        setEditingSubtaskIndex(index);
+        setShowSubtaskForm(true);
+    };
+
+    // Delete a subtask
+    const handleDeleteSubtask = (index) => {
+        Alert.alert('Delete Subtask', 'Are you sure you want to delete this subtask?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', style: 'destructive', onPress: async () => {
+                const updatedSubtasks = [...subtasks];
+                const subtaskToDelete = updatedSubtasks[index];
+
+                // Cancel the subtask's notification
+                if (subtaskToDelete.newNotificationId) {
+                    await cancelTaskNotification(subtaskToDelete.notificationId);
+                }
+
+                updatedSubtasks.splice(index, 1);
+                setSubtasks(updatedSubtasks);
+            }}
+        ]);
     };
 
     if (loading) {
@@ -250,15 +329,47 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     <Text style={styles.buttonText}>Priority: {priority}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
+                {/* <TouchableOpacity
                     style={[styles.button, { backgroundColor: '#28a745' }]}
                     onPress={() => setShowSubtaskForm(true)}
                 >
                     <Ionicons name="add-circle-outline" size={20} color="white" />
                     <Text style={styles.buttonText}>Add Subtask</Text>
+                </TouchableOpacity> */}
+
+                <TouchableOpacity
+                    style={[styles.button, { backgroundColor: '#28a745' }]}
+                    onPress={() => {
+                        setEditingSubtaskIndex(null);
+                        setCurrentSubtask({
+                            title: '',
+                            dueDate: new Date(),
+                            priority: 'Low',
+                            reminder: 'None',
+                            isRecurrent: false,
+                            notificationId: null
+                        });
+                        setShowSubtaskForm(true);
+                    }}
+                >
+                    <Ionicons name="add-circle-outline" size={20} color="white" />
+                    <Text style={styles.buttonText}>Add Subtask</Text>
                 </TouchableOpacity>
 
-                <SubtaskList subtasks={subtasks} />
+                {/* Delete To-Do List */}
+                <TouchableOpacity
+                    style={[styles.button, { backgroundColor: 'red' }]}
+                    onPress={handleDeleteTask}
+                >
+                    <Ionicons name="trash-outline" size={20} color="white" />
+                    <Text style={styles.buttonText}>Delete Task</Text>
+                </TouchableOpacity>
+
+                <SubtaskList 
+                    subtasks={subtasks} 
+                    onEditSubtask={handleEditSubtask}
+                    onDeleteSubtask={handleDeleteSubtask}
+                />
             </ScrollView>
 
             <SubtaskBottomSheet
