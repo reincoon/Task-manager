@@ -14,6 +14,12 @@ const HomeScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [sortOption, setSortOption] = useState(null);
     const [viewMode, setViewMode] = useState('list');
+    const [columnFilters, setColumnFilters] = useState(
+        PRIORITIES.reduce((acc, p) => {
+            acc[p] = { dueSoon: false };
+            return acc;
+        }, {})
+    );
 
     const hideMenu = () => setVisible(false);
     const showMenu = () => setVisible(true);
@@ -111,18 +117,84 @@ const HomeScreen = ({ navigation }) => {
         );
     };
 
+    // Due soon criteria: tasks due within next 48 hours
+    const dueSoonThreshold = 48 * 60 * 60 * 1000;
+
+    const filterTasksForColumn = (priorityLevel) => {
+        let columnTasks = tasks.filter(t => t.priority === priorityLevel);
+        const { dueSoon } = columnFilters[priorityLevel];
+        if (dueSoon) {
+            const now = Date.now();
+            columnTasks = columnTasks.filter(t => {
+                const dueTime = new Date(t.dueDate).getTime();
+                return dueTime > now && dueTime - now <= dueSoonThreshold;
+            });
+        }
+        return columnTasks;
+    };
+
+    const toggleDueSoonFilter = (priorityLevel) => {
+        setColumnFilters(prev => ({
+            ...prev,
+            [priorityLevel]: { dueSoon: !prev[priorityLevel].dueSoon }
+        }));
+    };
+
     const renderKanbanView = () => {
         // Group tasks by priority
-        const tasksByPriority = PRIORITIES.map(priorityLevel => ({
-            priority: priorityLevel,
-            tasks: tasks.filter(t => t.priority === priorityLevel)
-        }));
+        // const tasksByPriority = PRIORITIES.map(priorityLevel => ({
+        //     priority: priorityLevel,
+        //     tasks: tasks.filter(t => t.priority === priorityLevel)
+        // }));
+        const tasksByPriority = PRIORITIES.map(priorityLevel => {
+            return {
+                priority: priorityLevel,
+                tasks: filterTasksForColumn(priorityLevel)
+            };
+        });
+
+    //     return (
+    //         <ScrollView horizontal style={{ flex: 1 }}>
+    //             {tasksByPriority.map((column, index) => (
+    //                 <View key={index} style={styles.kanbanColumn}>
+    //                     <Text style={styles.kanbanColumnTitle}>{column.priority}</Text>
+    //                     {column.tasks.length > 0 ? (
+    //                         column.tasks.map(task => (
+    //                             <TouchableOpacity 
+    //                                 key={task.id} 
+    //                                 style={styles.kanbanTaskItem}
+    //                                 onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: task.id })}
+    //                             >
+    //                                 <Text style={styles.taskTitle}>{task.title}</Text>
+    //                                 <Text style={styles.taskDetails}>Due: {new Date(task.dueDate).toLocaleString()}</Text>
+    //                             </TouchableOpacity>
+    //                         ))
+    //                     ) : (
+    //                         <Text style={styles.noTasksText}>No tasks</Text>
+    //                     )}
+    //                 </View>
+    //             ))}
+    //         </ScrollView>
+    //     );
+    // };
 
         return (
             <ScrollView horizontal style={{ flex: 1 }}>
                 {tasksByPriority.map((column, index) => (
                     <View key={index} style={styles.kanbanColumn}>
-                        <Text style={styles.kanbanColumnTitle}>{column.priority}</Text>
+                        <View style={styles.kanbanColumnHeader}>
+                            <Text style={styles.kanbanColumnTitle}>
+                                {column.priority} ({column.tasks.length})
+                            </Text>
+                            <TouchableOpacity 
+                                style={styles.filterButton}
+                                onPress={() => toggleDueSoonFilter(column.priority)}
+                            >
+                                <Text style={styles.filterButtonText}>
+                                    {columnFilters[column.priority].dueSoon ? "All" : "Due Soon"}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                         {column.tasks.length > 0 ? (
                             column.tasks.map(task => (
                                 <TouchableOpacity 
@@ -265,12 +337,18 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     kanbanColumn: {
-        width: 200,
+        width: 220,
         padding: 10,
         marginVertical: 10,
         marginLeft: 10,
         backgroundColor: '#eee',
         borderRadius: 10,
+    },
+    kanbanColumnHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
     },
     kanbanColumnTitle: {
         fontSize: 16,
@@ -287,6 +365,16 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 2,
+    },
+    filterButton: {
+        backgroundColor: '#007bff',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 5,
+    },
+    filterButtonText: {
+        color: '#fff',
+        fontSize: 12,
     },
 });
 
