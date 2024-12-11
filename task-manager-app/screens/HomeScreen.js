@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
 import { db, auth } from '../firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { PRIORITY_ORDER } from '../helpers/constants';
-import { PRIORITIES } from '../helpers/priority'
+import { PRIORITIES } from '../helpers/priority';
+import DraggableFlatList from 'react-native-draggable-flatlist';
 
 const HomeScreen = ({ navigation }) => {
     const [visible, setVisible] = useState(false);
@@ -20,6 +21,12 @@ const HomeScreen = ({ navigation }) => {
             return acc;
         }, {})
     );
+    const [showProjectModal, setShowProjectModal] = useState(false);
+    const [newProjectName, setNewProjectName] = useState('');
+    const [userId, setUserId] = useState(null);
+
+    const [draggingTask, setDraggingTask] = useState(null);
+    const [hoveredTask, setHoveredTask] = useState(null);
 
     const hideMenu = () => setVisible(false);
     const showMenu = () => setVisible(true);

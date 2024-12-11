@@ -12,6 +12,7 @@ import { cyclePriority } from '../helpers/priority';
 import DateTimeSelector from '../components/DateTimeSelector';
 import { scheduleTaskNotification, cancelTaskNotification } from '../helpers/notificationsHelpers';
 import SubtaskList from '../components/SubtaskList';
+import { addEventToCalendar } from '../helpers/calendar';
 
 const TaskDetailsScreen = ({ route, navigation }) => {
     const { taskId } = route.params;
@@ -29,26 +30,35 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         priority: 'Low',
         reminder: 'None',
         isRecurrent: false,
-        notificationId: null
+        notificationId: null,
+        eventId: null
     });
     const [editingSubtaskIndex, setEditingSubtaskIndex] = useState(null);
     // original task is stored to revert in case if cancelled
     const [originalTask, setOriginalTask] = useState(null); 
     // notificationId is stored to keep in case if cancelled
     const [taskNotificationId, setTaskNotificationId] = useState(null);
+    const [userId, setUserId] = useState(null);
 
     useEffect(() => {
         requestNotificationPermissions();
-    }, []);
+        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+            if (currentUser) {
+                setUserId(currentUser.uid);
+            } else {
+                Alert.alert('Error', 'No user signed in.');
+                navigation.goBack();
+            }
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, [navigation]);
 
     useEffect(() => {
         const fetchTask = async () => {
-            const userId = auth.currentUser?.uid;
-            if (!userId) {
-                Alert.alert('Error', 'No user signed in.');
-                navigation.goBack();
-                return;
-            }
+            if (!userId) return;
 
             const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
             const taskSnapshot = await getDoc(taskDocRef);
@@ -98,8 +108,11 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
             setLoading(false);
         };
-        fetchTask();
-    }, [taskId]);
+        // fetchTask();
+        if (userId) {
+            fetchTask();
+        }
+    }, [userId, taskId, navigation]);
 
     const handleSaveTask = async () => {
         if (!taskTitle.trim()) {
@@ -107,7 +120,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             return;
         }
 
-        const userId = auth.currentUser?.uid;
         if (!userId) {
             Alert.alert('Error', 'No user signed in.');
             return;
@@ -130,24 +142,26 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             // Handle subtasks notifications changes
             let updatedSubtasks = [...subtasks];
             
-            for (let i = 0; i < updatedSubtasks.length; i++) {
-                const subtask = updatedSubtasks[i];
-                const originalSubtask = originalTask.subtasks[i] || {};
-                const reminderChanged = originalSubtask.reminder !== subtask.reminder;
-                const dueDateChanged = (originalSubtask.dueDate && 
-                    (new Date(originalSubtask.dueDate).getTime() !== subtask.dueDate.getTime()));
+            if (originalTask) {
+                for (let i = 0; i < updatedSubtasks.length; i++) {
+                    const subtask = updatedSubtasks[i];
+                    const originalSubtask = originalTask.subtasks[i] || {};
+                    const reminderChanged = originalSubtask.reminder !== subtask.reminder;
+                    const dueDateChanged = (originalSubtask.dueDate && 
+                        (new Date(originalSubtask.dueDate).getTime() !== subtask.dueDate.getTime()));
 
-                if (reminderChanged || dueDateChanged) {
-                    // Cancel old subtask notification
-                    if (subtask.notificationId) {
-                        await cancelTaskNotification(subtask.notificationId);
+                    if (reminderChanged || dueDateChanged) {
+                        // Cancel old subtask notification
+                        if (subtask.notificationId) {
+                            await cancelTaskNotification(subtask.notificationId);
+                        }
+                        // Schedule new subtask notification
+                        let newSubtaskNotificationId = null;
+                        if (subtask.reminder !== 'None') {
+                            newSubtaskNotificationId = await scheduleTaskNotification(subtask.title, subtask.reminder, subtask.dueDate);
+                        }
+                        updatedSubtasks[i] = { ...subtask, notificationId: newSubtaskNotificationId };
                     }
-                    // Schedule new subtask notification
-                    let newSubtaskNotificationId = null;
-                    if (subtask.reminder !== 'None') {
-                        newSubtaskNotificationId = await scheduleTaskNotification(subtask.title, subtask.reminder, subtask.dueDate);
-                    }
-                    updatedSubtasks[i] = { ...subtask, notificationId: newSubtaskNotificationId };
                 }
             }
 
@@ -237,7 +251,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         Alert.alert('Delete To-Do List', 'Are you sure you want to delete this to-do list?', [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Delete', style: 'destructive', onPress: async () => {
-                const userId = auth.currentUser?.uid;
                 if (!userId) {
                     return;
                 }
@@ -298,15 +311,100 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         ]);
     };
 
-    if (loading) {
-        return (
-            <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#007bff" />
-            </SafeAreaView>
+    const promptAddEventAnyway = async (title, dueDate, notes, existingEventId, onConfirm) => {
+        Alert.alert(
+            'Already in Calendar',
+            'This event already exists in your calendar. Do you want to add another one anyway?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Add Anyway', style: 'default', onPress: onConfirm }
+            ]
         );
-    }
+    };
 
-    return (
+    const promptAddEvent = async (title, dueDate, notes, onConfirm) => {
+        Alert.alert(
+            'Add to Calendar',
+            `Do you want to add "${title}" to your calendar?`,
+            [
+                { text: 'No', style: 'cancel' },
+                { text: 'Yes', style: 'default', onPress: onConfirm }
+            ]
+        );
+    };
+
+    // Add a to-do list to calendar
+    const addTaskToCalendar = async () => {
+        // await addEventToCalendar(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`);
+        if (!userId) {
+            Alert.alert('Error', 'No user logged in.');
+            return;
+        }
+        const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+        const snapshot = await getDoc(taskDocRef);
+        if (!snapshot.exists()) {
+            Alert.alert('Error', 'Task not found.');
+            return;
+        }
+        const data = snapshot.data();
+        const doAddEvent = async () => {
+            const eventId = await addEventToCalendar(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`, true);
+            if (eventId) {
+                await updateDoc(taskDocRef, { eventId });
+                setTaskNotificationId(eventId);
+            }
+        };
+
+        if (data.eventId) {
+            await promptAddEventAnyway(taskTitle, dueDate, '', data.eventId, doAddEvent);
+        } else {
+            await promptAddEvent(taskTitle, dueDate, '', doAddEvent);
+        }        
+    };
+    // Add a subtask to calendar
+    const addSubtaskToCalendar  = async (subtask, index) => {
+        // await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`);
+        if (!userId) {
+            Alert.alert('Error', 'No user logged in.');
+            return;
+        }
+        const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+        const snapshot = await getDoc(taskDocRef);
+        if (!snapshot.exists()) {
+            Alert.alert('Error', 'Task not found.');
+            return;
+        }
+        const data = snapshot.data();
+        let updatedSubtasks = data.subtasks || [];
+        
+        const doAddSubtaskEvent = async () => {
+            const eventId = await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`, true);
+            if (eventId) {
+                updatedSubtasks[index] = {
+                    ...updatedSubtasks[index],
+                    eventId
+                };
+                await updateDoc(taskDocRef, { subtasks: updatedSubtasks });
+                setSubtasks(prev => {
+                    const copy = [...prev];
+                    copy[index] = { ...copy[index], eventId };
+                    return copy;
+                });
+            }
+        };
+
+        if (updatedSubtasks[index].eventId) {
+            await promptAddEventAnyway(subtask.title, subtask.dueDate, '', updatedSubtasks[index].eventId, doAddSubtaskEvent);
+        } else {
+            await promptAddEvent(subtask.title, subtask.dueDate, '', doAddSubtaskEvent);
+        }
+    };
+
+    return loading ? (
+        <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#007bff" />
+        </SafeAreaView>
+    ) : (
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
@@ -352,14 +450,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     <Text style={styles.buttonText}>Priority: {priority}</Text>
                 </TouchableOpacity>
 
-                {/* <TouchableOpacity
-                    style={[styles.button, { backgroundColor: '#28a745' }]}
-                    onPress={() => setShowSubtaskForm(true)}
-                >
-                    <Ionicons name="add-circle-outline" size={20} color="white" />
-                    <Text style={styles.buttonText}>Add Subtask</Text>
-                </TouchableOpacity> */}
-
                 <TouchableOpacity
                     style={[styles.button, { backgroundColor: '#28a745' }]}
                     onPress={() => {
@@ -387,11 +477,20 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     <Ionicons name="trash-outline" size={20} color="white" />
                     <Text style={styles.buttonText}>Delete Task</Text>
                 </TouchableOpacity>
-
+                {/* Add to-do list to calendar */}
+                <TouchableOpacity
+                    style={[styles.button, { backgroundColor: '#FFA726' }]}
+                    onPress={addTaskToCalendar}
+                >
+                    <Ionicons name="calendar-outline" size={20} color="white" />
+                    <Text style={styles.buttonText}>Add To-Do List to Calendar</Text>
+                </TouchableOpacity>
+                {/* List of subtasks */}
                 <SubtaskList 
                     subtasks={subtasks} 
                     onEditSubtask={handleEditSubtask}
                     onDeleteSubtask={handleDeleteSubtask}
+                    onAddSubtaskToCalendar={addSubtaskToCalendar}
                 />
             </ScrollView>
 

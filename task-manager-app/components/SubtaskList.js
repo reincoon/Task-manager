@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { formatDateTime } from '../helpers/date';
 import { Ionicons } from '@expo/vector-icons';
 
-const SubtaskList = ({ subtasks, onEditSubtask, onDeleteSubtask }) => {
+const SubtaskList = ({ subtasks, onEditSubtask, onDeleteSubtask, onAddSubtaskToCalendar }) => {
     if (subtasks.length === 0) {
         return null;
     };
@@ -23,6 +23,11 @@ const SubtaskList = ({ subtasks, onEditSubtask, onDeleteSubtask }) => {
                         <TouchableOpacity onPress={() => onDeleteSubtask(index)}>
                             <Ionicons name="trash-outline" size={20} color="red" />
                         </TouchableOpacity>
+                        {onAddSubtaskToCalendar && (
+                            <TouchableOpacity onPress={() => onAddSubtaskToCalendar(item, index)}>
+                                <Ionicons name="calendar-outline" size={20} color="#007bff" />
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             ))}

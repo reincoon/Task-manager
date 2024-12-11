@@ -13,12 +13,12 @@ import { cyclePriority } from '../helpers/priority';
 import DateTimeSelector from '../components/DateTimeSelector';
 import { scheduleTaskNotification } from '../helpers/notificationsHelpers';
 import SubtaskList from '../components/SubtaskList';
+import { addEventToCalendar } from '../helpers/calendar';
 
 const TaskCreationScreen = ({ navigation }) => {
     const [taskTitle, setTaskTitle] = useState('');
     const [notes, setNotes] = useState('');
     const [dueDate, setDueDate] = useState(new Date());
-    // const [showDatePicker, setShowDatePicker] = useState(false);
     const [notification, setNotification] = useState('None');
     const [priority, setPriority] = useState('Low');
     const [subtasks, setSubtasks] = useState([]);
@@ -31,10 +31,16 @@ const TaskCreationScreen = ({ navigation }) => {
         isRecurrent: false,
     });
 
+    const [taskId, setTaskId] = useState(null);
+    const [userId, setUserId] = useState(null);
 
     // Request permissions for notifications
     useEffect(() => {
         requestNotificationPermissions();
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+            setUserId(currentUser.uid);
+        }
     }, []);
 
     const handleSaveTask = async () => {
@@ -59,14 +65,16 @@ const TaskCreationScreen = ({ navigation }) => {
                 subtasks,
                 userId,
                 createdAt: new Date().toISOString(),
+                eventId: null
             };
             const taskRef = collection(db, `tasks/${userId}/taskList`);
-            await addDoc(taskRef, taskData);
+            const docRef = await addDoc(taskRef, taskData);
 
             // Schedule Notification
             await scheduleTaskNotification(taskTitle, notification, dueDate);
 
             Alert.alert('Success', 'Task created successfully');
+            setTaskId(docRef.id);
             navigation.navigate('Home');
         } catch (error) {
             Alert.alert('Error', error.message);
@@ -92,6 +100,63 @@ const TaskCreationScreen = ({ navigation }) => {
             isRecurrent: false,
         });
         setShowSubtaskForm(false);
+    };
+
+    const addMainTaskToCalendar = async () => {
+        // await addEventToCalendar(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`);
+        if (!userId || !taskId) {
+            Alert.alert('Info', 'You need to save the task first before adding it to calendar.');
+            return;
+        }
+
+        const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+        const snapshot = await getDoc(taskDocRef);
+        if (!snapshot.exists()) {
+            Alert.alert('Error', 'Task not found.');
+            return;
+        }
+        const data = snapshot.data();
+        if (data.eventId) {
+            Alert.alert('Already in Calendar', 'This task is already added to your calendar.');
+            return;
+        }
+
+        const eventId = await addEventToCalendar(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`);
+        if (eventId) {
+            await updateDoc(taskDocRef, { eventId });
+        }
+    };
+
+    const addSubtaskToCalendar = async (subtask) => {
+        // await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`);
+        if (!userId || !taskId) {
+            Alert.alert('Info', 'You need to save the task first before adding subtasks to calendar.');
+            return;
+        }
+
+        const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+        const snapshot = await getDoc(taskDocRef);
+        if (!snapshot.exists()) {
+            Alert.alert('Error', 'Task not found.');
+            return;
+        }
+        let data = snapshot.data();
+        let updatedSubtasks = data.subtasks || [];
+        const currentSubtaskData = updatedSubtasks[index];
+        if (currentSubtaskData.eventId) {
+            Alert.alert('Already in Calendar', 'This subtask is already added to your calendar.');
+            return;
+        }
+
+        // create event
+        const eventId = await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`);
+        if (eventId) {
+            updatedSubtasks[index] = {
+                ...updatedSubtasks[index],
+                eventId
+            };
+            await updateDoc(taskDocRef, { subtasks: updatedSubtasks });
+        }
     };
 
     return (
@@ -149,7 +214,24 @@ const TaskCreationScreen = ({ navigation }) => {
                     <Text style={styles.buttonText}>Add Subtask</Text>
                 </TouchableOpacity>
 
-                <SubtaskList subtasks={subtasks} />
+                <SubtaskList 
+                    subtasks={subtasks}
+                    onEditSubtask={() => {}}
+                    onDeleteSubtask={(index) => {
+                        const updated = [...subtasks];
+                        updated.splice(index, 1);
+                        setSubtasks(updated);
+                    }}
+                    onAddSubtaskToCalendar={(subtask, idx) => addSubtaskToCalendar(subtask, idx)}
+                />
+                {/* Add main task to calendar */}
+                <TouchableOpacity
+                    style={[styles.button, { backgroundColor: '#FFA726' }]}
+                    onPress={addMainTaskToCalendar}
+                >
+                    <Ionicons name="calendar-outline" size={20} color="white" />
+                    <Text style={styles.buttonText}>Add To-Do List to Calendar</Text>
+                </TouchableOpacity>
             </ScrollView>
             
             {/* Subtask Bottom Sheet */}
@@ -203,11 +285,6 @@ const styles = StyleSheet.create({
     buttonText: {
         color: '#fff',
         textAlign: 'center',
-    },
-    subtaskItem: {
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
-        padding: 10,
     },
 });
 
