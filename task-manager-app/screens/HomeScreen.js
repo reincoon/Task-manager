@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
 import { db, auth } from '../firebaseConfig';
@@ -7,6 +7,9 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { PRIORITY_ORDER } from '../helpers/constants';
 import { PRIORITIES } from '../helpers/priority';
 import DraggableFlatList from 'react-native-draggable-flatlist';
+import ProjectModal from '../components/ProjectModal';
+import { updateTasksProject } from '../helpers/firestoreHelpers';
+import { groupTasksByProject, buildListData } from '../helpers/projects';
 
 const HomeScreen = ({ navigation }) => {
     const [visible, setVisible] = useState(false);
@@ -22,11 +25,11 @@ const HomeScreen = ({ navigation }) => {
         }, {})
     );
     const [showProjectModal, setShowProjectModal] = useState(false);
-    const [newProjectName, setNewProjectName] = useState('');
     const [userId, setUserId] = useState(null);
-
     const [draggingTask, setDraggingTask] = useState(null);
     const [hoveredTask, setHoveredTask] = useState(null);
+    const [data, setData] = useState([]);
+    const originalDataRef = useRef([]);
 
     const hideMenu = () => setVisible(false);
     const showMenu = () => setVisible(true);
@@ -50,36 +53,65 @@ const HomeScreen = ({ navigation }) => {
         hideMenu();
     };
 
+    // useEffect(() => {
+    //     let unsubscribeTasks;
+    //     const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
+    //         if (!currentUser) {
+    //             // Clear tasks if user is not logged in
+    //             setRawTasks([]);
+    //             setLoading(false);
+    //             return;
+    //         }
+        
+    //         const userId = currentUser.uid;
+    //         const tasksRef = collection(db, `tasks/${userId}/taskList`);
+            
+    //         unsubscribeTasks = onSnapshot(tasksRef, (snapshot) => {
+    //             const fetchedTasks = snapshot.docs.map((doc) => ({
+    //                 id: doc.id,
+    //                 ...doc.data(),
+    //             }));
+
+    //             setRawTasks(fetchedTasks);
+    //             setLoading(false);
+    //         });
+    //     });
+    //     return () => {
+    //         if (unsubscribeTasks) {
+    //             unsubscribeTasks();
+    //         };
+    //         unsubscribeAuth();
+    //     };
+    // }, []);
     useEffect(() => {
-        let unsubscribeTasks;
         const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
             if (!currentUser) {
-                // Clear tasks if user is not logged in
                 setRawTasks([]);
                 setLoading(false);
-                return;
+            } else {
+                setUserId(currentUser.uid);
             }
-        
-            const userId = currentUser.uid;
-            const tasksRef = collection(db, `tasks/${userId}/taskList`);
-            
-            unsubscribeTasks = onSnapshot(tasksRef, (snapshot) => {
-                const fetchedTasks = snapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                }));
+        });
+        return () => unsubscribeAuth();
+    }, []);
 
-                setRawTasks(fetchedTasks);
-                setLoading(false);
-            });
+    useEffect(() => {
+        if (!userId) return;
+        const tasksRef = collection(db, `tasks/${userId}/taskList`);
+        const unsubscribeTasks = onSnapshot(tasksRef, (snapshot) => {
+            const fetchedTasks = snapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+            setRawTasks(fetchedTasks);
+            setLoading(false);
         });
         return () => {
             if (unsubscribeTasks) {
                 unsubscribeTasks();
-            };
-            unsubscribeAuth();
+            }
         };
-    }, []);
+    }, [userId]);
 
     // Sort tasks whenever rawTasks or sortOption changes
     useEffect(() => {
@@ -110,19 +142,27 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
-    const renderListView = () => {
-        return loading ? (
-            <Text style={styles.loadingText}>Loading to-do lists...</Text>
-        ) : tasks.length > 0 ? (
-            <FlatList
-                data={tasks}
-                keyExtractor={(item) => item.id}
-                renderItem={renderTaskItem}
-            />
-        ) : (
-            <Text style={styles.noTasksText}>No tasks available. Create a new to-do list!</Text>
-        );
-    };
+    useEffect(() => {
+        if (viewMode === 'list') {
+            const { noProject, byProject } = groupTasksByProject(tasks);
+            const newData = buildListData(noProject, byProject);
+            setData(newData);
+        }
+    }, [tasks, viewMode]);
+
+    // const renderListView = () => {
+    //     return loading ? (
+    //         <Text style={styles.loadingText}>Loading to-do lists...</Text>
+    //     ) : tasks.length > 0 ? (
+    //         <FlatList
+    //             data={tasks}
+    //             keyExtractor={(item) => item.id}
+    //             renderItem={renderTaskItem}
+    //         />
+    //     ) : (
+    //         <Text style={styles.noTasksText}>No tasks available. Create a new to-do list!</Text>
+    //     );
+    // };
 
     // Due soon criteria: tasks due within next 48 hours
     const dueSoonThreshold = 48 * 60 * 60 * 1000;
@@ -222,8 +262,138 @@ const HomeScreen = ({ navigation }) => {
         );
     };
 
+    const handleCreateProject = async (projectName) => {
+        if (!userId || !draggingTask || !hoveredTask) {
+            setShowProjectModal(false);
+            // restore original data since user canceled or something went wrong
+            setData(originalDataRef.current);
+            setDraggingTask(null);
+            setHoveredTask(null);
+            return;
+        }
+        // Update both to-do lists in Firestore
+        await updateTasksProject(userId, [draggingTask, hoveredTask], projectName);
+        setShowProjectModal(false);
+        setDraggingTask(null);
+        setHoveredTask(null);
+        Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
+    };
+
+    const renderListView = () => {
+        if (loading) {
+            return <ActivityIndicator style={{marginTop:20}} />;
+        }
+        if (data.length === 0) {
+            return <Text style={styles.noTasksText}>No tasks available. Create a new to-do list!</Text>;
+        }
+
+        const renderItem = ({ item, drag, isActive }) => {
+            if (item.type === 'projectHeader') {
+                return (
+                    <View style={styles.projectHeader}>
+                        <Text style={[styles.projectHeaderText, {color: '#333'}]}>{item.projectName}</Text>
+                    </View>
+                );
+            }
+            if (item.type === 'noProjectHeader') {
+                return (
+                    <View style={[styles.projectHeader, {backgroundColor:'#ccc'}]}>
+                        <Text style={styles.projectHeaderText}>To-do lists without a Project</Text>
+                    </View>
+                );
+            }
+            // It's a task
+            return (
+                <TouchableOpacity 
+                    style={[styles.taskItem, isActive && {opacity:0.7}]}
+                    onLongPress={drag}
+                    onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
+                >
+                    <Text style={styles.taskTitle}>{item.title}</Text>
+                    <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+                    <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+                </TouchableOpacity>
+            );
+        };
+
+        const keyExtractor = (item, index) => {
+            if (item.type === 'projectHeader') return `projectHeader-${item.projectName}-${index}`;
+            if (item.type === 'noProjectHeader') return `noProjectHeader-${index}`;
+            return item.id;
+        };
+
+        const onDragEnd = async ({ data: newData, from, to }) => {
+            if (from === to) return;
+
+            const draggedItem = newData[from];
+            const droppedItem = newData[to];
+
+            // Save original data in case it's needed to revert
+            const oldData = data;
+            originalDataRef.current = oldData;
+
+            // Find the project/noProject section above the dropped position
+            let finalProject = null;
+            for (let i = to; i >= 0; i--) {
+                if (newData[i].type === 'projectHeader') {
+                    finalProject = newData[i].projectName;
+                    break;
+                }
+                if (newData[i].type === 'noProjectHeader') {
+                    finalProject = null; 
+                    break;
+                }
+            }
+
+            // If draggedItem is a task
+            if (draggedItem.type === 'task') {
+                const originalProject = draggedItem.project || null;
+
+                // I1) Creating a new project with 2 unassigned tasks (create a project)
+                if (droppedItem.type === 'task' && !droppedItem.project && !originalProject && draggedItem.id !== droppedItem.id) {
+                    setDraggingTask(draggedItem);
+                    setHoveredTask(droppedItem);
+                    setShowProjectModal(true);
+                    setData(oldData);
+                    return;
+                }
+
+                if (finalProject !== originalProject) {
+                    // Update project field for draggedItem
+                    if (!userId) {
+                        // revert 
+                        setData(oldData);
+                        return;
+                    }
+                    await updateTasksProject(userId, [draggedItem], finalProject || null);
+                }
+            }
+            // If just reordering within the same section with no project change, the new order is stored locally
+            setData(newData);
+        };
+
+        return (
+            <View style={{flex:1}}>
+                <Text style={{textAlign:'center', margin:10, fontSize:14, color:'#666'}}>
+                -    Long press and drag one unassigned to-do list over another unassigned to create a project.
+                    {"\n"}- Drag a to-do list to a project header or a task in that project to move it into the project.
+                    {"\n"}- Drag a task to the 'no project' section to remove it from a project.
+                </Text>
+                <DraggableFlatList
+                    data={data}
+                    keyExtractor={keyExtractor}
+                    renderItem={renderItem}
+                    onDragEnd={onDragEnd}
+                    activationDistance={20}
+                    containerStyle={{paddingBottom:100}}
+                />
+            </View>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container}>
+            {loading ? <ActivityIndicator style={{marginTop:20}}/> : null}
             {/* Header section */}
             <View style={styles.header}>
                 <Text style={styles.title}>Home</Text>
@@ -267,11 +437,17 @@ const HomeScreen = ({ navigation }) => {
             >
                 <Ionicons name="add" size={32} color="white" />
             </TouchableOpacity>
-            {/* <Text style={styles.title}>Home Screen</Text>
-            <Button title="Create Task" onPress={() => navigation.navigate('Create Task')} />
-            <Button title="See Task Details" onPress={() => navigation.navigate('Task Details')} />
-            <Button title="View Statistics" onPress={() => navigation.navigate('Statistics')} />
-            <Button title="Go to Settings" onPress={() => navigation.navigate('Settings')} /> */}
+            {/* Project Creation Modal */}
+            <ProjectModal
+                visible={showProjectModal}
+                onCancel={() => {
+                    setShowProjectModal(false); 
+                    setData(originalDataRef.current);
+                    setDraggingTask(null); 
+                    setHoveredTask(null);
+                }}
+                onCreate={handleCreateProject}
+            />
         </SafeAreaView>
     )
 };
@@ -382,6 +558,19 @@ const styles = StyleSheet.create({
     filterButtonText: {
         color: '#fff',
         fontSize: 12,
+    },
+    projectHeader: {
+        padding: 8,
+        backgroundColor: '#ddd',
+        marginHorizontal:16,
+        marginTop:10,
+        borderRadius:5,
+        borderLeftWidth:4,
+        borderLeftColor:'#007bff'
+    },
+    projectHeaderText: {
+        fontSize:16,
+        fontWeight:'bold'
     },
 });
 
