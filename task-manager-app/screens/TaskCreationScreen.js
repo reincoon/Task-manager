@@ -3,7 +3,7 @@ import { SafeAreaView, View, Text, TextInput, StyleSheet, TouchableOpacity, Aler
 // import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../firebaseConfig';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 import NotificationPicker from '../components/NotificationPicker';
 import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
 import { requestNotificationPermissions, scheduleNotification } from '../helpers/notifications';
@@ -70,8 +70,17 @@ const TaskCreationScreen = ({ navigation }) => {
             const taskRef = collection(db, `tasks/${userId}/taskList`);
             const docRef = await addDoc(taskRef, taskData);
 
-            // Schedule Notification
-            await scheduleTaskNotification(taskTitle, notification, dueDate);
+            // Schedule Notification for to-do list
+            let mainNotificationId = null;
+            if (notification !== 'None') {
+                mainNotificationId = await scheduleTaskNotification(taskTitle, notification, dueDate);
+            }
+            // Update Firestore with mainNotificationId
+            if (mainNotificationId) {
+                await updateDoc(doc(db, `tasks/${userId}/taskList`, docRef.id), {
+                notificationId: mainNotificationId
+                });
+            }
 
             Alert.alert('Success', 'Task created successfully');
             setTaskId(docRef.id);
@@ -87,11 +96,40 @@ const TaskCreationScreen = ({ navigation }) => {
             return;
         }
 
-        // Schedule Subtask Notification
-        await scheduleTaskNotification(currentSubtask.title, currentSubtask.reminder, currentSubtask.dueDate);
+        let subtaskDueDate = currentSubtask.dueDate;
+        if (!(subtaskDueDate instanceof Date) || isNaN(subtaskDueDate.getTime())) {
+            subtaskDueDate = new Date();
+        }
 
+        // Schedule Subtask Notification
+        // const subtaskNotificationId = await scheduleTaskNotification(currentSubtask.title, currentSubtask.reminder, currentSubtask.dueDate);
+
+        let subtaskNotificationId = null;
+        if (currentSubtask.reminder !== 'None') {
+            subtaskNotificationId = await scheduleTaskNotification(
+                currentSubtask.title,
+                currentSubtask.reminder,
+                subtaskDueDate
+            );
+        }
+
+        const newSubtask = {
+            ...currentSubtask,
+            dueDate: subtaskDueDate,
+            notificationId: subtaskNotificationId || null
+        };
+        
         // Add the subtask
-        setSubtasks([...subtasks, currentSubtask]);
+        setSubtasks([...subtasks, newSubtask]);
+        if (taskId && userId) {
+            const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+            const subtasksForDb = updatedSubtasks.map(s => ({
+                ...s,
+                dueDate: s.dueDate.toISOString()
+            }));
+            await updateDoc(taskDocRef, { subtasks: subtasksForDb });
+        }
+        
         setCurrentSubtask({
             title: '',
             dueDate: new Date(),
