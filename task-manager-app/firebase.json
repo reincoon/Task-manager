@@ -20,7 +20,7 @@
     }
   ],
   "hosting": {
-    "site": "task-manager-444",
+    "site": "task-manager-7049b",
     "public": "public",
     "ignore": [
       "firebase.json",
