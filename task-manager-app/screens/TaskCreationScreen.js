@@ -102,7 +102,7 @@ const TaskCreationScreen = ({ navigation }) => {
         }
 
         // Schedule Subtask Notification
-        // const subtaskNotificationId = await scheduleTaskNotification(currentSubtask.title, currentSubtask.reminder, currentSubtask.dueDate);
+        // await scheduleTaskNotification(currentSubtask.title, currentSubtask.reminder, currentSubtask.dueDate);
 
         let subtaskNotificationId = null;
         if (currentSubtask.reminder !== 'None') {
@@ -118,7 +118,7 @@ const TaskCreationScreen = ({ navigation }) => {
             dueDate: subtaskDueDate,
             notificationId: subtaskNotificationId || null
         };
-        
+
         // Add the subtask
         setSubtasks([...subtasks, newSubtask]);
         if (taskId && userId) {
@@ -129,7 +129,7 @@ const TaskCreationScreen = ({ navigation }) => {
             }));
             await updateDoc(taskDocRef, { subtasks: subtasksForDb });
         }
-        
+
         setCurrentSubtask({
             title: '',
             dueDate: new Date(),

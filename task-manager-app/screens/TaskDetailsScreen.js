@@ -126,23 +126,17 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         }
 
         try {
-            const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-            // Check if main reminder changed
-            const mainReminderChanged  = (originalTask.notification !== notification) || (originalTask.dueDate.getTime() !== dueDate.getTime());
             // if saved cancel old notification and schedule new one
             let newNotificationId = taskNotificationId;
+            const mainReminderChanged  = (originalTask.notification !== notification) || (originalTask.dueDate.getTime() !== dueDate.getTime());
             // If reminder changed, aattempt to reschedule
             if (mainReminderChanged ) {
                 // Cancel old notification
                 if (taskNotificationId) {
                     await cancelTaskNotification(taskNotificationId);
                 }
-                // Schedule new notification if needed
-                if (notification !== 'None') {
-                    newNotificationId = await scheduleTaskNotification(taskTitle, notification, dueDate);
-                } else {
-                    newNotificationId = null;
-                }
+                // Schedule new
+                newNotificationId = await scheduleTaskNotification(taskTitle, notification, dueDate);
             }
 
             // Handle subtasks notifications changes
@@ -176,8 +170,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 dueDate: s.dueDate.toISOString()  // Store as ISO string
             }));
 
+            const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
             await updateDoc(taskDocRef, {
-                title: taskTitle.trim(),
+                title: taskTitle,
                 notes: notes.trim() || null,
                 dueDate: dueDate.toISOString(),
                 notification,
@@ -185,7 +180,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 subtasks: updatedSubtasks,
                 notificationId: newNotificationId || null,
             });
-            setTaskNotificationId(newNotificationId || null);
 
             Alert.alert('Success', 'Task updated successfully');
             navigation.goBack();
@@ -221,41 +215,24 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             subtaskDueDate = new Date();
         }
 
-        let newSubtaskNotificationId = null;
-        if (currentSubtask.reminder !== 'None') {
-            newSubtaskNotificationId = await scheduleTaskNotification(currentSubtask.title, currentSubtask.reminder, subtaskDueDate);
-        }
+        // if (currentSubtask.reminder !== 'None') {
+        //     newSubtaskNotificationId = await scheduleTaskNotification(currentSubtask.title, currentSubtask.reminder, subtaskDueDate);
+        // }
 
         const updatedSubtask = {
             ...currentSubtask,
             dueDate: subtaskDueDate,
-            notificationId: newSubtaskNotificationId || null
+            // notificationId: newSubtaskNotificationId
         };
-
-        let updatedSubtasks;
 
         if (editingSubtaskIndex !== null) {
             // Editing existing subtask
-            updatedSubtasks = [...subtasks];
+            const updatedSubtasks = [...subtasks];
             updatedSubtasks[editingSubtaskIndex] = updatedSubtask;
-            // setSubtasks(updatedSubtasks);
+            setSubtasks(updatedSubtasks);
         } else {
-            // setSubtasks([...subtasks, updatedSubtask]);
-            updatedSubtasks = [...subtasks, updatedSubtask];
+            setSubtasks([...subtasks, updatedSubtask]);
         }
-
-        setSubtasks(updatedSubtasks);
-
-        // If the task is already saved (taskId exists), update Firestore
-        if (userId && taskId) {
-            const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-            const subtasksForDb = updatedSubtasks.map(s => ({
-                ...s,
-                dueDate: s.dueDate.toISOString()
-            }));
-            await updateDoc(taskDocRef, { subtasks: subtasksForDb });
-        }
-
         // Reset current subtask and close sheet
         setCurrentSubtask({
             title: '',
@@ -330,6 +307,16 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
                 updatedSubtasks.splice(index, 1);
                 setSubtasks(updatedSubtasks);
+
+                // Update Firestore
+                if (userId && taskId) {
+                    const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+                    const subtasksForDb = updatedSubtasks.map(s => ({
+                        ...s,
+                        dueDate: s.dueDate.toISOString()
+                    }));
+                    await updateDoc(taskDocRef, { subtasks: subtasksForDb });
+                }
             }}
         ]);
     };
