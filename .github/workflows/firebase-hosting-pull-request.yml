@@ -14,7 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm install
+        working-directory: ./task-manager-app
       - run: npm run build
+        working-directory: ./task-manager-app
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
