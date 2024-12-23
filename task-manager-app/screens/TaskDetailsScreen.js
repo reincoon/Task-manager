@@ -13,6 +13,8 @@ import DateTimeSelector from '../components/DateTimeSelector';
 import { scheduleTaskNotification, cancelTaskNotification } from '../helpers/notificationsHelpers';
 import SubtaskList from '../components/SubtaskList';
 import { addEventToCalendar } from '../helpers/calendar';
+import { addAttachment, removeAttachment } from '../helpers/attachmentHelpers';
+import AttachmentsList from '../components/AttachmentsList';
 
 const TaskDetailsScreen = ({ route, navigation }) => {
     const { taskId } = route.params;
@@ -39,6 +41,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     // notificationId is stored to keep in case if cancelled
     const [taskNotificationId, setTaskNotificationId] = useState(null);
     const [userId, setUserId] = useState(null);
+
+    const [attachments, setAttachments] = useState([]);
+
 
     useEffect(() => {
         requestNotificationPermissions();
@@ -105,6 +110,10 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 subtasks: fetchedSubtasks,
                 notificationId: data.notificationId || null,
             });
+
+            // Initialise attachments
+            const fetchedAttachments = data.attachments || [];
+            setAttachments(fetchedAttachments);
 
             setLoading(false);
         };
@@ -501,6 +510,27 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     onEditSubtask={handleEditSubtask}
                     onDeleteSubtask={handleDeleteSubtask}
                     onAddSubtaskToCalendar={addSubtaskToCalendar}
+                />
+                {/* Attachments */}
+                <AttachmentsList
+                    attachments={attachments}
+                    onAddAttachment={() =>
+                        addAttachment({
+                            setAttachments,
+                            attachments,
+                            userId,
+                            taskId,
+                        })
+                    }
+                    onRemoveAttachment={(index) =>
+                        removeAttachment({
+                            setAttachments,
+                            attachments,
+                            index,
+                            userId,
+                            taskId,
+                        })
+                    }
                 />
             </ScrollView>
 

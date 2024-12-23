@@ -1,7 +1,51 @@
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Image  } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
+import { handleOpenAttachment } from '../helpers/attachmentHelpers'
 
 const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) => {
+    const [imageModalVisible, setImageModalVisible] = useState(false);
+    const [selectedImageUri, setSelectedImageUri] = useState(null);
+
+    const renderAttachment = (item, index) => {
+        // <View style={styles.attachmentItem}>
+        //     <TouchableOpacity onPress={() => handleOpenAttachment(item.uri)} style={{ flex: 1 }}>
+        //         <Text style={styles.attachmentText} numberOfLines={1}>
+        //             {item.name}
+        //         </Text>
+        //     </TouchableOpacity>
+        //     <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
+        //         <Ionicons name="trash-outline" size={20} color="red" />
+        //     </TouchableOpacity>
+        // </View>
+        const isImage = item.mimeType && item.mimeType.startsWith('image/');
+
+        const handlePress = () => {
+            if (isImage) {
+                setSelectedImageUri(item.uri);
+                setImageModalVisible(true);
+            } else {
+                handleOpenAttachment(item.uri, item.mimeType, (uri) => {
+                    // Handle image preview
+                });
+            }
+        };
+
+        return (
+            <View key={`${index}-${item.uri}`} style={styles.attachmentItem}>
+                <TouchableOpacity onPress={handlePress} style={{ flex: 1 }}>
+                    <Text style={styles.attachmentText} numberOfLines={1}>
+                        {item.name}
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
+                    <Ionicons name="trash-outline" size={20} color="red" />
+                </TouchableOpacity>
+            </View>
+        );
+    };
+
     return (
         <View style={styles.container}>
             {/* <Text style={styles.title}>Attachments:</Text>
@@ -28,19 +72,65 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
             {attachments.length === 0 ? (
                 <Text style={{color:'#666'}}>No attachments yet</Text>
             ) : (
-                <FlatList
-                    data={attachments}
-                    keyExtractor={(item, index) => `${index}-${item.uri}`}
-                    renderItem={({ item, index }) => (
-                        <View style={styles.attachmentItem}>
-                            <Text style={styles.attachmentText} numberOfLines={1}>{item.name}</Text>
-                            <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
-                                <Ionicons name="trash-outline" size={20} color="red" />
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                />
+                // <SectionList
+                //     data={attachments}
+                //     keyExtractor={(item, index) => `${index}-${item.uri}`}
+                //     renderItem={({ item, index }) => (
+                //         <View style={styles.attachmentItem}>
+                //             {/* <Text style={styles.attachmentText} numberOfLines={1}>{item.name}</Text> */}
+                //             <TouchableOpacity onPress={() => handleOpenAttachment(item.uri)} style={{ flex: 1 }}>
+                //                 <Text style={styles.attachmentText} numberOfLines={1}>
+                //                     {item.name}
+                //                 </Text>
+                //             </TouchableOpacity>
+                //             <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
+                //                 <Ionicons name="trash-outline" size={20} color="red" />
+                //             </TouchableOpacity>
+                //         </View>
+                //     )}
+                // />
+                // <FlatList
+                //     data={attachments}
+                //     keyExtractor={(item, index) => `${index}-${item.uri}`}
+                //     renderItem={renderAttachment}
+                // />
+                // attachments.map((item, index) => renderAttachment(item, index)
+                    // <View key={`${index}-${item.uri}`} style={styles.attachmentItem}>
+                    //     <TouchableOpacity onPress={() => handleOpenAttachment(item.uri)} style={{ flex: 1 }}>
+                    //         <Text style={styles.attachmentText} numberOfLines={1}>
+                    //             {item.name}
+                    //         </Text>
+                    //     </TouchableOpacity>
+                    //     <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
+                    //         <Ionicons name="trash-outline" size={20} color="red" />
+                    //     </TouchableOpacity>
+                    // </View>
+                    
+                    attachments.map((item, index) => renderAttachment(item, index))
             )}
+            {/* Image Preview Modal */}
+            <Modal
+                visible={imageModalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setImageModalVisible(false)}
+            >
+                <View style={styles.modalBackground}>
+                    <View style={styles.modalContainer}>
+                        <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => setImageModalVisible(false)}
+                        >
+                            <Ionicons name="close" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        <Image
+                            source={{ uri: selectedImageUri }}
+                            style={styles.imagePreview}
+                            resizeMode="contain"
+                        />
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -85,6 +175,32 @@ const styles = StyleSheet.create({
     addButtonText: {
         color:'white',
         marginLeft:5
+    },
+    modalBackground: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContainer: {
+        width: '90%',
+        height: '80%',
+        backgroundColor: '#000',
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    imagePreview: {
+        width: '100%',
+        height: '100%',
+    },
+    closeButton: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        padding: 5,
+        borderRadius: 15,
     },
 });
 

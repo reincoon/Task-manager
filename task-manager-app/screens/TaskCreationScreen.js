@@ -17,6 +17,7 @@ import { addEventToCalendar } from '../helpers/calendar';
 import AttachmentsList from '../components/AttachmentsList';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import { addAttachment, removeAttachment } from '../helpers/attachmentHelpers';
 
 const TaskCreationScreen = ({ navigation }) => {
     const [taskTitle, setTaskTitle] = useState('');
@@ -99,45 +100,76 @@ const TaskCreationScreen = ({ navigation }) => {
         setShowSubtaskForm(false);
     };
 
-    const handleAddAttachment = async () => {
-        try {
-            const result = await DocumentPicker.getDocumentAsync({});
-            if (result.type === 'cancel') {
-                return;
-            }
-            const { name, uri } = result;
-            // Copy a file to local storage
-            const fileName = `${Date.now()}-${name}`;
-            const newUri = FileSystem.documentDirectory + fileName;
-            await FileSystem.copyAsync({
-                from: uri,
-                to: newUri
-            });
-            const newAttachment = { name, uri: newUri };
-            const updatedAttachments = [...attachments, newAttachment];
-            setAttachments(updatedAttachments);
-            // Update Firestore references
-            if (taskId && userId) {
-                const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-                await updateDoc(taskDocRef, { attachments: updatedAttachments });
-            }
-        } catch (error) {
-            Alert.alert('Error', 'Failed to pick the file');
-        }
-    }
+    // const handleAddAttachment = async () => {
+    //     try {
+    //         const result = await DocumentPicker.getDocumentAsync({
+    //             copyToCacheDirectory: true,
+    //             type: '*/*',
+    //         });
+    //         if (result.canceled) {
+    //             return;
+    //         }
+    //         console.log('DocumentPicker result:', result);
 
-    const handleRemoveAttachment = async (index) => {
-        const updatedAttachments = [...attachments];
-        const removed = updatedAttachments.splice(index, 1);
-        setAttachments(updatedAttachments);
-        // If task is already saved
-        if (taskId && userId) {
-            const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-            await updateDoc(taskDocRef, { attachments: updatedAttachments });
-        }
-        // Delete the file from local storage:
-        await FileSystem.deleteAsync(removed[0].uri);
-    }
+    //         const { name, uri } = result.assets?.[0] ?? {};
+    //         if (!uri) {
+    //             Alert.alert('Error', 'No file URI found.');
+    //             return;
+    //         }
+    //         // Copy a file to local storage
+    //         const fileName = `${Date.now()}-${name}`;
+    //         const newUri = FileSystem.documentDirectory + fileName;
+    //         try {
+    //             await FileSystem.copyAsync({ from: uri, to: newUri });
+    //             console.log('File copied to local sandbox at: ', newUri);
+    //         } catch (copyErr) {
+    //             console.log('copyAsync error:', copyErr);
+    //             try {
+    //                 const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+    //                 await FileSystem.writeAsStringAsync(newUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+    //                 console.log('File written from base64 to:', newUri);
+    //             } catch (base64Err) {
+    //                 console.log('base64 fallback error:', base64Err);
+    //                 Alert.alert('Error', 'Failed to load the file. Please try a different file type or location.');
+    //                 return;
+    //             }
+    //         }
+
+    //         // const info = await FileSystem.getInfoAsync(newUri);
+    //         const info = await FileSystem.getInfoAsync(newUri);
+    //         console.log('File info from DocumentPicker:', info);
+
+    //         if (!info.exists) {
+    //             Alert.alert('File not downloaded', 'This file might still be in iCloud. Please open it in the Files app or choose a file that is stored locally.');
+    //             return;
+    //         }
+            
+    //         const newAttachment = { name, uri: newUri };
+    //         const updatedAttachments = [...attachments, newAttachment];
+    //         setAttachments(updatedAttachments);
+    //         // Update Firestore references
+    //         if (taskId && userId) {
+    //             const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+    //             await updateDoc(taskDocRef, { attachments: updatedAttachments });
+    //         }
+    //     } catch (error) {
+    //         console.log('DocumentPicker error:', error);
+    //         Alert.alert('Error', 'Failed to pick the file');
+    //     }
+    // }
+
+    // const handleRemoveAttachment = async (index) => {
+    //     const updatedAttachments = [...attachments];
+    //     const removed = updatedAttachments.splice(index, 1);
+    //     setAttachments(updatedAttachments);
+    //     // If task is already saved
+    //     if (taskId && userId) {
+    //         const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+    //         await updateDoc(taskDocRef, { attachments: updatedAttachments });
+    //     }
+    //     // Delete the file from local storage:
+    //     await FileSystem.deleteAsync(removed[0].uri);
+    // }
 
     const handleSaveTask = async () => {
         if (!taskTitle.trim()) {
@@ -325,8 +357,25 @@ const TaskCreationScreen = ({ navigation }) => {
                 {/* Attachments */}
                 <AttachmentsList 
                     attachments={attachments}
-                    onAddAttachment={handleAddAttachment}
-                    onRemoveAttachment={handleRemoveAttachment}
+                    // onAddAttachment={handleAddAttachment}
+                    onAddAttachment={() =>
+                        addAttachment({
+                            setAttachments,
+                            attachments,
+                            userId,
+                            taskId,
+                        })
+                    }
+                    // onRemoveAttachment={handleRemoveAttachment}
+                    onRemoveAttachment={(index) =>
+                        removeAttachment({
+                            setAttachments,
+                            attachments,
+                            index,
+                            userId,
+                            taskId,
+                        })
+                    }
                 />
             </ScrollView>
             
