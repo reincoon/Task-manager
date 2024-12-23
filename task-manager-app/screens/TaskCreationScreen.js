@@ -14,13 +14,16 @@ import DateTimeSelector from '../components/DateTimeSelector';
 import { scheduleTaskNotification } from '../helpers/notificationsHelpers';
 import SubtaskList from '../components/SubtaskList';
 import { addEventToCalendar } from '../helpers/calendar';
+import AttachmentsList from '../components/AttachmentsList';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 
 const TaskCreationScreen = ({ navigation }) => {
     const [taskTitle, setTaskTitle] = useState('');
     const [notes, setNotes] = useState('');
     const [dueDate, setDueDate] = useState(new Date());
     const [notification, setNotification] = useState('None');
-    const [priority, setPriority] = useState('Low');
+    const [priority, setPriorityState] = useState('Low');
     const [subtasks, setSubtasks] = useState([]);
     const [showSubtaskForm, setShowSubtaskForm] = useState(false);
     const [currentSubtask, setCurrentSubtask] = useState({
@@ -30,6 +33,7 @@ const TaskCreationScreen = ({ navigation }) => {
         reminder: 'None',
         isRecurrent: false,
     });
+    const [attachments, setAttachments] = useState([]);
 
     const [taskId, setTaskId] = useState(null);
     const [userId, setUserId] = useState(null);
@@ -43,52 +47,7 @@ const TaskCreationScreen = ({ navigation }) => {
         }
     }, []);
 
-    const handleSaveTask = async () => {
-        if (!taskTitle.trim()) {
-            Alert.alert('Error', 'Task title is required');
-            return;
-        }
-
-        const userId = auth.currentUser?.uid;
-        if (!userId) {
-            Alert.alert('Error', 'You need to be logged in to create a task');
-            return;
-        }
-
-        try {
-            const taskData = {
-                title: taskTitle,
-                notes: notes.trim() || null,
-                dueDate: dueDate.toISOString(),
-                notification,
-                priority,
-                subtasks,
-                userId,
-                createdAt: new Date().toISOString(),
-                eventId: null
-            };
-            const taskRef = collection(db, `tasks/${userId}/taskList`);
-            const docRef = await addDoc(taskRef, taskData);
-
-            // Schedule Notification for to-do list
-            let mainNotificationId = null;
-            if (notification !== 'None') {
-                mainNotificationId = await scheduleTaskNotification(taskTitle, notification, dueDate);
-            }
-            // Update Firestore with mainNotificationId
-            if (mainNotificationId) {
-                await updateDoc(doc(db, `tasks/${userId}/taskList`, docRef.id), {
-                notificationId: mainNotificationId
-                });
-            }
-
-            Alert.alert('Success', 'Task created successfully');
-            setTaskId(docRef.id);
-            navigation.navigate('Home');
-        } catch (error) {
-            Alert.alert('Error', error.message);
-        }
-    };
+    
 
     const handleAddSubtask = async () => {
         if (!currentSubtask.title.trim()) {
@@ -138,6 +97,97 @@ const TaskCreationScreen = ({ navigation }) => {
             isRecurrent: false,
         });
         setShowSubtaskForm(false);
+    };
+
+    const handleAddAttachment = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({});
+            if (result.type === 'cancel') {
+                return;
+            }
+            const { name, uri } = result;
+            // Copy a file to local storage
+            const fileName = `${Date.now()}-${name}`;
+            const newUri = FileSystem.documentDirectory + fileName;
+            await FileSystem.copyAsync({
+                from: uri,
+                to: newUri
+            });
+            const newAttachment = { name, uri: newUri };
+            const updatedAttachments = [...attachments, newAttachment];
+            setAttachments(updatedAttachments);
+            // Update Firestore references
+            if (taskId && userId) {
+                const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+                await updateDoc(taskDocRef, { attachments: updatedAttachments });
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to pick the file');
+        }
+    }
+
+    const handleRemoveAttachment = async (index) => {
+        const updatedAttachments = [...attachments];
+        const removed = updatedAttachments.splice(index, 1);
+        setAttachments(updatedAttachments);
+        // If task is already saved
+        if (taskId && userId) {
+            const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+            await updateDoc(taskDocRef, { attachments: updatedAttachments });
+        }
+        // Delete the file from local storage:
+        await FileSystem.deleteAsync(removed[0].uri);
+    }
+
+    const handleSaveTask = async () => {
+        if (!taskTitle.trim()) {
+            Alert.alert('Error', 'Task title is required');
+            return;
+        }
+
+        const userId = auth.currentUser?.uid;
+        if (!userId) {
+            Alert.alert('Error', 'You need to be logged in to create a task');
+            return;
+        }
+
+        try {
+            const subtasksForDb = subtasks.map(s => ({...s, dueDate: s.dueDate.toISOString()}));
+            const attachmentsForDb = attachments.map(a => ({ name: a.name, uri: a.uri }));
+
+            const taskData = {
+                title: taskTitle,
+                notes: notes.trim() || null,
+                dueDate: dueDate.toISOString(),
+                notification,
+                priority,
+                subtasks: subtasksForDb,
+                attachments: attachmentsForDb,
+                userId,
+                createdAt: new Date().toISOString(),
+                eventId: null
+            };
+            const taskRef = collection(db, `tasks/${userId}/taskList`);
+            const docRef = await addDoc(taskRef, taskData);
+
+            // Schedule Notification for to-do list
+            let mainNotificationId = null;
+            if (notification !== 'None') {
+                mainNotificationId = await scheduleTaskNotification(taskTitle, notification, dueDate);
+            }
+            // Update Firestore with mainNotificationId
+            if (mainNotificationId) {
+                await updateDoc(doc(db, `tasks/${userId}/taskList`, docRef.id), {
+                notificationId: mainNotificationId
+                });
+            }
+
+            Alert.alert('Success', 'Task created successfully');
+            setTaskId(docRef.id);
+            navigation.navigate('Home');
+        } catch (error) {
+            Alert.alert('Error', error.message);
+        }
     };
 
     const addMainTaskToCalendar = async () => {
@@ -197,6 +247,8 @@ const TaskCreationScreen = ({ navigation }) => {
         }
     };
 
+    const setPriority = (p) => setPriorityState(cyclePriority(p));
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Header */}
@@ -239,7 +291,7 @@ const TaskCreationScreen = ({ navigation }) => {
 
                 <TouchableOpacity 
                     style={styles.button}
-                    onPress={() => setPriority(cyclePriority(priority))}
+                    onPress={() => setPriority(priority)}
                 >
                     <Text style={styles.buttonText}>Priority: {priority}</Text>
                 </TouchableOpacity>
@@ -270,6 +322,12 @@ const TaskCreationScreen = ({ navigation }) => {
                     <Ionicons name="calendar-outline" size={20} color="white" />
                     <Text style={styles.buttonText}>Add To-Do List to Calendar</Text>
                 </TouchableOpacity>
+                {/* Attachments */}
+                <AttachmentsList 
+                    attachments={attachments}
+                    onAddAttachment={handleAddAttachment}
+                    onRemoveAttachment={handleRemoveAttachment}
+                />
             </ScrollView>
             
             {/* Subtask Bottom Sheet */}
