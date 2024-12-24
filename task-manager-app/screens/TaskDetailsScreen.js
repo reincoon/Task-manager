@@ -101,6 +101,10 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             setSubtasks(fetchedSubtasks);
             setTaskNotificationId(data.notificationId || null);
 
+            // Initialise attachments
+            const fetchedAttachments = data.attachments || [];
+            setAttachments(fetchedAttachments);
+
             setOriginalTask({
                 title: data.title,
                 notes: data.notes || '',
@@ -110,10 +114,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 subtasks: fetchedSubtasks,
                 notificationId: data.notificationId || null,
             });
-
-            // Initialise attachments
-            const fetchedAttachments = data.attachments || [];
-            setAttachments(fetchedAttachments);
 
             setLoading(false);
         };
@@ -420,7 +420,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     };
 
     return loading ? (
-        <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <SafeAreaView style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#007bff" />
         </SafeAreaView>
     ) : (
@@ -479,7 +479,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                             priority: 'Low',
                             reminder: 'None',
                             isRecurrent: false,
-                            notificationId: null
+                            notificationId: null,
+                            eventId: null
                         });
                         setShowSubtaskForm(true);
                     }}
@@ -550,6 +551,11 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 20,
         backgroundColor: '#fff',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
         flexDirection: 'row',

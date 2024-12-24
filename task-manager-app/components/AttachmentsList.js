@@ -1,50 +1,78 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Image  } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import { handleOpenAttachment } from '../helpers/attachmentHelpers'
+import { WebView } from 'react-native-webview';
+import { Video } from 'expo-av';
+
+const { width, height } = Dimensions.get('window');
 
 const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) => {
     const [imageModalVisible, setImageModalVisible] = useState(false);
-    const [selectedImageUri, setSelectedImageUri] = useState(null);
+    // const [selectedImageUri, setSelectedImageUri] = useState(null);
+    const [pdfModalVisible, setPdfModalVisible] = useState(false);
+    const [videoModalVisible, setVideoModalVisible] = useState(false);
+    const [selectedFileUri, setSelectedFileUri] = useState(null);
 
-    const renderAttachment = (item, index) => {
-        // <View style={styles.attachmentItem}>
-        //     <TouchableOpacity onPress={() => handleOpenAttachment(item.uri)} style={{ flex: 1 }}>
-        //         <Text style={styles.attachmentText} numberOfLines={1}>
-        //             {item.name}
-        //         </Text>
-        //     </TouchableOpacity>
-        //     <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
-        //         <Ionicons name="trash-outline" size={20} color="red" />
-        //     </TouchableOpacity>
-        // </View>
-        const isImage = item.mimeType && item.mimeType.startsWith('image/');
-
-        const handlePress = () => {
-            if (isImage) {
-                setSelectedImageUri(item.uri);
+    const handlePressAttachment = (item) => {
+        handleOpenAttachment(
+            item.uri, 
+            item.mimeType, 
+            (uri) => {
+                // image preview handler
+                setSelectedFileUri(uri);
                 setImageModalVisible(true);
-            } else {
-                handleOpenAttachment(item.uri, item.mimeType, (uri) => {
-                    // Handle image preview
-                });
+            },
+            (uri) => {
+                // PDF preview handler
+                setSelectedFileUri(uri);
+                setPdfModalVisible(true);
+            },
+            (uri) => {
+                // Video playback handler
+                setSelectedFileUri(uri);
+                setVideoModalVisible(true);
             }
-        };
-
-        return (
-            <View key={`${index}-${item.uri}`} style={styles.attachmentItem}>
-                <TouchableOpacity onPress={handlePress} style={{ flex: 1 }}>
-                    <Text style={styles.attachmentText} numberOfLines={1}>
-                        {item.name}
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
-                    <Ionicons name="trash-outline" size={20} color="red" />
-                </TouchableOpacity>
-            </View>
         );
     };
+    // const renderAttachment = (item, index) => {
+    //     // <View style={styles.attachmentItem}>
+    //     //     <TouchableOpacity onPress={() => handleOpenAttachment(item.uri)} style={{ flex: 1 }}>
+    //     //         <Text style={styles.attachmentText} numberOfLines={1}>
+    //     //             {item.name}
+    //     //         </Text>
+    //     //     </TouchableOpacity>
+    //     //     <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
+    //     //         <Ionicons name="trash-outline" size={20} color="red" />
+    //     //     </TouchableOpacity>
+    //     // </View>
+    //     const isImage = item.mimeType && item.mimeType.startsWith('image/');
+
+    //     const handlePress = () => {
+    //         if (isImage) {
+    //             setSelectedImageUri(item.uri);
+    //             setImageModalVisible(true);
+    //         } else {
+    //             handleOpenAttachment(item.uri, item.mimeType, (uri) => {
+    //                 // Handle image preview
+    //             });
+    //         }
+    //     };
+
+    //     return (
+    //         <View key={`${index}-${item.uri}`} style={styles.attachmentItem}>
+    //             <TouchableOpacity onPress={handlePress} style={{ flex: 1 }}>
+    //                 <Text style={styles.attachmentText} numberOfLines={1}>
+    //                     {item.name}
+    //                 </Text>
+    //             </TouchableOpacity>
+    //             <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
+    //                 <Ionicons name="trash-outline" size={20} color="red" />
+    //             </TouchableOpacity>
+    //         </View>
+    //     );
+    // };
 
     return (
         <View style={styles.container}>
@@ -62,6 +90,7 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
                     </View>
                 )}
             /> */}
+            {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>Attachments</Text>
                 <TouchableOpacity style={styles.addButton} onPress={onAddAttachment}>
@@ -69,8 +98,9 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
                     <Text style={styles.addButtonText}>Add</Text>
                 </TouchableOpacity>
             </View>
+            {/* Attachments list */}
             {attachments.length === 0 ? (
-                <Text style={{color:'#666'}}>No attachments yet</Text>
+                <Text style={styles.noAttachmentsText}>No attachments yet</Text>
             ) : (
                 // <SectionList
                 //     data={attachments}
@@ -106,7 +136,16 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
                     //     </TouchableOpacity>
                     // </View>
                     
-                    attachments.map((item, index) => renderAttachment(item, index))
+                attachments.map((item, index) => (
+                    <View key={`${index}-${item.uri}`} style={styles.attachmentItem}>
+                        <TouchableOpacity onPress={() => handlePressAttachment(item)} style={{ flex: 1 }}>
+                            <Text style={styles.attachmentText} numberOfLines={1}>{item.name}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
+                            <Ionicons name="trash-outline" size={20} color="red" />
+                        </TouchableOpacity>
+                    </View>
+                ))
             )}
             {/* Image Preview Modal */}
             <Modal
@@ -117,18 +156,61 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
             >
                 <View style={styles.modalBackground}>
                     <View style={styles.modalContainer}>
-                        <TouchableOpacity
-                            style={styles.closeButton}
-                            onPress={() => setImageModalVisible(false)}
-                        >
+                        <TouchableOpacity style={styles.closeButton} onPress={() => setImageModalVisible(false)}>
                             <Ionicons name="close" size={24} color="#fff" />
                         </TouchableOpacity>
-                        <Image
-                            source={{ uri: selectedImageUri }}
-                            style={styles.imagePreview}
-                            resizeMode="contain"
-                        />
+                        {selectedFileUri && (
+                            <Image source={{ uri: selectedFileUri }} style={styles.imagePreview} resizeMode="contain"/>
+                        )}
                     </View>
+                </View>
+            </Modal>
+            {/* PDF preview modal */}
+            <Modal
+                visible={pdfModalVisible}
+                transparent={false}
+                animationType="slide"
+                onRequestClose={() => setPdfModalVisible(false)}
+            >
+                <View style={styles.pdfModalContainer}>
+                    <TouchableOpacity style={styles.closeButtonTop} onPress={() => setPdfModalVisible(false)}>
+                        <Ionicons name="close" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    {selectedFileUri && (
+                        <WebView
+                            source={{ uri: selectedFileUri }}
+                            style={{ flex: 1 }}
+                            startInLoadingState={true}
+                            renderLoading={() => (
+                                <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
+                            )}
+                        />
+                    )}
+                </View>
+            </Modal>
+            {/* Video playback modal */}
+            <Modal
+                visible={videoModalVisible}
+                transparent={false}
+                animationType="slide"
+                onRequestClose={() => setVideoModalVisible(false)}
+            >
+                <View style={styles.videoModalContainer}>
+                    <TouchableOpacity style={styles.closeButtonTop} onPress={() => setVideoModalVisible(false)}>
+                        <Ionicons name="close" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    {selectedFileUri && (
+                        <Video
+                            source={{ uri: selectedFileUri }}
+                            rate={1.0}
+                            volume={1.0}
+                            isMuted={false}
+                            resizeMode="contain"
+                            shouldPlay
+                            useNativeControls
+                            style={styles.videoPlayer}
+                        />
+                    )}
                 </View>
             </Modal>
         </View>
@@ -164,6 +246,11 @@ const styles = StyleSheet.create({
     attachmentText: {
         fontSize: 14,
         color: '#333',
+    },
+    noAttachmentsText: {
+        color: '#666',
+        textAlign: 'center',
+        marginTop: 10,
     },
     addButton: {
         flexDirection:'row',
@@ -201,6 +288,33 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.5)',
         padding: 5,
         borderRadius: 15,
+    },
+    pdfModalContainer: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    closeButtonTop: {
+        position: 'absolute',
+        top: 40,
+        right: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        padding: 10,
+        borderRadius: 25,
+        zIndex: 1,
+    },
+    videoModalContainer: {
+        flex: 1,
+        backgroundColor: '#000',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    videoPlayer: {
+        width: width,
+        height: height * 0.6,
+    },
+    loader: {
+        flex: 1,
+        justifyContent: 'center',
     },
 });
 
