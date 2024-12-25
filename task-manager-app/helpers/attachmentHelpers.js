@@ -4,16 +4,21 @@ import { Alert } from 'react-native';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import * as Sharing from 'expo-sharing';
+import * as WebBrowser from 'expo-web-browser';
+// import * as FileViewer from 'expo-file-viewer';
 
 // Infer the MIME type based on the file extension.
 const getMimeTypeFromFileName = (fileName) => {
     const extension = fileName.split('.').pop().toLowerCase();
     const mimeTypes = {
+        // Images
         jpg: 'image/jpeg',
         jpeg: 'image/jpeg',
         png: 'image/png',
         gif: 'image/gif',
         webp: 'image/webp',
+        heic: 'image/heic',
+        // Documents
         pdf: 'application/pdf',
         doc: 'application/msword',
         docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -21,6 +26,14 @@ const getMimeTypeFromFileName = (fileName) => {
         xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ppt: 'application/vnd.ms-powerpoint',
         pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        txt: 'text/plain',
+        csv: 'text/csv',
+        xml: 'application/xml',
+        epub: 'application/epub+zip',
+        // Audio
+        mp3: 'audio/mpeg',
+        wav: 'audio/wav',
+        // Video
         mp4: 'video/mp4',
         mov: 'video/quicktime',
         avi: 'video/x-msvideo',
@@ -49,7 +62,8 @@ export const addAttachment = async ({ setAttachments, attachments, userId, taskI
             return;
         }
 
-        const { name, uri, mimeType } = asset;
+        const { name, uri } = asset;
+        let mimeType = asset.mimeType;
 
         if (!uri) {
             Alert.alert('Error', 'No file URI found.');
@@ -89,13 +103,22 @@ export const addAttachment = async ({ setAttachments, attachments, userId, taskI
         }
 
         const newAttachment = { name, uri: newUri, mimeType };
+        console.log('New Attachment:', newAttachment);
         const updatedAttachments = [...attachments, newAttachment];
+        console.log('Updated Attachments:', updatedAttachments);
         setAttachments(updatedAttachments);
 
         // Update Firestore
         if (taskId && userId) {
             const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-            await updateDoc(taskDocRef, { attachments: updatedAttachments });
+            try {
+                await updateDoc(taskDocRef, { attachments: updatedAttachments });
+                console.log('Firestore updated with new attachment.');
+            } catch (firestoreError) {
+                console.log('Firestore update error:', firestoreError);
+                Alert.alert('Error', 'Failed to update Firestore with the attachment.');
+            }
+            
         }
     } catch (error) {
         console.log('DocumentPicker error:', error);
@@ -127,7 +150,7 @@ export const removeAttachment = async ({ setAttachments, attachments, index, use
     }
 };
 
-export const handleOpenAttachment = async (uri, mimeType, onImagePreview, onPdfPreview, onVideoPreview) => {
+export const handleOpenAttachment = async (uri, mimeType, onImagePreview, onTextPreview, onPdfPreview, onVideoPreview, onAudioPreview) => {
     try {
         // const supported = await Linking.canOpenURL(uri);
         // if (supported) {
@@ -135,18 +158,62 @@ export const handleOpenAttachment = async (uri, mimeType, onImagePreview, onPdfP
         // } else {
         //     Alert.alert('Error', 'Cannot open this file.');
         // }
+        console.log(`Opening file with URI: ${uri} and MIME type: ${mimeType}`);
+
         if (mimeType && typeof mimeType.startsWith === 'function') {
             if (mimeType.startsWith('image/')) {
                 // If the attachment is an image, preview it within the app (in modal)
                 onImagePreview(uri);
             } else if (mimeType === 'application/pdf') {
-                // Preview PDF within the app (in a WebView)
-                const pdfBase64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-                const dataUri = `data:application/pdf;base64,${pdfBase64}`;
-                onPdfPreview(dataUri);
+                // // In-app PDF preview using WebView
+                // try {
+                //     const pdfBase64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+                //     const dataUri = `data:application/pdf;base64,${pdfBase64}`;
+                //     console.log('PDF Data URI:', dataUri.substring(0, 100) + '...');
+
+                //     onPdfPreview(dataUri);
+                // } catch (error) {
+                //     console.log('Error reading PDF:', error);
+                //     Alert.alert('Error', 'Failed to read the PDF file.');
+                // }
+                // // Open PDF with external app
+                // const isAvailable = await Sharing.isAvailableAsync();
+                // if (!isAvailable) {
+                //     Alert.alert('Error', 'Sharing is not available on this device.');
+                //     return;
+                // }
+                // await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Open PDF' });
+                // Open  PDF with expo-web-browser externally
+                // const result = await WebBrowser.openBrowserAsync(uri);
+                // console.log('WebBrowser result:', result);
+                try {
+                    const pdfBase64 = await FileSystem.readAsStringAsync(uri, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    });
+                    const dataUri = `data:application/pdf;base64,${pdfBase64}`;
+                    console.log(`Generated PDF Data URI length: ${dataUri.length}`);
+                    onPdfPreview(dataUri);
+                } catch (error) {
+                    console.log('Error opening PDF:', error);
+                    Alert.alert('Error', 'Failed to open the PDF file.');
+                }
             } else if (mimeType.startsWith('video/')) {
                 // Play video within the app (using expo-av library)
                 onVideoPreview(uri);
+            } else if (mimeType.startsWith('text/')) {
+                // In-app text preview
+                // const content = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.UTF8 });
+                // onTextPreview(content);
+                try {
+                    const content = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.UTF8 });
+                    onTextPreview(content);
+                } catch (error) {
+                    console.log('Error reading text file:', error);
+                    Alert.alert('Error', 'Failed to read the text file.');
+                }
+            } else if (mimeType.startsWith('audio/')) {
+                // In-app audio playback
+                onAudioPreview(uri);
             } else {
                 // Open other document types with external apps (using expo-sharing library)
                 const isAvailable = await Sharing.isAvailableAsync();
@@ -157,18 +224,13 @@ export const handleOpenAttachment = async (uri, mimeType, onImagePreview, onPdfP
                     );
                     return;
                 }
-                await Sharing.shareAsync(uri);
+                await Sharing.shareAsync(uri, { dialogTitle: 'Open File' });
             }
         } else {
-            // MimeType is undefined or not a string
-            Alert.alert(
-                'Unsupported File',
-                'Cannot determine the file type. Please ensure the file has a valid extension.'
-            );
             // Attempt to open with external apps
             const isAvailable = await Sharing.isAvailableAsync();
             if (isAvailable) {
-                await Sharing.shareAsync(uri);
+                await Sharing.shareAsync(uri, { dialogTitle: 'Open File' });
             }
         }
     } catch (error) {

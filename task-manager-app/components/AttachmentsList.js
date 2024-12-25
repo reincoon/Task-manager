@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ImageBackground, Dimensions, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import { handleOpenAttachment } from '../helpers/attachmentHelpers'
@@ -11,28 +11,44 @@ const { width, height } = Dimensions.get('window');
 const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) => {
     const [imageModalVisible, setImageModalVisible] = useState(false);
     // const [selectedImageUri, setSelectedImageUri] = useState(null);
+    const [textModalVisible, setTextModalVisible] = useState(false);
     const [pdfModalVisible, setPdfModalVisible] = useState(false);
     const [videoModalVisible, setVideoModalVisible] = useState(false);
+    const [audioModalVisible, setAudioModalVisible] = useState(false);
     const [selectedFileUri, setSelectedFileUri] = useState(null);
+    const [selectedTextContent, setSelectedTextContent] = useState('');
+    const [pdfDataUri, setPdfDataUri] = useState(null);
+    const [pdfLoading, setPdfLoading] = useState(true);
 
     const handlePressAttachment = (item) => {
         handleOpenAttachment(
             item.uri, 
             item.mimeType, 
             (uri) => {
-                // image preview handler
+                // Image preview handler
                 setSelectedFileUri(uri);
                 setImageModalVisible(true);
             },
-            (uri) => {
+            (content) => {
+                // Text preview handler
+                setSelectedTextContent(content);
+                setTextModalVisible(true);
+            },
+            (pdfUri) => {
                 // PDF preview handler
-                setSelectedFileUri(uri);
+                console.log('PDF Data URI length:', pdfUri.length);
+                setPdfDataUri(pdfUri);
                 setPdfModalVisible(true);
             },
             (uri) => {
                 // Video playback handler
                 setSelectedFileUri(uri);
                 setVideoModalVisible(true);
+            },
+            (uri) => {
+                // Audio playback handler
+                setSelectedFileUri(uri);
+                setAudioModalVisible(true);
             }
         );
     };
@@ -147,7 +163,7 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
                     </View>
                 ))
             )}
-            {/* Image Preview Modal */}
+            {/* Image preview modal */}
             <Modal
                 visible={imageModalVisible}
                 transparent={true}
@@ -156,15 +172,43 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
             >
                 <View style={styles.modalBackground}>
                     <View style={styles.modalContainer}>
-                        <TouchableOpacity style={styles.closeButton} onPress={() => setImageModalVisible(false)}>
+                        {/* <TouchableOpacity style={styles.closeButton} onPress={() => setImageModalVisible(false)}>
                             <Ionicons name="close" size={24} color="#fff" />
                         </TouchableOpacity>
                         {selectedFileUri && (
                             <Image source={{ uri: selectedFileUri }} style={styles.imagePreview} resizeMode="contain"/>
-                        )}
+                        )} */}
+                        <ImageBackground
+                            source={{ uri: selectedFileUri }}
+                            style={styles.imagePreview}
+                            resizeMode="contain"
+                        >
+                            <TouchableOpacity style={styles.closeButton} onPress={() => setImageModalVisible(false)}>
+                                <Ionicons name="close" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </ImageBackground>
                     </View>
                 </View>
             </Modal>
+            {/* Text preview modal */}
+            <Modal
+                visible={textModalVisible}
+                transparent={false}
+                animationType="slide"
+                onRequestClose={() => setTextModalVisible(false)}
+            >
+                <View style={styles.modalBackground}>
+                    <View style={styles.textModalContainer}>
+                        <TouchableOpacity style={styles.closeButton} onPress={() => setTextModalVisible(false)}>
+                            <Ionicons name="close" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        <ScrollView contentContainerStyle={styles.textContent}>
+                            <Text style={styles.textPreview}>{selectedTextContent}</Text>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
             {/* PDF preview modal */}
             <Modal
                 visible={pdfModalVisible}
@@ -172,22 +216,66 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
                 animationType="slide"
                 onRequestClose={() => setPdfModalVisible(false)}
             >
-                <View style={styles.pdfModalContainer}>
-                    <TouchableOpacity style={styles.closeButtonTop} onPress={() => setPdfModalVisible(false)}>
-                        <Ionicons name="close" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    {selectedFileUri && (
-                        <WebView
-                            source={{ uri: selectedFileUri }}
-                            style={{ flex: 1 }}
-                            startInLoadingState={true}
-                            renderLoading={() => (
-                                <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
-                            )}
-                        />
-                    )}
-                </View>
+                {/* <View style={styles.modalBackground}> */}
+                    <View style={styles.pdfModalContainer}>
+                        <TouchableOpacity style={styles.closeButtonTop} onPress={() => setPdfModalVisible(false)}>
+                            <Ionicons name="close" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        {pdfDataUri ? (
+                            <>
+                                <WebView
+                                    originWhitelist={['*']}
+                                    source={{
+                                        html: `
+                                            <html>
+                                            <head>
+                                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                                <style>
+                                                    body, html {
+                                                        margin: 10;
+                                                        padding: 30 0;
+                                                        
+                                                        overflow: auto;
+                                                        background-color: #fff;
+                                                    }
+                                                    object {
+                                                        width: 100%;
+                                                    
+                                                        border: none;
+                                                    }
+                                                </style>
+                                            </head>
+                                            <body>
+                                                <object data="${pdfDataUri}" type="application/pdf">
+                                                    <p>Your device does not support PDFs. <a href="${pdfDataUri}">Download the PDF</a>.</p>
+                                                </object>
+                                            </body>
+                                            </html>
+                                        `
+                                    }}
+                                    style={styles.pdfPreview}
+                                    javaScriptEnabled={true}
+                                    scalesPageToFit={true}
+                                    onLoadStart={() => setPdfLoading(true)}
+                                    onLoadEnd={() => setPdfLoading(false)}
+                                    onError={(syntheticEvent) => {
+                                        const { nativeEvent } = syntheticEvent;
+                                        console.log('WebView error: ', nativeEvent);
+                                        Alert.alert('Error', 'Failed to load the PDF.');
+                                        setPdfModalVisible(false);
+                                    }}
+                                />
+                                {pdfLoading && (
+                                    <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
+                                )}
+                            </>
+                        ) : (
+                            <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
+                        )}
+                    </View>
+                {/* </View> */}
             </Modal>
+
             {/* Video playback modal */}
             <Modal
                 visible={videoModalVisible}
@@ -213,6 +301,32 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
                     )}
                 </View>
             </Modal>
+
+            {/* Audio playback modal */}
+            <Modal
+                visible={audioModalVisible}
+                transparent={false}
+                animationType="slide"
+                onRequestClose={() => setAudioModalVisible(false)}
+            >
+                <View style={styles.audioModalContainer}>
+                    <TouchableOpacity style={styles.closeButtonTop} onPress={() => setAudioModalVisible(false)}>
+                        <Ionicons name="close" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    {selectedFileUri && (
+                        <Video
+                            source={{ uri: selectedFileUri }}
+                            rate={1.0}
+                            volume={1.0}
+                            isMuted={false}
+                            resizeMode="contain"
+                            shouldPlay
+                            useNativeControls
+                            style={styles.audioPlayer}
+                        />
+                    )}
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -223,6 +337,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: '#ccc',
         paddingTop: 10,
+        paddingHorizontal: 10,
     },
     header: {
         flexDirection:'row',
@@ -270,14 +385,42 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalContainer: {
-        width: '90%',
-        height: '80%',
+        width: width * 0.9,
+        height: height * 0.8,
         backgroundColor: '#000',
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
     },
     imagePreview: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
+    },
+    textModalContainer: {
+        width: width * 0.9,
+        height: height * 0.8,
+        backgroundColor: '#333',
+        borderRadius: 10,
+        padding: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    textContent: {
+        paddingTop: 50,
+    },
+    textPreview: {
+        color: '#fff',
+        fontSize: 16,
+    },
+    pdfModalContainer: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    pdfPreview: {
+        flex: 1,
         width: '100%',
         height: '100%',
     },
@@ -288,10 +431,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.5)',
         padding: 5,
         borderRadius: 15,
-    },
-    pdfModalContainer: {
-        flex: 1,
-        backgroundColor: '#fff',
     },
     closeButtonTop: {
         position: 'absolute',
@@ -311,6 +450,16 @@ const styles = StyleSheet.create({
     videoPlayer: {
         width: width,
         height: height * 0.6,
+    },
+    audioModalContainer: {
+        flex: 1,
+        backgroundColor: '#000',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    audioPlayer: {
+        width: width * 0.8,
+        height: 100,
     },
     loader: {
         flex: 1,
