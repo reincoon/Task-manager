@@ -52,60 +52,9 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
             }
         );
     };
-    // const renderAttachment = (item, index) => {
-    //     // <View style={styles.attachmentItem}>
-    //     //     <TouchableOpacity onPress={() => handleOpenAttachment(item.uri)} style={{ flex: 1 }}>
-    //     //         <Text style={styles.attachmentText} numberOfLines={1}>
-    //     //             {item.name}
-    //     //         </Text>
-    //     //     </TouchableOpacity>
-    //     //     <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
-    //     //         <Ionicons name="trash-outline" size={20} color="red" />
-    //     //     </TouchableOpacity>
-    //     // </View>
-    //     const isImage = item.mimeType && item.mimeType.startsWith('image/');
-
-    //     const handlePress = () => {
-    //         if (isImage) {
-    //             setSelectedImageUri(item.uri);
-    //             setImageModalVisible(true);
-    //         } else {
-    //             handleOpenAttachment(item.uri, item.mimeType, (uri) => {
-    //                 // Handle image preview
-    //             });
-    //         }
-    //     };
-
-    //     return (
-    //         <View key={`${index}-${item.uri}`} style={styles.attachmentItem}>
-    //             <TouchableOpacity onPress={handlePress} style={{ flex: 1 }}>
-    //                 <Text style={styles.attachmentText} numberOfLines={1}>
-    //                     {item.name}
-    //                 </Text>
-    //             </TouchableOpacity>
-    //             <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
-    //                 <Ionicons name="trash-outline" size={20} color="red" />
-    //             </TouchableOpacity>
-    //         </View>
-    //     );
-    // };
 
     return (
         <View style={styles.container}>
-            {/* <Text style={styles.title}>Attachments:</Text>
-            <FlatList
-                data={attachments}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item, index }) => (
-                    <View style={styles.attachmentItem}>
-                        <Ionicons name="document-attach" size={20} color="#333" style={{ marginRight: 8 }} />
-                        <Text style={styles.attachmentText}>{item.name}</Text>
-                        <TouchableOpacity onPress={() => onRemoveAttachment(index)} style={{ marginLeft: 'auto' }}>
-                            <Ionicons name="trash-outline" size={20} color="red" />
-                        </TouchableOpacity>
-                    </View>
-                )}
-            /> */}
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>Attachments</Text>
@@ -118,40 +67,6 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
             {attachments.length === 0 ? (
                 <Text style={styles.noAttachmentsText}>No attachments yet</Text>
             ) : (
-                // <SectionList
-                //     data={attachments}
-                //     keyExtractor={(item, index) => `${index}-${item.uri}`}
-                //     renderItem={({ item, index }) => (
-                //         <View style={styles.attachmentItem}>
-                //             {/* <Text style={styles.attachmentText} numberOfLines={1}>{item.name}</Text> */}
-                //             <TouchableOpacity onPress={() => handleOpenAttachment(item.uri)} style={{ flex: 1 }}>
-                //                 <Text style={styles.attachmentText} numberOfLines={1}>
-                //                     {item.name}
-                //                 </Text>
-                //             </TouchableOpacity>
-                //             <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
-                //                 <Ionicons name="trash-outline" size={20} color="red" />
-                //             </TouchableOpacity>
-                //         </View>
-                //     )}
-                // />
-                // <FlatList
-                //     data={attachments}
-                //     keyExtractor={(item, index) => `${index}-${item.uri}`}
-                //     renderItem={renderAttachment}
-                // />
-                // attachments.map((item, index) => renderAttachment(item, index)
-                    // <View key={`${index}-${item.uri}`} style={styles.attachmentItem}>
-                    //     <TouchableOpacity onPress={() => handleOpenAttachment(item.uri)} style={{ flex: 1 }}>
-                    //         <Text style={styles.attachmentText} numberOfLines={1}>
-                    //             {item.name}
-                    //         </Text>
-                    //     </TouchableOpacity>
-                    //     <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
-                    //         <Ionicons name="trash-outline" size={20} color="red" />
-                    //     </TouchableOpacity>
-                    // </View>
-                    
                 attachments.map((item, index) => (
                     <View key={`${index}-${item.uri}`} style={styles.attachmentItem}>
                         <TouchableOpacity onPress={() => handlePressAttachment(item)} style={{ flex: 1 }}>
@@ -172,12 +87,6 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
             >
                 <View style={styles.modalBackground}>
                     <View style={styles.modalContainer}>
-                        {/* <TouchableOpacity style={styles.closeButton} onPress={() => setImageModalVisible(false)}>
-                            <Ionicons name="close" size={24} color="#fff" />
-                        </TouchableOpacity>
-                        {selectedFileUri && (
-                            <Image source={{ uri: selectedFileUri }} style={styles.imagePreview} resizeMode="contain"/>
-                        )} */}
                         <ImageBackground
                             source={{ uri: selectedFileUri }}
                             style={styles.imagePreview}
@@ -216,64 +125,62 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
                 animationType="slide"
                 onRequestClose={() => setPdfModalVisible(false)}
             >
-                {/* <View style={styles.modalBackground}> */}
-                    <View style={styles.pdfModalContainer}>
-                        <TouchableOpacity style={styles.closeButtonTop} onPress={() => setPdfModalVisible(false)}>
-                            <Ionicons name="close" size={24} color="#fff" />
-                        </TouchableOpacity>
-                        {pdfDataUri ? (
-                            <>
-                                <WebView
-                                    originWhitelist={['*']}
-                                    source={{
-                                        html: `
-                                            <html>
-                                            <head>
-                                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                                <style>
-                                                    body, html {
-                                                        margin: 10;
-                                                        padding: 30 0;
-                                                        
-                                                        overflow: auto;
-                                                        background-color: #fff;
-                                                    }
-                                                    object {
-                                                        width: 100%;
+                <View style={styles.pdfModalContainer}>
+                    <TouchableOpacity style={styles.closeButtonTop} onPress={() => setPdfModalVisible(false)}>
+                        <Ionicons name="close" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    {pdfDataUri ? (
+                        <>
+                            <WebView
+                                originWhitelist={['*']}
+                                source={{
+                                    html: `
+                                        <html>
+                                        <head>
+                                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                            <style>
+                                                body, html {
+                                                    margin: 10;
+                                                    padding: 30 0;
                                                     
-                                                        border: none;
-                                                    }
-                                                </style>
-                                            </head>
-                                            <body>
-                                                <object data="${pdfDataUri}" type="application/pdf">
-                                                    <p>Your device does not support PDFs. <a href="${pdfDataUri}">Download the PDF</a>.</p>
-                                                </object>
-                                            </body>
-                                            </html>
-                                        `
-                                    }}
-                                    style={styles.pdfPreview}
-                                    javaScriptEnabled={true}
-                                    scalesPageToFit={true}
-                                    onLoadStart={() => setPdfLoading(true)}
-                                    onLoadEnd={() => setPdfLoading(false)}
-                                    onError={(syntheticEvent) => {
-                                        const { nativeEvent } = syntheticEvent;
-                                        console.log('WebView error: ', nativeEvent);
-                                        Alert.alert('Error', 'Failed to load the PDF.');
-                                        setPdfModalVisible(false);
-                                    }}
-                                />
-                                {pdfLoading && (
-                                    <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
-                                )}
-                            </>
-                        ) : (
-                            <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
-                        )}
-                    </View>
-                {/* </View> */}
+                                                    overflow: auto;
+                                                    background-color: #fff;
+                                                }
+                                                object {
+                                                    width: 100%;
+                                                
+                                                    border: none;
+                                                }
+                                            </style>
+                                        </head>
+                                        <body>
+                                            <object data="${pdfDataUri}" type="application/pdf">
+                                                <p>Your device does not support PDFs. <a href="${pdfDataUri}">Download the PDF</a>.</p>
+                                            </object>
+                                        </body>
+                                        </html>
+                                    `
+                                }}
+                                style={styles.pdfPreview}
+                                javaScriptEnabled={true}
+                                scalesPageToFit={true}
+                                onLoadStart={() => setPdfLoading(true)}
+                                onLoadEnd={() => setPdfLoading(false)}
+                                onError={(syntheticEvent) => {
+                                    const { nativeEvent } = syntheticEvent;
+                                    console.log('WebView error: ', nativeEvent);
+                                    Alert.alert('Error', 'Failed to load the PDF.');
+                                    setPdfModalVisible(false);
+                                }}
+                            />
+                            {pdfLoading && (
+                                <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
+                            )}
+                        </>
+                    ) : (
+                        <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
+                    )}
+                </View>
             </Modal>
 
             {/* Video playback modal */}

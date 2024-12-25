@@ -108,18 +108,18 @@ export const addAttachment = async ({ setAttachments, attachments, userId, taskI
         console.log('Updated Attachments:', updatedAttachments);
         setAttachments(updatedAttachments);
 
-        // Update Firestore
-        if (taskId && userId) {
-            const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-            try {
-                await updateDoc(taskDocRef, { attachments: updatedAttachments });
-                console.log('Firestore updated with new attachment.');
-            } catch (firestoreError) {
-                console.log('Firestore update error:', firestoreError);
-                Alert.alert('Error', 'Failed to update Firestore with the attachment.');
-            }
+        // // Update Firestore
+        // if (taskId && userId) {
+        //     const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+        //     try {
+        //         await updateDoc(taskDocRef, { attachments: updatedAttachments });
+        //         console.log('Firestore updated with new attachment.');
+        //     } catch (firestoreError) {
+        //         console.log('Firestore update error:', firestoreError);
+        //         Alert.alert('Error', 'Failed to update Firestore with the attachment.');
+        //     }
             
-        }
+        // }
     } catch (error) {
         console.log('DocumentPicker error:', error);
         Alert.alert('Error', 'Failed to pick the file');
@@ -139,11 +139,11 @@ export const removeAttachment = async ({ setAttachments, attachments, index, use
             console.log('Deleted file:', removed[0].uri);
         }
 
-        // Update Firestore
-        if (taskId && userId) {
-            const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-            await updateDoc(taskDocRef, { attachments: updatedAttachments });
-        }
+        // // Update Firestore
+        // if (taskId && userId) {
+        //     const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+        //     await updateDoc(taskDocRef, { attachments: updatedAttachments });
+        // }
     } catch (error) {
         console.log('Error removing attachment:', error);
         Alert.alert('Error', 'Failed to remove the attachment');
@@ -152,12 +152,6 @@ export const removeAttachment = async ({ setAttachments, attachments, index, use
 
 export const handleOpenAttachment = async (uri, mimeType, onImagePreview, onTextPreview, onPdfPreview, onVideoPreview, onAudioPreview) => {
     try {
-        // const supported = await Linking.canOpenURL(uri);
-        // if (supported) {
-        //     await Linking.openURL(uri);
-        // } else {
-        //     Alert.alert('Error', 'Cannot open this file.');
-        // }
         console.log(`Opening file with URI: ${uri} and MIME type: ${mimeType}`);
 
         if (mimeType && typeof mimeType.startsWith === 'function') {
@@ -165,27 +159,6 @@ export const handleOpenAttachment = async (uri, mimeType, onImagePreview, onText
                 // If the attachment is an image, preview it within the app (in modal)
                 onImagePreview(uri);
             } else if (mimeType === 'application/pdf') {
-                // // In-app PDF preview using WebView
-                // try {
-                //     const pdfBase64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-                //     const dataUri = `data:application/pdf;base64,${pdfBase64}`;
-                //     console.log('PDF Data URI:', dataUri.substring(0, 100) + '...');
-
-                //     onPdfPreview(dataUri);
-                // } catch (error) {
-                //     console.log('Error reading PDF:', error);
-                //     Alert.alert('Error', 'Failed to read the PDF file.');
-                // }
-                // // Open PDF with external app
-                // const isAvailable = await Sharing.isAvailableAsync();
-                // if (!isAvailable) {
-                //     Alert.alert('Error', 'Sharing is not available on this device.');
-                //     return;
-                // }
-                // await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Open PDF' });
-                // Open  PDF with expo-web-browser externally
-                // const result = await WebBrowser.openBrowserAsync(uri);
-                // console.log('WebBrowser result:', result);
                 try {
                     const pdfBase64 = await FileSystem.readAsStringAsync(uri, {
                         encoding: FileSystem.EncodingType.Base64,

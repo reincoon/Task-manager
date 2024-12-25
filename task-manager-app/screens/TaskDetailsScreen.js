@@ -41,7 +41,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     // notificationId is stored to keep in case if cancelled
     const [taskNotificationId, setTaskNotificationId] = useState(null);
     const [userId, setUserId] = useState(null);
-
+    const [originalAttachments, setOriginalAttachments] = useState([]);
     const [attachments, setAttachments] = useState([]);
 
 
@@ -103,6 +103,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
             // Initialise attachments
             const fetchedAttachments = data.attachments || [];
+            setOriginalAttachments(fetchedAttachments);
             setAttachments(fetchedAttachments);
 
             setOriginalTask({
@@ -179,6 +180,25 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 dueDate: s.dueDate.toISOString()  // Store as ISO string
             }));
 
+            // Determine attachments to remove and add
+            const removedAttachments = originalAttachments.filter(
+                (orig) => !attachments.some((curr) => curr.uri === orig.uri)
+            );
+            const addedAttachments = attachments.filter(
+                (curr) => !originalAttachments.some((orig) => orig.uri === curr.uri)
+            );
+
+            // Delete removed attachments from local storage
+            for (const attachment of removedAttachments) {
+                try {
+                    await FileSystem.deleteAsync(attachment.uri, { idempotent: true });
+                    console.log('Deleted attachment:', attachment.uri);
+                } catch (error) {
+                    console.log('Error deleting attachment:', error);
+                    // Continue even if deletion fails
+                }
+            }
+
             const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
             await updateDoc(taskDocRef, {
                 title: taskTitle,
@@ -188,7 +208,11 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 priority,
                 subtasks: updatedSubtasks,
                 notificationId: newNotificationId || null,
+                attachments,
             });
+
+            // Update originalAttachments to the new attachments
+            setOriginalAttachments(attachments);
 
             Alert.alert('Success', 'Task updated successfully');
             navigation.goBack();
@@ -197,7 +221,27 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         }
     };
 
-    const handleCancel = () => {
+    const handleCancel = async () => {
+        // Determine added and removed attachments
+        const removedAttachments = originalAttachments.filter(
+            (orig) => !attachments.some((curr) => curr.uri === orig.uri)
+        );
+        const addedAttachments = attachments.filter(
+            (curr) => !originalAttachments.some((orig) => orig.uri === curr.uri)
+        );
+        // Delete added attachments from local storage
+        for (const attachment of addedAttachments) {
+            try {
+                await FileSystem.deleteAsync(attachment.uri, { idempotent: true });
+                console.log('Deleted added attachment:', attachment.uri);
+            } catch (error) {
+                console.log('Error deleting added attachment:', error);
+                // Continue even if deletion fails
+            }
+        }
+        // Revert attachments to originalAttachments
+        setAttachments(originalAttachments);
+
         // Revert to original task if the user doesn't want to save
         if (originalTask) {
             setTaskTitle(originalTask.title);
@@ -249,7 +293,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             priority: 'Low',
             reminder: 'None',
             isRecurrent: false,
-            notificationId: null
+            notificationId: null,
+            eventId: null,
         });
         setEditingSubtaskIndex(null);
         setShowSubtaskForm(false);
@@ -274,6 +319,16 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 for (const subtask of subtasks) {
                     if (subtask.notificationId) {
                         await cancelTaskNotification(subtask.notificationId);
+                    }
+                }
+                // Delete all attachments from local storage
+                for (const attachment of attachments) {
+                    try {
+                        await FileSystem.deleteAsync(attachment.uri, { idempotent: true });
+                        console.log('Deleted attachment:', attachment.uri);
+                    } catch (error) {
+                        console.log('Error deleting attachment:', error);
+                        // Continue even if deletion fails
                     }
                 }
 
@@ -519,8 +574,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                         addAttachment({
                             setAttachments,
                             attachments,
-                            userId,
-                            taskId,
                         })
                     }
                     onRemoveAttachment={(index) =>
@@ -528,8 +581,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                             setAttachments,
                             attachments,
                             index,
-                            userId,
-                            taskId,
                         })
                     }
                 />
