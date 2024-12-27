@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ImageBackground, Dimensions, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ImageBackground, Dimensions, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
-import { handleOpenAttachment } from '../helpers/attachmentHelpers'
+// import * as FileSystem from 'expo-file-system';
+import { handleOpenLocalFile, doDownloadSupabaseFile } from '../helpers/attachmentHelpers'
 import { WebView } from 'react-native-webview';
 import { Video } from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
 
-const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) => {
+const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, setAttachments }) => {
     const [imageModalVisible, setImageModalVisible] = useState(false);
     // const [selectedImageUri, setSelectedImageUri] = useState(null);
     const [textModalVisible, setTextModalVisible] = useState(false);
@@ -20,37 +20,58 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
     const [pdfDataUri, setPdfDataUri] = useState(null);
     const [pdfLoading, setPdfLoading] = useState(true);
 
-    const handlePressAttachment = (item) => {
-        handleOpenAttachment(
-            item.uri, 
-            item.mimeType, 
-            (uri) => {
-                // Image preview handler
-                setSelectedFileUri(uri);
-                setImageModalVisible(true);
-            },
-            (content) => {
-                // Text preview handler
-                setSelectedTextContent(content);
-                setTextModalVisible(true);
-            },
-            (pdfUri) => {
-                // PDF preview handler
-                console.log('PDF Data URI length:', pdfUri.length);
-                setPdfDataUri(pdfUri);
-                setPdfModalVisible(true);
-            },
-            (uri) => {
-                // Video playback handler
-                setSelectedFileUri(uri);
-                setVideoModalVisible(true);
-            },
-            (uri) => {
-                // Audio playback handler
-                setSelectedFileUri(uri);
-                setAudioModalVisible(true);
-            }
-        );
+    const handlePressAttachment = async (item) => {
+        if (item.localUri) {
+            await handleOpenLocalFile(item, {
+                onImagePreview: (uri) => {
+                    // Image preview handler
+                    setSelectedFileUri(uri);
+                    setImageModalVisible(true);
+                },
+                onTextPreview: (content) => {
+                    // Text preview handler
+                    setSelectedTextContent(content);
+                    setTextModalVisible(true);
+                },
+                onPdfPreview: (pdfUri) => {
+                    // PDF preview handler
+                    setPdfDataUri(pdfUri);
+                    setPdfModalVisible(true);
+                },
+                onVideoPreview: (uri) => {
+                    // Video playback handler
+                    setSelectedFileUri(uri);
+                    setVideoModalVisible(true);
+                },
+                onAudioPreview: (uri) => {
+                    // Audio playback handler
+                    setSelectedFileUri(uri);
+                    setAudioModalVisible(true);
+                },
+            });
+        } else if (item.supabaseKey) {
+            // Download file
+            Alert.alert('Download from Supabase?', 'This file is not stored locally. Download now?',[
+                { text: 'Cancel', style: 'cancel'},
+                {
+                    text: 'Download',
+                    onPress: async () => {
+                        setPdfLoading(true);
+                        const localUri = await doDownloadSupabaseFile({
+                            attachment: item,
+                            attachments,
+                            setAttachments,
+                        });
+                        setPdfLoading(false);
+                        if (localUri) {
+                            handlePressAttachment({ ...item, localUri });
+                        }
+                    },
+                },
+            ]);
+        } else {
+            Alert.alert('Error', 'No local file or supabaseKey to open.');
+        }
     };
 
     return (
@@ -68,10 +89,26 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
                 <Text style={styles.noAttachmentsText}>No attachments yet</Text>
             ) : (
                 attachments.map((item, index) => (
-                    <View key={`${index}-${item.uri}`} style={styles.attachmentItem}>
+                    <View key={index.toString()} style={styles.attachmentItem}>
                         <TouchableOpacity onPress={() => handlePressAttachment(item)} style={{ flex: 1 }}>
                             <Text style={styles.attachmentText} numberOfLines={1}>{item.name}</Text>
                         </TouchableOpacity>
+                        {!item.localUri && item.supabaseKey && (
+                        <TouchableOpacity onPress={async () => {
+                            setPdfLoading(true);
+                            const localUri = await doDownloadSupabaseFile({
+                                attachment: item,
+                                attachments,
+                                setAttachments,
+                            });
+                            setPdfLoading(false);
+                            if (localUri) {
+                                handlePressAttachment({ ...item, localUri });
+                            }
+                        }}>
+                            <Ionicons name="cloud-download-outline" size={20} color="blue" style={{ marginRight: 10 }} />
+                        </TouchableOpacity>
+                        )}
                         <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
                             <Ionicons name="trash-outline" size={20} color="red" />
                         </TouchableOpacity>
@@ -142,13 +179,11 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
                                                 body, html {
                                                     margin: 10;
                                                     padding: 30 0;
-                                                    
                                                     overflow: auto;
                                                     background-color: #fff;
                                                 }
                                                 object {
                                                     width: 100%;
-                                                
                                                     border: none;
                                                 }
                                             </style>
@@ -162,8 +197,8 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment }) =
                                     `
                                 }}
                                 style={styles.pdfPreview}
-                                javaScriptEnabled={true}
-                                scalesPageToFit={true}
+                                javaScriptEnabled
+                                scalesPageToFit
                                 onLoadStart={() => setPdfLoading(true)}
                                 onLoadEnd={() => setPdfLoading(false)}
                                 onError={(syntheticEvent) => {

@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { db, auth } from './firebaseConfig';

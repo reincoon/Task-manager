@@ -5,16 +5,17 @@ import { db, auth } from '../firebaseConfig';
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import NotificationPicker from '../components/NotificationPicker';
 import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
+import DateTimeSelector from '../components/DateTimeSelector';
+import SubtaskList from '../components/SubtaskList';
+import AttachmentsList from '../components/AttachmentsList';
+
 import { requestNotificationPermissions } from '../helpers/notifications';
 import { NOTIFICATION_OPTIONS } from '../helpers/constants';
 import { cyclePriority } from '../helpers/priority';
 // import { formatDateTime } from '../helpers/date';
-import DateTimeSelector from '../components/DateTimeSelector';
 import { scheduleTaskNotification, cancelTaskNotification } from '../helpers/notificationsHelpers';
-import SubtaskList from '../components/SubtaskList';
 import { addEventToCalendar } from '../helpers/calendar';
-import { addAttachment, removeAttachment } from '../helpers/attachmentHelpers';
-import AttachmentsList from '../components/AttachmentsList';
+import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/attachmentHelpers';
 
 const TaskDetailsScreen = ({ route, navigation }) => {
     const { taskId } = route.params;
@@ -182,7 +183,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
             // Determine attachments to remove and add
             const removedAttachments = originalAttachments.filter(
-                (orig) => !attachments.some((curr) => curr.uri === orig.uri)
+                (orig) => !attachments.some((curr) => curr.localUri === orig.localUri && curr.supabaseKey === orig.supabaseKey)
             );
             const addedAttachments = attachments.filter(
                 (curr) => !originalAttachments.some((orig) => orig.uri === curr.uri)
@@ -222,22 +223,38 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     };
 
     const handleCancel = async () => {
-        // Determine added and removed attachments
-        const removedAttachments = originalAttachments.filter(
-            (orig) => !attachments.some((curr) => curr.uri === orig.uri)
-        );
-        const addedAttachments = attachments.filter(
-            (curr) => !originalAttachments.some((orig) => orig.uri === curr.uri)
+        // // Determine added and removed attachments
+        // const removedAttachments = originalAttachments.filter(
+        //     (orig) => !attachments.some((curr) => curr.uri === orig.uri)
+        // );
+        // const addedAttachments = attachments.filter(
+        //     (curr) => !originalAttachments.some((orig) => orig.uri === curr.uri)
+        // );
+        // remove newly added attachments
+        const newlyAdded = attachments.filter(
+            (curr) => !originalAttachments.some(
+                (orig) =>
+                    orig.localUri === curr.localUri &&
+                    orig.supabaseKey === curr.supabaseKey
+            )
         );
         // Delete added attachments from local storage
-        for (const attachment of addedAttachments) {
-            try {
-                await FileSystem.deleteAsync(attachment.uri, { idempotent: true });
-                console.log('Deleted added attachment:', attachment.uri);
-            } catch (error) {
-                console.log('Error deleting added attachment:', error);
-                // Continue even if deletion fails
+        for (const na of newlyAdded) {
+            if (na.localUri) {
+                await FileSystem.deleteAsync(na.localUri, { idempotent: true });
             }
+    //NEED TO REMOVE FROM SUPABASE TOO 
+
+
+
+
+            // try {
+            //     await FileSystem.deleteAsync(attachment.uri, { idempotent: true });
+            //     console.log('Deleted added attachment:', attachment.uri);
+            // } catch (error) {
+            //     console.log('Error deleting added attachment:', error);
+            //     // Continue even if deletion fails
+            // }
         }
         // Revert attachments to originalAttachments
         setAttachments(originalAttachments);
@@ -570,16 +587,17 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 {/* Attachments */}
                 <AttachmentsList
                     attachments={attachments}
+                    setAttachments={setAttachments}
                     onAddAttachment={() =>
-                        addAttachment({
-                            setAttachments,
+                        addAttachmentOfflineAndOnline({
                             attachments,
+                            setAttachments,  
                         })
                     }
                     onRemoveAttachment={(index) =>
                         removeAttachment({
-                            setAttachments,
                             attachments,
+                            setAttachments,
                             index,
                         })
                     }
