@@ -156,12 +156,14 @@ export const removeFileFromSupabase = async (supabaseKey) => {
             .remove([supabaseKey]);
         if (error) {
             console.log('Supabase remove error:', error);
+            Alert.alert('Supabase Remove Error', error.message);
             return false;
         }
         console.log('Removed from Supabase:', data);
         return true;
     } catch (err) {
         console.log('Error removing file from Supabase:', err);
+        Alert.alert('Error', 'Failed to remove the file from storage.');
         return false;
     }
 };

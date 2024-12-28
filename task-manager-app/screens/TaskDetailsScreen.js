@@ -16,6 +16,8 @@ import { cyclePriority } from '../helpers/priority';
 import { scheduleTaskNotification, cancelTaskNotification } from '../helpers/notificationsHelpers';
 import { addEventToCalendar } from '../helpers/calendar';
 import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/attachmentHelpers';
+import { removeFileFromSupabase } from '../helpers/supabaseStorageHelpers';
+import * as FileSystem from 'expo-file-system';
 
 const TaskDetailsScreen = ({ route, navigation }) => {
     const { taskId } = route.params;
@@ -44,7 +46,10 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     const [userId, setUserId] = useState(null);
     const [originalAttachments, setOriginalAttachments] = useState([]);
     const [attachments, setAttachments] = useState([]);
-
+    const [deletedAttachments, setDeletedAttachments] = useState([]);
+    const [addedAttachments, setAddedAttachments] = useState([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
     useEffect(() => {
         requestNotificationPermissions();
@@ -126,8 +131,17 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     }, [userId, taskId, navigation]);
 
     const handleSaveTask = async () => {
+        // If an attachment is uploading, block
+        if (isUploadingAttachment) {
+            Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes.');
+            return;
+        }
+        if (isSaving) return;
+        setIsSaving(true);
+        
         if (!taskTitle.trim()) {
             Alert.alert('Error', 'Task title is required');
+            setIsSaving(false);
             return;
         }
 
@@ -181,24 +195,24 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 dueDate: s.dueDate.toISOString()  // Store as ISO string
             }));
 
-            // Determine attachments to remove and add
-            const removedAttachments = originalAttachments.filter(
-                (orig) => !attachments.some((curr) => curr.localUri === orig.localUri && curr.supabaseKey === orig.supabaseKey)
-            );
-            const addedAttachments = attachments.filter(
-                (curr) => !originalAttachments.some((orig) => orig.uri === curr.uri)
-            );
+            // // Determine attachments to remove and add
+            // const removedAttachments = originalAttachments.filter(
+            //     (orig) => !attachments.some((curr) => curr.localUri === orig.localUri && curr.supabaseKey === orig.supabaseKey)
+            // );
+            // const addedAttachments = attachments.filter(
+            //     (curr) => !originalAttachments.some((orig) => orig.uri === curr.uri)
+            // );
 
-            // Delete removed attachments from local storage
-            for (const attachment of removedAttachments) {
-                try {
-                    await FileSystem.deleteAsync(attachment.uri, { idempotent: true });
-                    console.log('Deleted attachment:', attachment.uri);
-                } catch (error) {
-                    console.log('Error deleting attachment:', error);
-                    // Continue even if deletion fails
-                }
-            }
+            // // Delete removed attachments from local storage
+            // for (const attachment of removedAttachments) {
+            //     try {
+            //         await FileSystem.deleteAsync(attachment.uri, { idempotent: true });
+            //         console.log('Deleted attachment:', attachment.uri);
+            //     } catch (error) {
+            //         console.log('Error deleting attachment:', error);
+            //         // Continue even if deletion fails
+            //     }
+            // }
 
             const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
             await updateDoc(taskDocRef, {
@@ -212,6 +226,20 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 attachments,
             });
 
+            // Delete deleted attachments from Supabase
+            for (const attachment of deletedAttachments) {
+                if (attachment.supabaseKey) {
+                    const success = await removeFileFromSupabase(attachment.supabaseKey);
+                    if (!success) {
+                        Alert.alert('Error', `Failed to delete attachment "${attachment.name}" from storage.`);
+                    }
+                }
+            }
+
+            // Clear tracking states
+            setDeletedAttachments([]);
+            setAddedAttachments([]);
+
             // Update originalAttachments to the new attachments
             setOriginalAttachments(attachments);
 
@@ -219,6 +247,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             navigation.goBack();
         } catch (error) {
             Alert.alert('Error', error.message);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -231,20 +261,61 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         //     (curr) => !originalAttachments.some((orig) => orig.uri === curr.uri)
         // );
         // remove newly added attachments
-        const newlyAdded = attachments.filter(
-            (curr) => !originalAttachments.some(
-                (orig) =>
-                    orig.localUri === curr.localUri &&
-                    orig.supabaseKey === curr.supabaseKey
-            )
-        );
-        // Delete added attachments from local storage
-        for (const na of newlyAdded) {
-            if (na.localUri) {
-                await FileSystem.deleteAsync(na.localUri, { idempotent: true });
-            }
+        // const newlyAdded = attachments.filter(
+        //     (curr) => !originalAttachments.some(
+        //         (orig) =>
+        //             orig.localUri === curr.localUri &&
+        //             orig.supabaseKey === curr.supabaseKey
+        //     )
+        // );
+        // // Delete added attachments from local storage
+        // for (const na of newlyAdded) {
+        //     if (na.localUri) {
+        //         await FileSystem.deleteAsync(na.localUri, { idempotent: true });
+        //     }
     //NEED TO REMOVE FROM SUPABASE TOO 
 
+        // If an attachment is uploading, block the user
+        if (isUploadingAttachment) {
+            Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes before canceling.');
+            return;
+        }
+
+        try {
+            // Identify 'addedAttachments' as those in 'addedAttachments' state
+            for (const attachment of addedAttachments) {
+                if (attachment.supabaseKey) {
+                    await removeFileFromSupabase(attachment.supabaseKey);
+                }
+                // Delete local files
+                if (attachment.localUri) {
+                    await FileSystem.deleteAsync(attachment.localUri, { idempotent: true });
+                }
+            }
+
+            // Revert attachments to originalAttachments
+            setAttachments(originalAttachments);
+
+            // Clear tracking states
+            setDeletedAttachments([]);
+            setAddedAttachments([]);
+
+            // Revert other states to originalTask
+            if (originalTask) {
+                setTaskTitle(originalTask.title);
+                setNotes(originalTask.notes);
+                setDueDate(originalTask.dueDate);
+                setNotification(originalTask.notification);
+                setPriority(originalTask.priority);
+                setSubtasks(originalTask.subtasks);
+            }
+
+            navigation.goBack();
+            // navigation.navigate('Home');
+        } catch (error) {
+            console.log('Error during cancellation:', error);
+            Alert.alert('Error', 'Failed to cancel task editing.');
+        }
 
 
 
@@ -255,20 +326,20 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             //     console.log('Error deleting added attachment:', error);
             //     // Continue even if deletion fails
             // }
-        }
-        // Revert attachments to originalAttachments
-        setAttachments(originalAttachments);
+        
+        // // Revert attachments to originalAttachments
+        // setAttachments(originalAttachments);
 
-        // Revert to original task if the user doesn't want to save
-        if (originalTask) {
-            setTaskTitle(originalTask.title);
-            setNotes(originalTask.notes);
-            setDueDate(originalTask.dueDate);
-            setNotification(originalTask.notification);
-            setPriority(originalTask.priority);
-            setSubtasks(originalTask.subtasks);
-        }
-        navigation.goBack();
+        // // Revert to original task if the user doesn't want to save
+        // if (originalTask) {
+        //     setTaskTitle(originalTask.title);
+        //     setNotes(originalTask.notes);
+        //     setDueDate(originalTask.dueDate);
+        //     setNotification(originalTask.notification);
+        //     setPriority(originalTask.priority);
+        //     setSubtasks(originalTask.subtasks);
+        // }
+        // navigation.goBack();
     };
 
     const handleAddSubtask = async () => {
@@ -499,11 +570,14 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={handleCancel}>
+                <TouchableOpacity onPress={handleCancel} disabled={isUploadingAttachment}>
                     <Ionicons name="arrow-back" size={24} color="black" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Edit To-Do List</Text>
-                <TouchableOpacity onPress={handleSaveTask}>
+                <TouchableOpacity 
+                    onPress={handleSaveTask}
+                    disabled={isSaving || isUploadingAttachment}
+                >
                     <Ionicons name="save" size={24} color="black" />
                 </TouchableOpacity>
             </View>
@@ -592,15 +666,21 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                         addAttachmentOfflineAndOnline({
                             attachments,
                             setAttachments,  
+                            addedAttachments,
+                            setAddedAttachments,
                         })
                     }
-                    onRemoveAttachment={(index) =>
+                    onRemoveAttachment={(index) => {
+                        const removed = attachments[index];
+                        setDeletedAttachments([...deletedAttachments, removed]);
                         removeAttachment({
                             attachments,
                             setAttachments,
                             index,
-                        })
-                    }
+                            shouldDeleteSupabase: false,
+                        });
+                    }}
+                    setIsUploading={setIsUploadingAttachment}
                 />
             </ScrollView>
 

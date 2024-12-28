@@ -17,7 +17,8 @@ import { addEventToCalendar } from '../helpers/calendar';
 import AttachmentsList from '../components/AttachmentsList';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import { addAttachment, removeAttachment } from '../helpers/attachmentHelpers';
+import { addAttachmentOfflineAndOnline, removeAttachment, deleteAllAttachmentsFromSupabase } from '../helpers/attachmentHelpers';
+import { removeFileFromSupabase } from '../helpers/supabaseStorageHelpers';
 
 const TaskCreationScreen = ({ navigation }) => {
     const [taskTitle, setTaskTitle] = useState('');
@@ -35,9 +36,15 @@ const TaskCreationScreen = ({ navigation }) => {
         isRecurrent: false,
     });
     const [attachments, setAttachments] = useState([]);
+    const [addedAttachments, setAddedAttachments] = useState([]);
+    const [deletedAttachments, setDeletedAttachments] = useState([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     const [taskId, setTaskId] = useState(null);
     const [userId, setUserId] = useState(null);
+
+    const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
     // Request permissions for notifications
     useEffect(() => {
@@ -96,96 +103,43 @@ const TaskCreationScreen = ({ navigation }) => {
             priority: 'Low',
             reminder: 'None',
             isRecurrent: false,
+            notificationId: null,
+            eventId: null,
         });
         setShowSubtaskForm(false);
     };
 
-    // const handleAddAttachment = async () => {
-    //     try {
-    //         const result = await DocumentPicker.getDocumentAsync({
-    //             copyToCacheDirectory: true,
-    //             type: '*/*',
-    //         });
-    //         if (result.canceled) {
-    //             return;
-    //         }
-    //         console.log('DocumentPicker result:', result);
-
-    //         const { name, uri } = result.assets?.[0] ?? {};
-    //         if (!uri) {
-    //             Alert.alert('Error', 'No file URI found.');
-    //             return;
-    //         }
-    //         // Copy a file to local storage
-    //         const fileName = `${Date.now()}-${name}`;
-    //         const newUri = FileSystem.documentDirectory + fileName;
-    //         try {
-    //             await FileSystem.copyAsync({ from: uri, to: newUri });
-    //             console.log('File copied to local sandbox at: ', newUri);
-    //         } catch (copyErr) {
-    //             console.log('copyAsync error:', copyErr);
-    //             try {
-    //                 const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-    //                 await FileSystem.writeAsStringAsync(newUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-    //                 console.log('File written from base64 to:', newUri);
-    //             } catch (base64Err) {
-    //                 console.log('base64 fallback error:', base64Err);
-    //                 Alert.alert('Error', 'Failed to load the file. Please try a different file type or location.');
-    //                 return;
-    //             }
-    //         }
-
-    //         // const info = await FileSystem.getInfoAsync(newUri);
-    //         const info = await FileSystem.getInfoAsync(newUri);
-    //         console.log('File info from DocumentPicker:', info);
-
-    //         if (!info.exists) {
-    //             Alert.alert('File not downloaded', 'This file might still be in iCloud. Please open it in the Files app or choose a file that is stored locally.');
-    //             return;
-    //         }
-            
-    //         const newAttachment = { name, uri: newUri };
-    //         const updatedAttachments = [...attachments, newAttachment];
-    //         setAttachments(updatedAttachments);
-    //         // Update Firestore references
-    //         if (taskId && userId) {
-    //             const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-    //             await updateDoc(taskDocRef, { attachments: updatedAttachments });
-    //         }
-    //     } catch (error) {
-    //         console.log('DocumentPicker error:', error);
-    //         Alert.alert('Error', 'Failed to pick the file');
-    //     }
-    // }
-
-    // const handleRemoveAttachment = async (index) => {
-    //     const updatedAttachments = [...attachments];
-    //     const removed = updatedAttachments.splice(index, 1);
-    //     setAttachments(updatedAttachments);
-    //     // If task is already saved
-    //     if (taskId && userId) {
-    //         const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-    //         await updateDoc(taskDocRef, { attachments: updatedAttachments });
-    //     }
-    //     // Delete the file from local storage:
-    //     await FileSystem.deleteAsync(removed[0].uri);
-    // }
-
     const handleSaveTask = async () => {
+        // If an attachment is uploading, block the user
+        if (isUploadingAttachment) {
+            Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes.');
+            return;
+        }
+        if (isSaving) return;
+        setIsSaving(true);
+
         if (!taskTitle.trim()) {
             Alert.alert('Error', 'Task title is required');
+            setIsSaving(false);
             return;
         }
 
-        const userId = auth.currentUser?.uid;
-        if (!userId) {
+        const currentUserId = auth.currentUser?.uid;
+        if (!currentUserId) {
             Alert.alert('Error', 'You need to be logged in to create a task');
+            setIsSaving(false);
             return;
         }
 
         try {
             const subtasksForDb = subtasks.map(s => ({...s, dueDate: s.dueDate.toISOString()}));
-            const attachmentsForDb = attachments.map(a => ({ name: a.name, uri: a.uri }));
+            // const attachmentsForDb = attachments.map(a => ({ name: a.name, uri: a.uri }));
+            const attachmentsForDb = attachments.map(a => ({
+                name: a.name, 
+                supabaseKey: a.supabaseKey, 
+                mimeType: a.mimeType,
+                signedUrl: a.signedUrl
+            }));
 
             const taskData = {
                 title: taskTitle,
@@ -195,11 +149,12 @@ const TaskCreationScreen = ({ navigation }) => {
                 priority,
                 subtasks: subtasksForDb,
                 attachments: attachmentsForDb,
-                userId,
+                // userId,
+                userId: currentUserId,
                 createdAt: new Date().toISOString(),
                 eventId: null
             };
-            const taskRef = collection(db, `tasks/${userId}/taskList`);
+            const taskRef = collection(db, `tasks/${currentUserId}/taskList`);
             const docRef = await addDoc(taskRef, taskData);
 
             // Schedule Notification for to-do list
@@ -209,7 +164,7 @@ const TaskCreationScreen = ({ navigation }) => {
             }
             // Update Firestore with mainNotificationId
             if (mainNotificationId) {
-                await updateDoc(doc(db, `tasks/${userId}/taskList`, docRef.id), {
+                await updateDoc(doc(db, `tasks/${currentUserId}/taskList`, docRef.id), {
                 notificationId: mainNotificationId
                 });
             }
@@ -219,6 +174,8 @@ const TaskCreationScreen = ({ navigation }) => {
             navigation.navigate('Home');
         } catch (error) {
             Alert.alert('Error', error.message);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -279,17 +236,66 @@ const TaskCreationScreen = ({ navigation }) => {
         }
     };
 
+    const handleCancel = async () => {
+        // If an attachment is uploading, block the user
+        if (isUploadingAttachment) {
+            Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes before canceling.');
+            return;
+        }
+
+        if (isCancelling) return;
+        setIsCancelling(true);
+
+        try {
+            // Delete 'addedAttachments' from Supabase and local storage
+            for (const attachment of addedAttachments) {
+                if (attachment.supabaseKey) {
+                    await removeFileFromSupabase(attachment.supabaseKey);
+                }
+                if (attachment.localUri) {
+                    await FileSystem.deleteAsync(attachment.localUri, { idempotent: true });
+                }
+            }
+
+            // Revert attachments to originalAttachments
+            // setAttachments(originalAttachments);
+            setAttachments([]);
+            setIsCancelling(false);
+            // Clear tracking states
+            setDeletedAttachments([]);
+            setAddedAttachments([]);
+
+            // Reset other form fields
+            setTaskTitle('');
+            setNotes('');
+            setDueDate(new Date());
+            setNotification('None');
+            setPriorityState('Low');
+            setSubtasks([]);
+
+            navigation.goBack();
+        } catch (error) {
+            console.log('Error during cancellation:', error);
+            Alert.alert('Error', 'Failed to cancel task editing.');
+        } finally {
+            setIsCancelling(false);
+        }
+    }
+
     const setPriority = (p) => setPriorityState(cyclePriority(p));
 
     return (
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
+                <TouchableOpacity onPress={handleCancel} disabled={isCancelling || isUploadingAttachment}>
                     <Ionicons name="arrow-back" size={24} color="black" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Create To-Do List</Text>
-                <TouchableOpacity onPress={handleSaveTask}>
+                <TouchableOpacity 
+                    onPress={handleSaveTask}
+                    disabled={isSaving || isUploadingAttachment}
+                >
                     <Ionicons name="save" size={24} color="black" />
                 </TouchableOpacity>
             </View>
@@ -357,25 +363,26 @@ const TaskCreationScreen = ({ navigation }) => {
                 {/* Attachments */}
                 <AttachmentsList 
                     attachments={attachments}
+                    setAttachments={setAttachments}
                     // onAddAttachment={handleAddAttachment}
                     onAddAttachment={() =>
-                        addAttachment({
-                            setAttachments,
+                        addAttachmentOfflineAndOnline({
                             attachments,
-                            userId,
-                            taskId,
+                            setAttachments,
+                            addedAttachments,
+                            setAddedAttachments,
                         })
                     }
                     // onRemoveAttachment={handleRemoveAttachment}
                     onRemoveAttachment={(index) =>
                         removeAttachment({
-                            setAttachments,
                             attachments,
+                            setAttachments,
                             index,
-                            userId,
-                            taskId,
+                            shouldDeleteSupabase: false,
                         })
                     }
+                    setIsUploading={setIsUploadingAttachment}
                 />
             </ScrollView>
             

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ImageBackground, Dimensions, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 // import * as FileSystem from 'expo-file-system';
@@ -8,7 +8,7 @@ import { Video } from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
 
-const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, setAttachments }) => {
+const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, setAttachments, setIsUploading }) => {
     const [imageModalVisible, setImageModalVisible] = useState(false);
     // const [selectedImageUri, setSelectedImageUri] = useState(null);
     const [textModalVisible, setTextModalVisible] = useState(false);
@@ -19,7 +19,14 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, set
     const [selectedTextContent, setSelectedTextContent] = useState('');
     const [pdfDataUri, setPdfDataUri] = useState(null);
     const [pdfLoading, setPdfLoading] = useState(true);
+    const [isAddingAttachment, setIsAddingAttachment] = useState(false);
 
+    useEffect(() => {
+        if (typeof setIsUploading === 'function') {
+            setIsUploading(isAddingAttachment);
+        }
+    }, [isAddingAttachment, setIsUploading]);
+    
     const handlePressAttachment = async (item) => {
         if (item.localUri) {
             await handleOpenLocalFile(item, {
@@ -51,11 +58,11 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, set
             });
         } else if (item.supabaseKey) {
             // Download file
-            Alert.alert('Download from Supabase?', 'This file is not stored locally. Download now?',[
-                { text: 'Cancel', style: 'cancel'},
-                {
-                    text: 'Download',
-                    onPress: async () => {
+            // Alert.alert('Download from Supabase?', 'This file is not stored locally. Download now?',[
+            //     { text: 'Cancel', style: 'cancel'},
+            //     {
+            //         text: 'Download',
+            //         onPress: async () => {
                         setPdfLoading(true);
                         const localUri = await doDownloadSupabaseFile({
                             attachment: item,
@@ -66,9 +73,9 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, set
                         if (localUri) {
                             handlePressAttachment({ ...item, localUri });
                         }
-                    },
-                },
-            ]);
+            //         },
+            //     },
+            // ]);
         } else {
             Alert.alert('Error', 'No local file or supabaseKey to open.');
         }
@@ -79,10 +86,30 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, set
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>Attachments</Text>
-                <TouchableOpacity style={styles.addButton} onPress={onAddAttachment}>
+                {/* <TouchableOpacity style={styles.addButton} onPress={onAddAttachment}>
                     <Ionicons name="attach" size={20} color="white" />
                     <Text style={styles.addButtonText}>Add</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
+                {isAddingAttachment ? (
+                    <ActivityIndicator size="small" color="#007bff" style={{ marginRight: 10 }} />
+                ) : (
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={async () => {
+                            try {
+                                setIsAddingAttachment(true);
+                                await onAddAttachment();
+                            } catch (err) {
+                                console.log('Error adding attachment:', err);
+                            } finally {
+                                setIsAddingAttachment(false);
+                            }
+                        }}
+                    >
+                        <Ionicons name="attach" size={20} color="white" />
+                        <Text style={styles.addButtonText}>Add</Text>
+                    </TouchableOpacity>
+                )}
             </View>
             {/* Attachments list */}
             {attachments.length === 0 ? (
@@ -93,7 +120,8 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, set
                         <TouchableOpacity onPress={() => handlePressAttachment(item)} style={{ flex: 1 }}>
                             <Text style={styles.attachmentText} numberOfLines={1}>{item.name}</Text>
                         </TouchableOpacity>
-                        {!item.localUri && item.supabaseKey && (
+                        {/* Download icon if it has supabaseKey */}
+                        {item.supabaseKey && (
                         <TouchableOpacity onPress={async () => {
                             setPdfLoading(true);
                             const localUri = await doDownloadSupabaseFile({
@@ -106,7 +134,7 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, set
                                 handlePressAttachment({ ...item, localUri });
                             }
                         }}>
-                            <Ionicons name="cloud-download-outline" size={20} color="blue" style={{ marginRight: 10 }} />
+                            <Ionicons name="cloud-download" size={20} color="blue" style={{ marginRight: 10 }} />
                         </TouchableOpacity>
                         )}
                         <TouchableOpacity onPress={() => onRemoveAttachment(index)}>
