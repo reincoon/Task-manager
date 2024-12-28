@@ -111,10 +111,10 @@ const TaskCreationScreen = ({ navigation }) => {
 
     const handleSaveTask = async () => {
         // If an attachment is uploading, block the user
-        if (isUploadingAttachment) {
-            Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes.');
-            return;
-        }
+        // if (isUploadingAttachment) {
+        //     Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes.');
+        //     return;
+        // }
         if (isSaving) return;
         setIsSaving(true);
 
@@ -238,10 +238,10 @@ const TaskCreationScreen = ({ navigation }) => {
 
     const handleCancel = async () => {
         // If an attachment is uploading, block the user
-        if (isUploadingAttachment) {
-            Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes before canceling.');
-            return;
-        }
+        // if (isUploadingAttachment) {
+        //     Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes before canceling.');
+        //     return;
+        // }
 
         if (isCancelling) return;
         setIsCancelling(true);

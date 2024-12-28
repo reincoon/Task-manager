@@ -132,10 +132,10 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
     const handleSaveTask = async () => {
         // If an attachment is uploading, block
-        if (isUploadingAttachment) {
-            Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes.');
-            return;
-        }
+        // if (isUploadingAttachment) {
+        //     Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes.');
+        //     return;
+        // }
         if (isSaving) return;
         setIsSaving(true);
         
@@ -276,10 +276,10 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     //NEED TO REMOVE FROM SUPABASE TOO 
 
         // If an attachment is uploading, block the user
-        if (isUploadingAttachment) {
-            Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes before canceling.');
-            return;
-        }
+        // if (isUploadingAttachment) {
+        //     Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes before canceling.');
+        //     return;
+        // }
 
         try {
             // Identify 'addedAttachments' as those in 'addedAttachments' state
