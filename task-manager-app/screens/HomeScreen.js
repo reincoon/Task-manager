@@ -272,11 +272,22 @@ const HomeScreen = ({ navigation }) => {
             return;
         }
         // Update both to-do lists in Firestore
-        await updateTasksProject(userId, [draggingTask, hoveredTask], projectName);
-        setShowProjectModal(false);
-        setDraggingTask(null);
-        setHoveredTask(null);
-        Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
+        try {
+            await updateTasksProject(userId, [draggingTask, hoveredTask], projectName);
+            setShowProjectModal(false);
+            setDraggingTask(null);
+            setHoveredTask(null);
+            Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
+        } catch (err) {
+            console.error(err);
+            Alert.alert('Error', err.message);
+            // revert data
+            setShowProjectModal(false);
+            setData(originalDataRef.current);
+            setDraggingTask(null);
+            setHoveredTask(null);
+        }
+        
     };
 
     const renderListView = () => {
