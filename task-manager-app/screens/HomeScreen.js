@@ -10,6 +10,7 @@ import DraggableFlatList from 'react-native-draggable-flatlist';
 import ProjectModal from '../components/ProjectModal';
 import { updateTasksProject } from '../helpers/firestoreHelpers';
 import { groupTasksByProject, buildListData } from '../helpers/projects';
+import KanbanBoard from '../components/KanbanBoard';
 
 const HomeScreen = ({ navigation }) => {
     const [visible, setVisible] = useState(false);
@@ -193,12 +194,20 @@ const HomeScreen = ({ navigation }) => {
         //     priority: priorityLevel,
         //     tasks: tasks.filter(t => t.priority === priorityLevel)
         // }));
-        const tasksByPriority = PRIORITIES.map(priorityLevel => {
-            return {
-                priority: priorityLevel,
-                tasks: filterTasksForColumn(priorityLevel)
-            };
-        });
+        // const tasksByPriority = PRIORITIES.map(priorityLevel => {
+        //     return {
+        //         priority: priorityLevel,
+        //         tasks: filterTasksForColumn(priorityLevel)
+        //     };
+        // });
+        if (loading) {
+            return <ActivityIndicator style={{ marginTop: 20 }} />;
+        }
+        if (!tasks.length) {
+            return <Text style={styles.noTasksText}>No tasks found</Text>;
+        }
+        return <KanbanBoard userId={userId} rawTasks={tasks} navigation={navigation} />;
+        
 
     //     return (
     //         <ScrollView horizontal style={{ flex: 1 }}>
@@ -225,41 +234,41 @@ const HomeScreen = ({ navigation }) => {
     //     );
     // };
 
-        return (
-            <ScrollView horizontal style={{ flex: 1 }}>
-                {tasksByPriority.map((column, index) => (
-                    <View key={index} style={styles.kanbanColumn}>
-                        <View style={styles.kanbanColumnHeader}>
-                            <Text style={styles.kanbanColumnTitle}>
-                                {column.priority} ({column.tasks.length})
-                            </Text>
-                            <TouchableOpacity 
-                                style={styles.filterButton}
-                                onPress={() => toggleDueSoonFilter(column.priority)}
-                            >
-                                <Text style={styles.filterButtonText}>
-                                    {columnFilters[column.priority].dueSoon ? "All" : "Due Soon"}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                        {column.tasks.length > 0 ? (
-                            column.tasks.map(task => (
-                                <TouchableOpacity 
-                                    key={task.id} 
-                                    style={styles.kanbanTaskItem}
-                                    onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: task.id })}
-                                >
-                                    <Text style={styles.taskTitle}>{task.title}</Text>
-                                    <Text style={styles.taskDetails}>Due: {new Date(task.dueDate).toLocaleString()}</Text>
-                                </TouchableOpacity>
-                            ))
-                        ) : (
-                            <Text style={styles.noTasksText}>No tasks</Text>
-                        )}
-                    </View>
-                ))}
-            </ScrollView>
-        );
+        // return (
+        //     <ScrollView horizontal style={{ flex: 1 }}>
+        //         {tasksByPriority.map((column, index) => (
+        //             <View key={index} style={styles.kanbanColumn}>
+        //                 <View style={styles.kanbanColumnHeader}>
+        //                     <Text style={styles.kanbanColumnTitle}>
+        //                         {column.priority} ({column.tasks.length})
+        //                     </Text>
+        //                     <TouchableOpacity 
+        //                         style={styles.filterButton}
+        //                         onPress={() => toggleDueSoonFilter(column.priority)}
+        //                     >
+        //                         <Text style={styles.filterButtonText}>
+        //                             {columnFilters[column.priority].dueSoon ? "All" : "Due Soon"}
+        //                         </Text>
+        //                     </TouchableOpacity>
+        //                 </View>
+        //                 {column.tasks.length > 0 ? (
+        //                     column.tasks.map(task => (
+        //                         <TouchableOpacity 
+        //                             key={task.id} 
+        //                             style={styles.kanbanTaskItem}
+        //                             onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: task.id })}
+        //                         >
+        //                             <Text style={styles.taskTitle}>{task.title}</Text>
+        //                             <Text style={styles.taskDetails}>Due: {new Date(task.dueDate).toLocaleString()}</Text>
+        //                         </TouchableOpacity>
+        //                     ))
+        //                 ) : (
+        //                     <Text style={styles.noTasksText}>No tasks</Text>
+        //                 )}
+        //             </View>
+        //         ))}
+        //     </ScrollView>
+        // );
     };
 
     const handleCreateProject = async (projectName) => {
@@ -404,7 +413,7 @@ const HomeScreen = ({ navigation }) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            {loading ? <ActivityIndicator style={{marginTop:20}}/> : null}
+            {/* {loading ? <ActivityIndicator style={{marginTop:20}}/> : null} */}
             {/* Header section */}
             <View style={styles.header}>
                 <Text style={styles.title}>Home</Text>
