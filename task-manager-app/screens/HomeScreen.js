@@ -13,7 +13,7 @@ import { groupTasksByProject, buildListData } from '../helpers/projects';
 import KanbanBoard from '../components/KanbanBoard';
 
 const HomeScreen = ({ navigation }) => {
-    const [visible, setVisible] = useState(false);
+    // const [visible, setVisible] = useState(false);
     const [rawTasks, setRawTasks] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -30,10 +30,23 @@ const HomeScreen = ({ navigation }) => {
     const [draggingTask, setDraggingTask] = useState(null);
     const [hoveredTask, setHoveredTask] = useState(null);
     const [data, setData] = useState([]);
-    const originalDataRef = useRef([]);
+    // const originalDataRef = useRef([]);
+    const [originalData, setOriginalData] = useState([]);
 
-    const hideMenu = () => setVisible(false);
-    const showMenu = () => setVisible(true);
+    const menuRef = useRef();
+
+    // const hideMenu = () => setVisible(false);
+    // const showMenu = () => setVisible(true);
+    const hideMenu = () => {
+        if (menuRef.current) {
+            menuRef.current.hide();
+        }
+    };
+    const showMenu = () => {
+        if (menuRef.current) {
+            menuRef.current.show();
+        }
+    };
 
     const handleMenuOption = (option) => {
         if (option === 'Sort by Priority') {
@@ -87,10 +100,12 @@ const HomeScreen = ({ navigation }) => {
     useEffect(() => {
         const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
             if (!currentUser) {
+                console.log('No user is signed in.');
                 setRawTasks([]);
                 setLoading(false);
             } else {
                 setUserId(currentUser.uid);
+                console.log('User signed in:', currentUser.uid);
             }
         });
         return () => unsubscribeAuth();
@@ -103,9 +118,13 @@ const HomeScreen = ({ navigation }) => {
             const fetchedTasks = snapshot.docs.map((doc) => ({
                 id: doc.id,
                 ...doc.data(),
+                priority: doc.data().priority || 'Low',
             }));
+            console.log('Fetched tasks:', fetchedTasks);
             setRawTasks(fetchedTasks);
             setLoading(false);
+            }, (error) => {
+            console.error("Snapshot listener error:", error);
         });
         return () => {
             if (unsubscribeTasks) {
@@ -275,7 +294,9 @@ const HomeScreen = ({ navigation }) => {
         if (!userId || !draggingTask || !hoveredTask) {
             setShowProjectModal(false);
             // restore original data since user canceled or something went wrong
-            setData(originalDataRef.current);
+            // setData(originalDataRef.current);
+            setData(originalData);
+            setOriginalData([]);
             setDraggingTask(null);
             setHoveredTask(null);
             return;
@@ -292,7 +313,9 @@ const HomeScreen = ({ navigation }) => {
             Alert.alert('Error', err.message);
             // revert data
             setShowProjectModal(false);
-            setData(originalDataRef.current);
+            // setData(originalDataRef.current);
+            setData(originalData);
+            setOriginalData([]);
             setDraggingTask(null);
             setHoveredTask(null);
         }
@@ -350,7 +373,8 @@ const HomeScreen = ({ navigation }) => {
 
             // Save original data in case it's needed to revert
             const oldData = data;
-            originalDataRef.current = oldData;
+            // originalDataRef.current = oldData;
+            setOriginalData(oldData);
 
             // Find the project/noProject section above the dropped position
             let finalProject = null;
@@ -418,7 +442,8 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.header}>
                 <Text style={styles.title}>Home</Text>
                 <Menu 
-                    visible={visible}
+                    // visible={visible}
+                    ref={menuRef} 
                     anchor={
                         <TouchableOpacity onPress={showMenu}>
                             <Ionicons name="ellipsis-horizontal" size={24} color="black" />
@@ -462,7 +487,9 @@ const HomeScreen = ({ navigation }) => {
                 visible={showProjectModal}
                 onCancel={() => {
                     setShowProjectModal(false); 
-                    setData(originalDataRef.current);
+                    // setData(originalDataRef.current);
+                    setData(originalData);
+                    setOriginalData([]);
                     setDraggingTask(null); 
                     setHoveredTask(null);
                 }}

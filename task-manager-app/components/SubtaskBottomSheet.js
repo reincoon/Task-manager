@@ -14,7 +14,7 @@ const SubtaskBottomSheet = ({
     setCurrentSubtask,
     onSave,
 }) => {
-    const bottomSheetRef = useRef(null);
+    // const bottomSheetRef = useRef(null);
 
     const snapPoints = useMemo(() => ['50%', '90%'], []);
     if (!visible) {
@@ -37,7 +37,7 @@ const SubtaskBottomSheet = ({
     return (
         <View style={styles.overlay}>
             <BottomSheet
-                ref={bottomSheetRef}
+                // ref={bottomSheetRef}
                 index={1} // expanded sheet
                 snapPoints={snapPoints}
                 onChange={(index) => {

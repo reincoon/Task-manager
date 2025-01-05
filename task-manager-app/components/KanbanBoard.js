@@ -1,178 +1,354 @@
-import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions } from 'react-native';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions, ActivityIndicator, ScrollView, Pressable } from 'react-native';
 // import { NestableDraggableFlatList, ScaleDecorator, RenderItemParams, DraggableFlatList } from 'react-native-draggable-flatlist';
-import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
+import DraggableFlatList, { ScaleDecorator, RenderItemParams  } from 'react-native-draggable-flatlist';
+import { DraxProvider, DraxView } from 'react-native-drax';
+// import { Board, Column, } from 'react-native-dnd-board';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { PRIORITIES } from '../helpers/priority';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
+// const KanbanBoard = ({ userId, rawTasks, navigation }) => {
+//     const [data, setData] = useState([]);
+
+//     // Initialize data with sections for each priority
+//     useEffect(() => {
+//         const initializeData = () => {
+//             const sections = PRIORITIES.map((priority) => ({
+//                 key: priority,
+//                 title: `${priority} Priority`,
+//                 data: rawTasks.filter((task) => task.priority === priority),
+//             }));
+//             setData(sections);
+//         };
+
+//         initializeData();
+//     }, [rawTasks]);
+
+//     // Update task priority in Firestore
+//     const updateTaskPriority = async (taskId, newPriority) => {
+//         try {
+//             const taskRef = doc(db, `tasks/${userId}/taskList`, taskId);
+//             await updateDoc(taskRef, { priority: newPriority });
+//             console.log(`Updated task ${taskId} to priority ${newPriority}`);
+//         } catch (error) {
+//             console.error('Error updating task priority:', error);
+//             Alert.alert('Error', 'Failed to update task priority.');
+//         }
+//     };
+
+//     // Render each task item
+//     const renderItem = ({ item, drag, isActive }) => (
+//         <TouchableOpacity
+//             style={[
+//                 styles.taskItem,
+//                 { backgroundColor: isActive ? '#e0ffe0' : '#fff' },
+//             ]}
+//             onLongPress={drag}
+//             onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
+//         >
+//             <Text style={styles.taskTitle}>{item.title}</Text>
+//             <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+//             <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+//         </TouchableOpacity>
+//     );
+
+//     const handleDragEnd = (sectionKey) => ({ data: newData }) => {
+//         if (!newData) return; // Prevent setting undefined data
+//         setData((prevSections) =>
+//             prevSections.map((section) =>
+//                 section.key === sectionKey ? { ...section, data: newData } : section
+//             )
+//         );
+//     };
+
+//     return (
+//         <ScrollView horizontal style={styles.container}>
+//             {data.map((section) => (
+//                 <View key={section.key} style={styles.column}>
+//                     <Text style={styles.columnTitle}>{section.title}</Text>
+//                     <DraggableFlatList
+//                         data={section.data}
+//                         keyExtractor={(item) => item.id.toString()}
+//                         renderItem={renderItem}
+//                         onDragEnd={handleDragEnd(section.key)}
+//                         activationDistance={20}
+//                         scrollEnabled={false} // Disable inner scrolling
+//                     />
+//                 </View>
+//             ))}
+//         </ScrollView>
+//     );
+// };
+    
+// export default KanbanBoard;
+
+// const styles = StyleSheet.create({
+//     container: {
+//         flexDirection: 'row',
+//         padding: 10,
+//     },
+//     column: {
+//         width: width * 0.8,
+//         backgroundColor: '#f0f0f0',
+//         marginRight: 10,
+//         borderRadius: 8,
+//         padding: 10,
+//     },
+//     columnTitle: {
+//         fontSize: 18,
+//         fontWeight: 'bold',
+//         marginBottom: 10,
+//         textAlign: 'center',
+//         color: '#333',
+//     },
+//     taskItem: {
+//         padding: 12,
+//         marginBottom: 12,
+//         backgroundColor: '#fff',
+//         borderRadius: 6,
+//         shadowColor: '#000',
+//         shadowOpacity: 0.1,
+//         shadowOffset: { width: 0, height: 1 },
+//         shadowRadius: 2,
+//         elevation: 2,
+//     },
+//     taskTitle: {
+//         fontSize: 16,
+//         fontWeight: '600',
+//         color: '#333',
+//     },
+//     taskDetails: {
+//         fontSize: 12,
+//         color: '#555',
+//         marginTop: 4,
+//     },
+// });
+
+const COLUMN_WIDTH = 250;
+const COLUMN_MARGIN = 10;
+
 const KanbanBoard = ({ userId, rawTasks, navigation }) => {
-    const [data, setData] = useState([]);
-    const originalDataRef = useRef([]);
+    const [draggingItem, setDraggingItem] = useState(null);
+    const [sourceColumnKey, setSourceColumnKey] = useState(null);
 
-    // Initialise data with headers and tasks
+    const [columns, setColumns] = useState(() => {
+        return PRIORITIES.map(priority => ({
+            key: priority,
+            title: `${priority} Priority`,
+            data: rawTasks.filter(task => task.priority === priority),
+        }));
+    });
+
+    const [isLoading, setIsLoading] = useState(true);
+
     useEffect(() => {
-        if (!userId || !rawTasks) {
-            setData([]);
-            return;
-        }
+        // Initialize columns based on PRIORITIES
+        const initializeColumns = () => {
+            const updatedColumns = PRIORITIES.map(priority => ({
+                key: priority,
+                title: `${priority} Priority`,
+                data: rawTasks.filter(task => task.priority === priority),
+            }));
+            setColumns(updatedColumns);
+            setIsLoading(false);
+        };
 
-        // Group tasks by priority
-        const tasksByPriority = {};
-        PRIORITIES.forEach((p) => {
-            tasksByPriority[p] = [];
-        });
+        initializeColumns();
+    }, [rawTasks]);
 
-        rawTasks.forEach((task) => {
-            const priority = task.priority || 'Low';
-            if (!tasksByPriority[priority]) {
-                tasksByPriority[priority] = [];
-            }
-            tasksByPriority[priority].push(task);
-        });
+    // const handleReceiveDragDrop = async (event, targetPriority) => {
+    //     console.log('Drag Drop Event:', event);
+    //     const draggedTask = event.dragged.payload;
+    //     console.log('Dragged Task:', draggedTask);
+    //     console.log('Target Priority:', targetPriority);
+    //     if (draggedTask.priority === targetPriority) return; // No change
 
-        // Sort tasks within each priority by dueDate
-        PRIORITIES.forEach((p) => {
-            tasksByPriority[p].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-        });
+    //     try {
+    //         // Update task priority in Firebase
+    //         const taskRef = doc(db, `tasks/${userId}/taskList`, draggedTask.id);
+    //         await updateDoc(taskRef, { priority: targetPriority });
 
-        // Build the flat list with headers and tasks
-        const flatListData = [];
-        PRIORITIES.forEach((p) => {
-            flatListData.push({ type: 'header', id: p, title: `${p} Priority` });
-            tasksByPriority[p].forEach((task) => {
-                flatListData.push({ type: 'task', ...task });
+    //         Alert.alert('Success', `Task "${draggedTask.title}" moved to ${targetPriority} priority.`);
+    //     } catch (error) {
+    //         console.error('Error updating task priority:', error);
+    //         Alert.alert('Error', 'Failed to update task priority.');
+    //     }
+    // };
+
+    // const handleTaskPress = (taskId) => {
+    //     navigation.navigate('TaskDetailsScreen', { taskId });
+    // };
+
+    const handleDragEnd = useCallback((columnKey, newData) => {
+        setColumns(prevColumns => {
+            return prevColumns.map(column => {
+                if (column.key === columnKey) {
+                    return { ...column, data: newData };
+                }
+                return column;
             });
         });
+    }, []);
 
-        setData(flatListData);
-    }, [rawTasks, userId]);
+    // const renderTask = useCallback((task) => (
+    //     // <TouchableOpacity 
+    //     //     style={styles.taskItem}
+    //     //     onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: task.id })}
+    //     // >
+    //     //     <Text style={styles.taskTitle}>{task.title}</Text>
+    //     //     <Text style={styles.taskDetails}>Due: {new Date(task.dueDate).toLocaleString()}</Text>
+    //     //     <Text style={styles.taskDetails}>Priority: {task.priority}</Text>
+    //     // </TouchableOpacity>
+    //     <View>
+    //         <Text style={styles.taskTitle}>{task.title}</Text>
+    //         <Text style={styles.taskDetails}>Due: {new Date(task.dueDate).toLocaleString()}</Text>
+    //         <Text style={styles.taskDetails}>Priority: {task.priority}</Text>
+    //     </View>
+    // ), [navigation]);
 
-    // Update task priority in Firestore
-    const updateTaskPriority = async (taskId, newPriority) => {
-        try {
-            const taskRef = doc(db, `tasks/${userId}/taskList`, taskId);
-            await updateDoc(taskRef, { priority: newPriority });
-            console.log(`Updated task ${taskId} to priority ${newPriority}`);
-        } catch (error) {
-            console.error('Error updating task priority:', error);
-            Alert.alert('Error', 'Failed to update task priority.');
-        }
-    };
+    const renderTask = useCallback(({ item, drag, isActive }) => (
+        <TouchableOpacity
+            style={[
+                styles.taskItem,
+                { backgroundColor: isActive ? '#e0ffe0' : '#fff' },
+            ]}
+            onLongPress={() => {
+                setDraggingItem(item);
+                // Find the source column
+                const sourceColumn = columns.find(col => col.data.some(task => task.id === item.id));
+                setSourceColumnKey(sourceColumn ? sourceColumn.key : null);
+                drag();
+            }}
+            onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
+        >
+            <Text style={styles.taskTitle}>{item.title}</Text>
+            <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+            <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+        </TouchableOpacity>
+    ), [navigation, columns]);
 
-    // Render each item (header or task)
-    const renderItem = ({ item, drag, isActive }) => {
-        if (item.type === 'header') {
-            return (
-                <View
-                    style={[
-                        styles.headerContainer,
-                        { backgroundColor: isActive ? '#d1ffd6' : '#ccc' },
-                    ]}
-                >
-                    <Text style={styles.headerText}>{item.title}</Text>
-                </View>
-            );
-        }
+    // const renderColumn = (priority) => (
+    //     <View key={priority} style={styles.column}>
+    //         <Text style={styles.columnTitle}>{priority} Priority</Text>
+    //         <DraxView
+    //             style={styles.dropZone}
+    //             receivingStyle={styles.receiving}
+    //             onReceiveDragDrop={(event) => handleReceiveDragDrop(event, priority)}
+    //             // payload={{ priority }}
+    //             type='task'
+    //         >
+    //             {columns[priority].map(task => (
+    //                 <DraxView
+    //                     key={task.id}
+    //                     style={styles.draggable}
+    //                     draggingStyle={styles.dragging}
+    //                     dragReleasedStyle={styles.dragging}
+    //                     hoverDraggingStyle={styles.hoverDragging}
+    //                     dragPayload={task}
+    //                     longPressDelay={150}
+    //                     type='task'
+    //                     onDragStart={() => console.log(`Drag started for task ${task.id}`)}
+    //                     onDragEnd={() => console.log(`Drag ended for task ${task.id}`)}
+    //                 >
+    //                     {/* {renderTask(task)} */}
+    //                     <Pressable
+    //                         onPress={() => handleTaskPress(task.id)}
+    //                         style={styles.taskItemPressable}
+    //                     >
+    //                         {renderTask(task)}
+    //                     </Pressable>
+    //                 </DraxView>
+    //             ))}
+    //         </DraxView>
+    //     </View>
+    // );
 
-        if (item.type === 'task') {
-            return (
-                <TouchableOpacity
-                    onLongPress={drag}
-                    disabled={isActive}
-                    style={[
-                        styles.taskItem,
-                        { backgroundColor: isActive ? '#e0ffe0' : '#fff' },
-                    ]}
-                    onPress={() => {
-                        // Navigate to Task Details
-                        navigation.navigate('TaskDetailsScreen', { taskId: item.id });
-                    }}
-                >
-                    <Text style={styles.taskTitle}>{item.title}</Text>
-                    <Text style={styles.taskDetails}>
-                        Due: {new Date(item.dueDate).toLocaleDateString()}
-                    </Text>
-                    <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-                </TouchableOpacity>
-            );
-        }
-        return null;
-    };
-
-    // Handle drag end
-    const handleDragEnd = async ({ data: newData, from, to }) => {
-        // If dragging a header, do nothing
-        if (newData[to].type === 'header') {
-            // Prevent headers from being reordered or receiving tasks
-            setData(newData);
-            return;
-        }
-
-        const draggedItem = newData[to];
-
-        // Find the header above the 'to' index
-        let newPriority = 'Low';
-        for (let i = to; i >= 0; i--) {
-            if (newData[i].type === 'header') {
-                newPriority = newData[i].id;
-                break;
-            }
-        }
-
-        // If the task's priority has changed, update it
-        if (draggedItem.priority !== newPriority) {
-            // Update the task's priority locally
-            draggedItem.priority = newPriority;
-
-            // Update Firestore
-            await updateTaskPriority(draggedItem.id, newPriority);
-        }
-
-        setData(newData);
-    };
-
-    return (
-        <View style={styles.container}>
+    const renderColumn = (column) => (
+        <View key={column.key} style={styles.column}>
+            <Text style={styles.columnTitle}>{column.title}</Text>
             <DraggableFlatList
-                data={data}
-                keyExtractor={(item) => `${item.type}-${item.id}`}
-                renderItem={renderItem}
-                onDragEnd={handleDragEnd}
+                data={column.data}
+                keyExtractor={(item) => item.id}
+                renderItem={renderTask}
+                onDragEnd={({ data }) => handleDragEnd(column.key, data)}
                 activationDistance={20}
-                containerStyle={{ paddingBottom: 100 }}
+                contentContainerStyle={{ paddingBottom: 100 }}
             />
         </View>
     );
+
+    if (isLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#0000ff" />
+            </View>
+        );
+    }
+
+    return (
+        // <DraxProvider>
+            // <View style={styles.container}>
+            <ScrollView horizontal style={styles.container}>
+                <View style={styles.columnsContainer}>
+                    {columns.map(column => renderColumn(column))}
+                </View>
+            </ScrollView>
+        // </DraxProvider>
+    );
 };
-    
-export default KanbanBoard;
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#eef',
-        padding: 10,
+        padding: COLUMN_MARGIN,
+        backgroundColor: '#f5f5f5',
     },
-    headerContainer: {
-        padding: 10,
-        backgroundColor: '#ccc',
+    columnsContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'flex-start',
+    },
+    column: {
+        width: COLUMN_WIDTH,
+        marginRight: COLUMN_MARGIN,
+        backgroundColor: '#e0e0e0',
         borderRadius: 8,
-        marginBottom: 5,
-        alignItems: 'center',
+        padding: 10,
     },
-    headerText: {
+    columnTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#333',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    dropZone: {
+        minHeight: 300,
+        padding: 5,
+        borderRadius: 8,
+    },
+    receiving: {
+        borderColor: '#007bff',
+        borderWidth: 2,
+        backgroundColor: '#d0e8ff',
+    },
+    draggable: {
+        marginBottom: 10,
+    },
+    dragging: {
+        opacity: 0.2,
+    },
+    hoverDragging: {
+        borderColor: 'red',
+        borderWidth: 2,
     },
     taskItem: {
         padding: 12,
+        backgroundColor: '#fff',
         borderRadius: 6,
-        marginBottom: 10,
-        backgroundColor: '#ffffff',
         shadowColor: '#000',
         shadowOpacity: 0.1,
         shadowOffset: { width: 0, height: 1 },
@@ -186,6 +362,14 @@ const styles = StyleSheet.create({
     },
     taskDetails: {
         fontSize: 12,
-        color: '#666',
+        color: '#555',
+        marginTop: 4,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
+
+export default KanbanBoard;
