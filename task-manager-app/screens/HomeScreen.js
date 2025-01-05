@@ -184,28 +184,18 @@ const HomeScreen = ({ navigation }) => {
     //     );
     // };
 
-    // Due soon criteria: tasks due within next 48 hours
-    const dueSoonThreshold = 48 * 60 * 60 * 1000;
-
-    const filterTasksForColumn = (priorityLevel) => {
-        let columnTasks = tasks.filter(t => t.priority === priorityLevel);
-        const { dueSoon } = columnFilters[priorityLevel];
-        if (dueSoon) {
-            const now = Date.now();
-            columnTasks = columnTasks.filter(t => {
-                const dueTime = new Date(t.dueDate).getTime();
-                return dueTime > now && dueTime - now <= dueSoonThreshold;
-            });
-        }
-        return columnTasks;
-    };
-
-    const toggleDueSoonFilter = (priorityLevel) => {
-        setColumnFilters(prev => ({
-            ...prev,
-            [priorityLevel]: { dueSoon: !prev[priorityLevel].dueSoon }
-        }));
-    };
+    // const filterTasksForColumn = (priorityLevel) => {
+    //     let columnTasks = tasks.filter(t => t.priority === priorityLevel);
+    //     const { dueSoon } = columnFilters[priorityLevel];
+    //     if (dueSoon) {
+    //         const now = Date.now();
+    //         columnTasks = columnTasks.filter(t => {
+    //             const dueTime = new Date(t.dueDate).getTime();
+    //             return dueTime > now && dueTime - now <= dueSoonThreshold;
+    //         });
+    //     }
+    //     return columnTasks;
+    // };
 
     const renderKanbanView = () => {
         // Group tasks by priority
@@ -219,12 +209,12 @@ const HomeScreen = ({ navigation }) => {
         //         tasks: filterTasksForColumn(priorityLevel)
         //     };
         // });
-        if (loading) {
-            return <ActivityIndicator style={{ marginTop: 20 }} />;
-        }
-        if (!tasks.length) {
-            return <Text style={styles.noTasksText}>No tasks found</Text>;
-        }
+        // if (loading) {
+        //     return <ActivityIndicator style={{ marginTop: 20 }} />;
+        // }
+        // if (!tasks.length) {
+        //     return <Text style={styles.noTasksText}>No tasks found</Text>;
+        // }
         return <KanbanBoard userId={userId} rawTasks={tasks} navigation={navigation} />;
         
 

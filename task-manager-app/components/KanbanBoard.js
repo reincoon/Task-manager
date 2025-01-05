@@ -12,122 +12,12 @@ import MoveToModal from '../components/MoveToModal';
 
 const { width } = Dimensions.get('window');
 
-// const KanbanBoard = ({ userId, rawTasks, navigation }) => {
-//     const [data, setData] = useState([]);
-
-//     // Initialize data with sections for each priority
-//     useEffect(() => {
-//         const initializeData = () => {
-//             const sections = PRIORITIES.map((priority) => ({
-//                 key: priority,
-//                 title: `${priority} Priority`,
-//                 data: rawTasks.filter((task) => task.priority === priority),
-//             }));
-//             setData(sections);
-//         };
-
-//         initializeData();
-//     }, [rawTasks]);
-
-//     // Update task priority in Firestore
-//     const updateTaskPriority = async (taskId, newPriority) => {
-//         try {
-//             const taskRef = doc(db, `tasks/${userId}/taskList`, taskId);
-//             await updateDoc(taskRef, { priority: newPriority });
-//             console.log(`Updated task ${taskId} to priority ${newPriority}`);
-//         } catch (error) {
-//             console.error('Error updating task priority:', error);
-//             Alert.alert('Error', 'Failed to update task priority.');
-//         }
-//     };
-
-//     // Render each task item
-//     const renderItem = ({ item, drag, isActive }) => (
-//         <TouchableOpacity
-//             style={[
-//                 styles.taskItem,
-//                 { backgroundColor: isActive ? '#e0ffe0' : '#fff' },
-//             ]}
-//             onLongPress={drag}
-//             onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
-//         >
-//             <Text style={styles.taskTitle}>{item.title}</Text>
-//             <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-//             <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-//         </TouchableOpacity>
-//     );
-
-//     const handleDragEnd = (sectionKey) => ({ data: newData }) => {
-//         if (!newData) return; // Prevent setting undefined data
-//         setData((prevSections) =>
-//             prevSections.map((section) =>
-//                 section.key === sectionKey ? { ...section, data: newData } : section
-//             )
-//         );
-//     };
-
-//     return (
-//         <ScrollView horizontal style={styles.container}>
-//             {data.map((section) => (
-//                 <View key={section.key} style={styles.column}>
-//                     <Text style={styles.columnTitle}>{section.title}</Text>
-//                     <DraggableFlatList
-//                         data={section.data}
-//                         keyExtractor={(item) => item.id.toString()}
-//                         renderItem={renderItem}
-//                         onDragEnd={handleDragEnd(section.key)}
-//                         activationDistance={20}
-//                         scrollEnabled={false} // Disable inner scrolling
-//                     />
-//                 </View>
-//             ))}
-//         </ScrollView>
-//     );
-// };
-    
-// export default KanbanBoard;
-
-// const styles = StyleSheet.create({
-//     container: {
-//         flexDirection: 'row',
-//         padding: 10,
-//     },
-//     column: {
-//         width: width * 0.8,
-//         backgroundColor: '#f0f0f0',
-//         marginRight: 10,
-//         borderRadius: 8,
-//         padding: 10,
-//     },
-//     columnTitle: {
-//         fontSize: 18,
-//         fontWeight: 'bold',
-//         marginBottom: 10,
-//         textAlign: 'center',
-//         color: '#333',
-//     },
-//     taskItem: {
-//         padding: 12,
-//         marginBottom: 12,
-//         backgroundColor: '#fff',
-//         borderRadius: 6,
-//         shadowColor: '#000',
-//         shadowOpacity: 0.1,
-//         shadowOffset: { width: 0, height: 1 },
-//         shadowRadius: 2,
-//         elevation: 2,
-//     },
-//     taskTitle: {
-//         fontSize: 16,
-//         fontWeight: '600',
-//         color: '#333',
-//     },
-//     taskDetails: {
-//         fontSize: 12,
-//         color: '#555',
-//         marginTop: 4,
-//     },
-// });
+// Helper function to check if a task is due within the next 48 hours
+const isDueSoon = (dueDate) => {
+    const now = Date.now();
+    const dueTime = new Date(dueDate).getTime();
+    return dueTime > now && dueTime - now <= 48 * 60 * 60 * 1000;
+};
 
 const COLUMN_WIDTH = 250;
 const COLUMN_MARGIN = 10;
@@ -141,25 +31,47 @@ const KanbanBoard = ({ userId, rawTasks, navigation }) => {
         }));
     });
 
+    // State to manage loading indicator
     const [isLoading, setIsLoading] = useState(true);
+    // States for dragging functionality
     const [draggingItem, setDraggingItem] = useState(null);
     const [sourceColumnKey, setSourceColumnKey] = useState(null);
     const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
-
+     // State to manage 'Due Soon' filters per column
+    const [dueSoonFilters, setDueSoonFilters] = useState(() =>
+        PRIORITIES.reduce((acc, p) => {
+            acc[p] = false;
+            return acc;
+        }, {})
+    );
     useEffect(() => {
         // Initialize columns based on PRIORITIES
         const initializeColumns = () => {
-            const updatedColumns = PRIORITIES.map(priority => ({
-                key: priority,
-                title: `${priority} Priority`,
-                data: rawTasks.filter(task => task.priority === priority),
-            }));
+            // const updatedColumns = PRIORITIES.map(priority => ({
+            //     key: priority,
+            //     title: `${priority} Priority`,
+            //     data: rawTasks.filter(task => task.priority === priority),
+            // }));
+            const updatedColumns = PRIORITIES.map((priority) => {
+                let tasksForColumn = rawTasks.filter((task) => task.priority === priority);
+
+                // Apply 'Due Soon' filter if active
+                if (dueSoonFilters[priority]) {
+                    tasksForColumn = tasksForColumn.filter((task) => isDueSoon(task.dueDate));
+                }
+
+                return {
+                    key: priority,
+                    title: `${priority} Priority (${tasksForColumn.length})`, // Include task count
+                    data: tasksForColumn,
+                };
+            });
             setColumns(updatedColumns);
             setIsLoading(false);
         };
 
         initializeColumns();
-    }, [rawTasks]);
+    }, [rawTasks, dueSoonFilters]);
 
     // const handleReceiveDragDrop = async (event, targetPriority) => {
     //     console.log('Drag Drop Event:', event);
@@ -262,11 +174,23 @@ const KanbanBoard = ({ userId, rawTasks, navigation }) => {
     //     </View>
     // ), [navigation]);
 
+    // Toggle 'Due Soon' filter for a specific column
+    const toggleDueSoonFilter = (priority) => {
+        setDueSoonFilters((prev) => ({
+            ...prev,
+            [priority]: !prev[priority],
+        }));
+    };
+
     const renderTask = useCallback(({ item, drag, isActive }) => (
         <TouchableOpacity
             style={[
                 styles.taskItem,
-                { backgroundColor: isActive ? '#e0ffe0' : '#fff' },
+                { 
+                    backgroundColor: isActive ? '#e0ffe0' : '#fff',
+                    borderColor: isActive ? '#ff0000' : '#ddd',
+                    borderWidth: isActive ? 2 : 1,
+                },
             ]}
             onLongPress={() => {
                 setDraggingItem(item);
@@ -324,14 +248,27 @@ const KanbanBoard = ({ userId, rawTasks, navigation }) => {
 
     const renderColumn = (column) => (
         <View key={column.key} style={styles.column}>
-            <Text style={styles.columnTitle}>{column.title}</Text>
+            <View style={styles.columnHeader}>
+                <Text style={styles.columnTitle}>{column.title}</Text>
+                <TouchableOpacity
+                    style={[
+                        styles.filterButton,
+                        { backgroundColor: dueSoonFilters[column.key] ? '#28a745' : '#007bff' },
+                    ]}
+                    onPress={() => toggleDueSoonFilter(column.key)}
+                >
+                    <Text style={styles.filterButtonText}>
+                        {dueSoonFilters[column.key] ? 'Show All' : 'Due Soon'}
+                    </Text>
+                </TouchableOpacity>
+            </View>
             <DraggableFlatList
                 data={column.data}
                 keyExtractor={(item) => item.id}
                 renderItem={renderTask}
                 onDragEnd={({ data }) => handleDragEnd(column.key, data)}
                 activationDistance={20}
-                contentContainerStyle={{ paddingBottom: 100 }}
+                contentContainerStyle={styles.tasksContainer}
             />
         </View>
     );
@@ -381,31 +318,50 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 10,
     },
+    columnHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
     columnTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         marginBottom: 10,
         textAlign: 'center',
+        color: '#333',
     },
-    dropZone: {
-        minHeight: 300,
-        padding: 5,
-        borderRadius: 8,
+    filterButton: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 5,
     },
-    receiving: {
-        borderColor: '#007bff',
-        borderWidth: 2,
-        backgroundColor: '#d0e8ff',
+    filterButtonText: {
+        color: '#fff',
+        fontSize: 12,
     },
-    draggable: {
-        marginBottom: 10,
-    },
-    dragging: {
-        opacity: 0.2,
-    },
-    hoverDragging: {
-        borderColor: 'red',
-        borderWidth: 2,
+    // dropZone: {
+    //     minHeight: 300,
+    //     padding: 5,
+    //     borderRadius: 8,
+    // },
+    // receiving: {
+    //     borderColor: '#007bff',
+    //     borderWidth: 2,
+    //     backgroundColor: '#d0e8ff',
+    // },
+    // draggable: {
+    //     marginBottom: 10,
+    // },
+    // dragging: {
+    //     opacity: 0.2,
+    // },
+    // hoverDragging: {
+    //     borderColor: 'red',
+    //     borderWidth: 2,
+    // },
+    tasksContainer: {
+        paddingBottom: 100,
     },
     taskItem: {
         padding: 12,
@@ -416,6 +372,9 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowRadius: 4,
         elevation: 2,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#ddd',
     },
     taskTitle: {
         fontSize: 16,
