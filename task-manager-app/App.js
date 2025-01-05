@@ -9,7 +9,7 @@ import { useEffect } from 'react';
 import { signInAnonymously } from 'firebase/auth';
 import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { DraxProvider } from 'react-native-drax';
+// import { DraxProvider } from 'react-native-drax';
 
 // Notification handler
 Notifications.setNotificationHandler({
@@ -32,9 +32,7 @@ const App = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <DraxProvider>
-        <AppNavigator />
-      </DraxProvider>
+      <AppNavigator />
       <StatusBar style="auto" />
     </GestureHandlerRootView>
   );

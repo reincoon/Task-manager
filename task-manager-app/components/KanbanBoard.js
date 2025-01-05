@@ -2,12 +2,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions, ActivityIndicator, ScrollView, Pressable } from 'react-native';
 // import { NestableDraggableFlatList, ScaleDecorator, RenderItemParams, DraggableFlatList } from 'react-native-draggable-flatlist';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams  } from 'react-native-draggable-flatlist';
-import { DraxProvider, DraxView } from 'react-native-drax';
+// import { DraxProvider, DraxView } from 'react-native-drax';
 // import { Board, Column, } from 'react-native-dnd-board';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { PRIORITIES } from '../helpers/priority';
 import { Ionicons } from '@expo/vector-icons';
+import MoveToModal from '../components/MoveToModal';
 
 const { width } = Dimensions.get('window');
 
@@ -132,9 +133,6 @@ const COLUMN_WIDTH = 250;
 const COLUMN_MARGIN = 10;
 
 const KanbanBoard = ({ userId, rawTasks, navigation }) => {
-    const [draggingItem, setDraggingItem] = useState(null);
-    const [sourceColumnKey, setSourceColumnKey] = useState(null);
-
     const [columns, setColumns] = useState(() => {
         return PRIORITIES.map(priority => ({
             key: priority,
@@ -144,6 +142,9 @@ const KanbanBoard = ({ userId, rawTasks, navigation }) => {
     });
 
     const [isLoading, setIsLoading] = useState(true);
+    const [draggingItem, setDraggingItem] = useState(null);
+    const [sourceColumnKey, setSourceColumnKey] = useState(null);
+    const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
 
     useEffect(() => {
         // Initialize columns based on PRIORITIES
@@ -194,6 +195,57 @@ const KanbanBoard = ({ userId, rawTasks, navigation }) => {
         });
     }, []);
 
+    const handleMovePress = () => {
+        if (draggingItem && sourceColumnKey) {
+            setIsMoveModalVisible(true);
+        }
+    };
+
+    const handleMove = async (targetColumnKey) => {
+        setIsMoveModalVisible(false);
+        if (!draggingItem || !sourceColumnKey) return;
+
+        // Remove task from source column
+        const sourceColumn = columns.find(col => col.key === sourceColumnKey);
+        const newSourceData = sourceColumn.data.filter(task => task.id !== draggingItem.id);
+
+        // Add task to target column
+        const targetColumn = columns.find(col => col.key === targetColumnKey);
+        const newTargetData = [...targetColumn.data, { ...draggingItem, priority: targetColumnKey }];
+
+        setColumns(prevColumns => {
+            return prevColumns.map(col => {
+                if (col.key === sourceColumnKey) {
+                    return { ...col, data: newSourceData };
+                }
+                if (col.key === targetColumnKey) {
+                    return { ...col, data: newTargetData };
+                }
+                return col;
+            });
+        });
+
+        // Update Firebase
+        try {
+            const taskRef = doc(db, `tasks/${userId}/taskList`, draggingItem.id);
+            await updateDoc(taskRef, { priority: targetColumnKey });
+            Alert.alert('Success', `Task moved to ${targetColumnKey} priority.`);
+        } catch (error) {
+            console.error('Error updating task priority:', error);
+            Alert.alert('Error', 'Failed to update task priority.');
+        }
+
+        // Reset dragging state
+        setDraggingItem(null);
+        setSourceColumnKey(null);
+    };
+
+    const handleCancelMove = () => {
+        setIsMoveModalVisible(false);
+        setDraggingItem(null);
+        setSourceColumnKey(null);
+    };
+
     // const renderTask = useCallback((task) => (
     //     // <TouchableOpacity 
     //     //     style={styles.taskItem}
@@ -222,6 +274,9 @@ const KanbanBoard = ({ userId, rawTasks, navigation }) => {
                 const sourceColumn = columns.find(col => col.data.some(task => task.id === item.id));
                 setSourceColumnKey(sourceColumn ? sourceColumn.key : null);
                 drag();
+                setTimeout(() => {
+                    handleMovePress();
+                }, 200);
             }}
             onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
         >
@@ -292,11 +347,18 @@ const KanbanBoard = ({ userId, rawTasks, navigation }) => {
     return (
         // <DraxProvider>
             // <View style={styles.container}>
-            <ScrollView horizontal style={styles.container}>
-                <View style={styles.columnsContainer}>
+            <View style={styles.container}>
+                <ScrollView horizontal contentContainerStyle={styles.columnsContainer}>
                     {columns.map(column => renderColumn(column))}
-                </View>
-            </ScrollView>
+                </ScrollView>
+                <MoveToModal
+                    visible={isMoveModalVisible}
+                    onClose={handleCancelMove}
+                    onMove={handleMove}
+                    columns={columns}
+                    currentColumnKey={sourceColumnKey}
+                />
+            </View>
         // </DraxProvider>
     );
 };
@@ -308,15 +370,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#f5f5f5',
     },
     columnsContainer: {
-        flexDirection: 'row',
+        // flexDirection: 'row',
         alignItems: 'flex-start',
         justifyContent: 'flex-start',
     },
     column: {
         width: COLUMN_WIDTH,
         marginRight: COLUMN_MARGIN,
-        backgroundColor: '#e0e0e0',
-        borderRadius: 8,
+        backgroundColor: '#eee',
+        borderRadius: 10,
         padding: 10,
     },
     columnTitle: {
@@ -348,11 +410,11 @@ const styles = StyleSheet.create({
     taskItem: {
         padding: 12,
         backgroundColor: '#fff',
-        borderRadius: 6,
+        borderRadius: 8,
         shadowColor: '#000',
         shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 1 },
-        shadowRadius: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 4,
         elevation: 2,
     },
     taskTitle: {
