@@ -19,12 +19,12 @@ const HomeScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [sortOption, setSortOption] = useState(null);
     const [viewMode, setViewMode] = useState('list');
-    const [columnFilters, setColumnFilters] = useState(
-        PRIORITIES.reduce((acc, p) => {
-            acc[p] = { dueSoon: false };
-            return acc;
-        }, {})
-    );
+    // const [columnFilters, setColumnFilters] = useState(
+    //     PRIORITIES.reduce((acc, p) => {
+    //         acc[p] = { dueSoon: false };
+    //         return acc;
+    //     }, {})
+    // );
     const [showProjectModal, setShowProjectModal] = useState(false);
     const [userId, setUserId] = useState(null);
     const [draggingTask, setDraggingTask] = useState(null);
@@ -32,6 +32,7 @@ const HomeScreen = ({ navigation }) => {
     const [data, setData] = useState([]);
     // const originalDataRef = useRef([]);
     const [originalData, setOriginalData] = useState([]);
+    const [grouping, setGrouping] = useState('priority');
 
     const menuRef = useRef();
 
@@ -51,6 +52,9 @@ const HomeScreen = ({ navigation }) => {
     const handleMenuOption = (option) => {
         if (option === 'Sort by Priority') {
             setSortOption('priority');
+            setGrouping('priority');
+        } else if (option === 'Sort by Project') {
+            setGrouping('project');
         } else if (option === 'Sort by Date') {
             setSortOption('date');
         } else if (option === 'Sort Alphabetically') {
@@ -123,7 +127,7 @@ const HomeScreen = ({ navigation }) => {
             console.log('Fetched tasks:', fetchedTasks);
             setRawTasks(fetchedTasks);
             setLoading(false);
-            }, (error) => {
+        }, (error) => {
             console.error("Snapshot listener error:", error);
         });
         return () => {
@@ -152,8 +156,18 @@ const HomeScreen = ({ navigation }) => {
     }, [rawTasks, sortOption]);
 
     const renderTaskItem = ({ item }) => (
+        // <TouchableOpacity 
+        //     style={styles.taskItem}
+        //     onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
+        // >
+        //     <Text style={styles.taskTitle}>{item.title}</Text>
+        //     <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+        //     <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+        // </TouchableOpacity>
+
         <TouchableOpacity 
-            style={styles.taskItem}
+            style={[styles.taskItem, isActive && {opacity:0.7}]}
+            onLongPress={drag}
             onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
         >
             <Text style={styles.taskTitle}>{item.title}</Text>
@@ -215,7 +229,7 @@ const HomeScreen = ({ navigation }) => {
         // if (!tasks.length) {
         //     return <Text style={styles.noTasksText}>No tasks found</Text>;
         // }
-        return <KanbanBoard userId={userId} rawTasks={tasks} navigation={navigation} />;
+        return <KanbanBoard userId={userId} rawTasks={tasks} navigation={navigation} grouping={grouping} />;
         
 
     //     return (
@@ -280,42 +294,82 @@ const HomeScreen = ({ navigation }) => {
         // );
     };
 
-    const handleCreateProject = async (projectName) => {
-        if (!userId || !draggingTask || !hoveredTask) {
+    const handleCreateProject = async (projectName, selectedTasks) => {
+        // if (!userId || !draggingTask || !hoveredTask) {
+        //     setShowProjectModal(false);
+        //     // restore original data since user canceled or something went wrong
+        //     // setData(originalDataRef.current);
+        //     setData(originalData);
+        //     setOriginalData([]);
+        //     setDraggingTask(null);
+        //     setHoveredTask(null);
+        //     return;
+        // }
+        // // Update both to-do lists in Firestore
+        // try {
+        //     await updateTasksProject(userId, [draggingTask, hoveredTask], projectName);
+        //     setShowProjectModal(false);
+        //     setDraggingTask(null);
+        //     setHoveredTask(null);
+        //     Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
+        // } catch (err) {
+        //     console.error(err);
+        //     Alert.alert('Error', err.message);
+        //     // revert data
+        //     setShowProjectModal(false);
+        //     // setData(originalDataRef.current);
+        //     setData(originalData);
+        //     setOriginalData([]);
+        //     setDraggingTask(null);
+        //     setHoveredTask(null);
+        // }
+        if (!userId) {
             setShowProjectModal(false);
-            // restore original data since user canceled or something went wrong
-            // setData(originalDataRef.current);
-            setData(originalData);
-            setOriginalData([]);
-            setDraggingTask(null);
-            setHoveredTask(null);
+            Alert.alert('Error', 'User not signed in.');
             return;
         }
-        // Update both to-do lists in Firestore
-        try {
-            await updateTasksProject(userId, [draggingTask, hoveredTask], projectName);
+
+        if (selectedTasks && selectedTasks.length === 2) {
+            // Create project by associating two tasks
+            try {
+                await updateTasksProject(userId, selectedTasks, projectName);
+                setShowProjectModal(false);
+                setDraggingTask(null);
+                setHoveredTask(null);
+                Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
+            } catch (err) {
+                console.error(err);
+                Alert.alert('Error', err.message);
+                // Revert data
+                setShowProjectModal(false);
+                setData(originalData);
+                setOriginalData([]);
+                setDraggingTask(null);
+                setHoveredTask(null);
+            }
+        } else {
+            // Creating a project without assigning tasks
             setShowProjectModal(false);
-            setDraggingTask(null);
-            setHoveredTask(null);
-            Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
-        } catch (err) {
-            console.error(err);
-            Alert.alert('Error', err.message);
-            // revert data
-            setShowProjectModal(false);
-            // setData(originalDataRef.current);
-            setData(originalData);
-            setOriginalData([]);
-            setDraggingTask(null);
-            setHoveredTask(null);
+            Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
         }
         
     };
 
+    const handleAddProjectFromKanban = () => {
+        setShowProjectModal(true);
+    };
+
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#0000ff" />
+            </View>
+        );
+    }
     const renderListView = () => {
-        if (loading) {
-            return <ActivityIndicator style={{marginTop:20}} />;
-        }
+        // if (loading) {
+        //     return <ActivityIndicator style={{marginTop:20}} />;
+        // }
         if (data.length === 0) {
             return <Text style={styles.noTasksText}>No tasks available. Create a new to-do list!</Text>;
         }
@@ -484,6 +538,7 @@ const HomeScreen = ({ navigation }) => {
                     setHoveredTask(null);
                 }}
                 onCreate={handleCreateProject}
+                selectedTasks={draggingTask && hoveredTask ? [draggingTask, hoveredTask] : []}
             />
         </SafeAreaView>
     )
@@ -555,6 +610,11 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 4,
         elevation: 5,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     kanbanColumn: {
         width: 220,

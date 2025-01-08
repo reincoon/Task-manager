@@ -1,7 +1,7 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
 
-const ProjectModal = ({ visible, onCancel, onCreate }) => {
+const ProjectModal = ({ visible, onCancel, onCreate, selectedTasks }) => {
     const [projectName, setProjectName] = useState('');
 
     useEffect(() => {
@@ -13,6 +13,10 @@ const ProjectModal = ({ visible, onCancel, onCreate }) => {
     const handleCreate = () => {
         if (!projectName.trim()) {
             Alert.alert('Error', 'Project name is required');
+            return;
+        }
+        if (selectedTasks && selectedTasks.length > 0 && selectedTasks.length !== 2) {
+            Alert.alert('Error', 'Please select exactly two tasks to create a project.');
             return;
         }
         onCreate(projectName.trim());
@@ -28,13 +32,23 @@ const ProjectModal = ({ visible, onCancel, onCreate }) => {
         <Modal visible={visible} transparent animationType='fade'>
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
-                    <Text style={{fontWeight:'bold', fontSize:16, marginBottom:10}}>Name your project:</Text>
+                    <Text style={styles.modalTitle}>Name your new project:</Text>
                     <TextInput
                         style={styles.modalInput}
                         value={projectName}
                         onChangeText={setProjectName}
                         placeholder='Project Name'
                     />
+                    {selectedTasks && selectedTasks.length > 0 && (
+                        <View style={styles.selectedTasksContainer}>
+                            <Text style={styles.modalTitle}>Selected Tasks:</Text>
+                            {selectedTasks.map(task => (
+                                <Text key={task.id} style={styles.selectedTaskText}>
+                                    - {task.title}
+                                </Text>
+                            ))}
+                        </View>
+                    )}
                     <View style={{flexDirection:'row', justifyContent:'space-around', marginTop:20}}>
                         <TouchableOpacity style={styles.modalButton} onPress={handleCreate}>
                             <Text style={styles.modalButtonText}>Create</Text>
@@ -73,12 +87,32 @@ const styles = StyleSheet.create({
         backgroundColor:'#007bff',
         padding:10,
         borderRadius:5,
-        minWidth:70,
+        minWidth:80,
         alignItems:'center'
     },
     modalButtonText:{
         color:'#fff'
-    }
+    },
+    modalTitle: {
+        fontWeight: '600',
+        fontSize: 14,
+        marginTop: 10,
+    },
+    selectedTasksContainer: {
+        marginTop: 10,
+    },
+    selectedTaskText: {
+        fontSize: 12,
+        color: '#555',
+    },
+    buttonContainer:{
+        flexDirection:'row',
+        justifyContent:'space-around',
+        marginTop:20
+    },
+    cancelButton:{
+        backgroundColor:'red'
+    },
 });
 
 export default ProjectModal;
