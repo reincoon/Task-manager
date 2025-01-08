@@ -12,6 +12,7 @@ import MoveToModal from '../components/MoveToModal';
 import ProjectModal from '../components/ProjectModal';
 import { groupTasksByProject } from '../helpers/projects';
 import { updateTasksProject } from '../helpers/firestoreHelpers';
+import AddProjectButton from './AddProjectButton';
 
 const { width } = Dimensions.get('window');
 
@@ -160,17 +161,18 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
 
     // Handle 'add' project action from Kanban view
     const handleAddProject = () => {
-        if (grouping === 'project') {
-            if (selectedTasks.length === 2) {
-                setProjectModalTasks(selectedTasks);
-                setShowProjectModal(true);
-            } else {
-                Alert.alert('Select Tasks', 'Please select exactly two tasks to create a project.');
-            }
-        } else {
-            // If grouped by priority, switch to project grouping
-            Alert.alert('Switch Grouping', 'Please switch to Project grouping to create a project.');
-        }
+        // if (grouping === 'project') {
+        //     if (selectedTasks.length === 2) {
+        //         setProjectModalTasks(selectedTasks);
+        //         setShowProjectModal(true);
+        //     } else {
+        //         Alert.alert('Select Tasks', 'Please select exactly two tasks to create a project.');
+        //     }
+        // } else {
+        //     // If grouped by priority, switch to project grouping
+        //     Alert.alert('Switch Grouping', 'Please switch to Project grouping to create a project.');
+        // }
+        setIsProjectModalVisible(true);
     };
 
 
@@ -485,9 +487,10 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
                 {/* Kanban Header */}
                 <View style={styles.kanbanHeader}>
                     <Text style={styles.kanbanTitle}>Kanban Board</Text>
-                    <TouchableOpacity style={styles.addProjectButton} onPress={handleAddProject}>
-                        <Ionicons name="add-circle" size={30} color="#007bff" />
-                    </TouchableOpacity>
+                    <AddProjectButton
+                        onPress={handleAddProject}
+                        label="Add Project"
+                    />
                     {/* <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <TouchableOpacity style={styles.toggleButton} onPress={() => setGrouping(prev => prev === 'priority' ? 'project' : 'priority')}>
                             <Text style={styles.toggleButtonText}>

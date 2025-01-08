@@ -11,6 +11,7 @@ import ProjectModal from '../components/ProjectModal';
 import { updateTasksProject } from '../helpers/firestoreHelpers';
 import { groupTasksByProject, buildListData } from '../helpers/projects';
 import KanbanBoard from '../components/KanbanBoard';
+import AddProjectButton from '../components/AddProjectButton';
 
 const HomeScreen = ({ navigation }) => {
     // const [visible, setVisible] = useState(false);
@@ -26,6 +27,7 @@ const HomeScreen = ({ navigation }) => {
     //     }, {})
     // );
     const [showProjectModal, setShowProjectModal] = useState(false);
+    const [emptyProjectName, setEmptyProjectName] = useState('');
     const [userId, setUserId] = useState(null);
     const [draggingTask, setDraggingTask] = useState(null);
     const [hoveredTask, setHoveredTask] = useState(null);
@@ -355,7 +357,7 @@ const HomeScreen = ({ navigation }) => {
         
     };
 
-    const handleAddProjectFromKanban = () => {
+    const handleAddProjectFromList = () => {
         setShowProjectModal(true);
     };
 
@@ -485,6 +487,12 @@ const HomeScreen = ({ navigation }) => {
             {/* Header section */}
             <View style={styles.header}>
                 <Text style={styles.title}>Home</Text>
+                {viewMode === 'list' && (
+                    <AddProjectButton
+                        onPress={handleAddProjectFromList}
+                        label="Add Project"
+                    />
+                )}
                 <Menu 
                     // visible={visible}
                     ref={menuRef} 
@@ -537,7 +545,8 @@ const HomeScreen = ({ navigation }) => {
                     setDraggingTask(null); 
                     setHoveredTask(null);
                 }}
-                onCreate={handleCreateProject}
+                // onCreate={handleCreateProject}
+                onCreate={(projectName) => handleCreateProject(projectName, [])}
                 selectedTasks={draggingTask && hoveredTask ? [draggingTask, hoveredTask] : []}
             />
         </SafeAreaView>
