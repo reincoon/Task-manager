@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions, ActivityIn
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+import { Menu, MenuItem, MenuDivider } from 'react-native-material-menu';
 import { PRIORITIES } from '../helpers/priority';
 import { Ionicons } from '@expo/vector-icons';
 import MoveToModal from '../components/MoveToModal';
@@ -10,6 +11,7 @@ import ProjectModal from '../components/ProjectModal';
 import { groupTasksByProject } from '../helpers/projects';
 import { updateTasksProject, assignTasksToProject, unassignTasksFromProject, createProject  } from '../helpers/firestoreHelpers';
 import AddProjectButton from './AddProjectButton';
+import { deleteTask } from '../helpers/taskActions';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +39,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
     const [isProjectModalVisible, setIsProjectModalVisible] = useState(false);
     const [projectModalTasks, setProjectModalTasks] = useState([]);
     
+
     // Initialize columns based on grouping
     useEffect(() => {
         const initializeColumns = () => {
@@ -139,23 +142,23 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
     };
 
     // Handle moving a task via modal
-    const handleMove = async (targetProjectId) => {
+    const handleMove = useCallback((targetProjectId) => {
         setIsMoveModalVisible(false);
         if (!draggingItem || !sourceColumnKey) return;
         try {
             if (grouping === 'priority') {
                 // Update the task's priority in Firestore
                 const taskRef = doc(db, `tasks/${userId}/taskList`, draggingItem.id);
-                await updateDoc(taskRef, { priority: targetProjectId });
+                updateDoc(taskRef, { priority: targetProjectId });
 
                 Alert.alert('Success', `Task moved to ${targetProjectId} priority.`);
             } else {
                 if (targetProjectId) {
                     const targetProject = projects.find(p => p.id === targetProjectId);
-                    await assignTasksToProject(userId, [draggingItem], targetProjectId);
+                    assignTasksToProject(userId, [draggingItem], targetProjectId);
                     Alert.alert('Success', `Task moved to ${targetProject ? targetProject.name : '??'}.`);
                 } else {
-                    await unassignTasksFromProject(userId, [draggingItem]);
+                    unassignTasksFromProject(userId, [draggingItem]);
                     Alert.alert('Success', `Task unassigned from project.`);
                 }
             }
@@ -167,7 +170,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
         // Clear
         setDraggingItem(null);
         setSourceColumnKey(null);
-    };
+    }, [draggingItem, sourceColumnKey, grouping, projects, userId]);
 
     const handleCancelMove = () => {
         setIsMoveModalVisible(false);
@@ -222,50 +225,88 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
         setProjectModalTasks([]);
     };
 
-    const renderTask = useCallback(({ item, drag, isActive }) => {
-        // const isSelected = selectedTasks.some(task => task.id === item.id);
+    const handleOpenMoveModal = useCallback((task) => {
+        setDraggingItem(task);
+        if (grouping === 'priority') {
+            setSourceColumnKey(task.priority);
+        } else {
+            setSourceColumnKey(task.projectId || 'No Project');
+        }
+        setIsMoveModalVisible(true);
+    }, [grouping]);
 
+    const renderTask = useCallback(({ item, drag, isActive }) => {
         return (
             <View style={[styles.taskItem, isActive && { opacity: 0.7 }]}>
-                <TouchableOpacity
-                    onLongPress={() => {
-                        setDraggingItem(item);
-                        // Find the source column
-                        // const sourceColumn = columns.find(col => col.data.some(task => task.id === item.id));
-                        const sourceColumn = grouping === 'priority' 
-                            ? PRIORITIES.find(col => col === item.priority)
-                            : projects.find(p => p.id === item.projectId);
-                        setSourceColumnKey(sourceColumn ? sourceColumn.key : null);
-                        drag();
-                        setTimeout(() => {
-                            // handleMovePress();
-                        }, 200);
-                    }}
-                    onPress={() => {navigation.navigate('TaskDetailsScreen', { taskId: item.id });}}
-                >
-                    <Text style={styles.taskTitle}>{item.title}</Text>
-                    <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-                    <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-                </TouchableOpacity>
-                {/* Icon that opens MoveToModal */}
-                <TouchableOpacity
-                    style={styles.moveIconContainer}
-                    onPress={() => {
-                        // open move modal
-                        setDraggingItem(item);
-                        if (grouping === 'priority') {
-                        setSourceColumnKey(item.priority);
-                        } else {
-                        setSourceColumnKey(item.projectId || 'No Project');
-                        }
-                        setIsMoveModalVisible(true);
-                    }}
+                <View style={styles.cardHeaderRow}>
+                    {/* <Text style={styles.taskTitle} numberOfLines={1}>
+                        {item.title}
+                    </Text> */}
+                    <TouchableOpacity
+                        onLongPress={() => {
+                            setDraggingItem(item);
+                            // Find the source column
+                            // const sourceColumn = columns.find(col => col.data.some(task => task.id === item.id));
+                            const sourceColumn = grouping === 'priority' 
+                                ? PRIORITIES.find(col => col === item.priority)
+                                : projects.find(p => p.id === item.projectId);
+                            setSourceColumnKey(sourceColumn ? sourceColumn.key : null);
+                            drag();
+                            setTimeout(() => {
+                                // handleMovePress();
+                            }, 200);
+                        }}
+                        onPress={() => {navigation.navigate('TaskDetailsScreen', { taskId: item.id });}}
                     >
-                    <Ionicons name="ellipsis-vertical" size={20} color="#666" />
-                </TouchableOpacity>
+                        <Text style={styles.taskTitle}>{item.title}</Text>
+                        <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+                        <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+                    </TouchableOpacity>
+                    {/* Icon that opens MoveToModal */}
+                    <TouchableOpacity
+                        style={styles.moveIconContainer}
+                        onPress={() => {
+                            // open move modal
+                            setDraggingItem(item);
+                            if (grouping === 'priority') {
+                            setSourceColumnKey(item.priority);
+                            } else {
+                            setSourceColumnKey(item.projectId || 'No Project');
+                            }
+                            setIsMoveModalVisible(true);
+                        }}
+                    >
+                        <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.cardBodyRow}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            Alert.alert('Delete Task', 'Are you sure?', [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                    text: 'Delete',
+                                    style: 'destructive',
+                                    onPress: async () => {
+                                        try {
+                                            await deleteTask(userId, item, navigation);
+                                            Alert.alert('Deleted', 'Task deleted successfully');
+                                        } catch (err) {
+                                            console.error('Error deleting task:', err);
+                                            Alert.alert('Error', 'Could not delete task');
+                                        }
+                                    },
+                                },
+                            ]);
+                        }}
+                    >
+                        <Ionicons name="trash-outline" size={20} color="#ff0000" />
+                    </TouchableOpacity>
+                </View>
             </View>
         );
     }, [grouping, projects, navigation]);
+
 
     const renderColumn = (column) => (
         <View key={column.key} style={styles.column}>
@@ -396,7 +437,7 @@ const styles = StyleSheet.create({
         paddingBottom: 100,
     },
     taskItem: {
-        padding: 12,
+        padding: 8,
         backgroundColor: '#fff',
         borderRadius: 8,
         shadowColor: '#000',
@@ -408,15 +449,38 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#ddd',
     },
+    cardHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    cardBodyRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignSelf: 'flex-end',
+        marginTop: 6,
+    },
+    detailsLeftSide: {
+        flex: 1,
+        paddingRight: 8,
+    },
+    deleteIconContainer: {
+        paddingHorizontal: 8,
+        alignSelf: 'flex-end',
+    },
     taskTitle: {
         fontSize: 16,
         fontWeight: '600',
         color: '#333',
+        flexShrink: 1,
     },
     taskDetails: {
         fontSize: 12,
         color: '#555',
         marginTop: 4,
+    },
+    menuIconContainer: {
+        padding: 5,
     },
     kanbanHeader: {
         flexDirection: 'row',

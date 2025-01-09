@@ -388,7 +388,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         setShowSubtaskForm(false);
     };
 
-    // Delete the entire to-do lisy
+    // Delete the entire to-do list
     const handleDeleteTask = async () => {
         Alert.alert('Delete To-Do List', 'Are you sure you want to delete this to-do list?', [
             { text: 'Cancel', style: 'cancel' },
