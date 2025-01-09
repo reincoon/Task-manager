@@ -1,4 +1,5 @@
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+// import Modal from 'react-native-modal';
 
 const MoveToModal = ({ visible, onClose, onMove, columns, currentColumnKey }) => {
     return (
@@ -8,6 +9,14 @@ const MoveToModal = ({ visible, onClose, onMove, columns, currentColumnKey }) =>
             visible={visible}
             onRequestClose={onClose}
         >
+        {/*  <Modal
+            isVisible={visible}
+            onBackdropPress={onClose}
+            onBackButtonPress={onClose}
+            animationIn="slideInUp"
+            animationOut="slideOutDown"
+            backdropTransitionOutTiming={0}
+        > */}
             <View style={styles.modalBackground}>
                 <View style={styles.modalContainer}>
                     <Text style={styles.modalTitle}>Move Task To</Text>

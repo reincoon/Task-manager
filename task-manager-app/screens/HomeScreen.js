@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
@@ -8,10 +8,11 @@ import { PRIORITY_ORDER } from '../helpers/constants';
 import { PRIORITIES } from '../helpers/priority';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import ProjectModal from '../components/ProjectModal';
-import { updateTasksProject } from '../helpers/firestoreHelpers';
+import { updateTasksProject, createProject, assignTasksToProject, unassignTasksFromProject } from '../helpers/firestoreHelpers';
 import { groupTasksByProject, buildListData } from '../helpers/projects';
 import KanbanBoard from '../components/KanbanBoard';
 import AddProjectButton from '../components/AddProjectButton';
+import MoveToModal from '../components/MoveToModal';
 
 const HomeScreen = ({ navigation }) => {
     // const [visible, setVisible] = useState(false);
@@ -27,7 +28,7 @@ const HomeScreen = ({ navigation }) => {
     //     }, {})
     // );
     const [showProjectModal, setShowProjectModal] = useState(false);
-    const [emptyProjectName, setEmptyProjectName] = useState('');
+    // const [emptyProjectName, setEmptyProjectName] = useState('');
     const [userId, setUserId] = useState(null);
     const [draggingTask, setDraggingTask] = useState(null);
     const [hoveredTask, setHoveredTask] = useState(null);
@@ -35,6 +36,8 @@ const HomeScreen = ({ navigation }) => {
     // const originalDataRef = useRef([]);
     const [originalData, setOriginalData] = useState([]);
     const [grouping, setGrouping] = useState('priority');
+    const [projects, setProjects] = useState([]);
+    const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
 
     const menuRef = useRef();
 
@@ -73,41 +76,12 @@ const HomeScreen = ({ navigation }) => {
         hideMenu();
     };
 
-    // useEffect(() => {
-    //     let unsubscribeTasks;
-    //     const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
-    //         if (!currentUser) {
-    //             // Clear tasks if user is not logged in
-    //             setRawTasks([]);
-    //             setLoading(false);
-    //             return;
-    //         }
-        
-    //         const userId = currentUser.uid;
-    //         const tasksRef = collection(db, `tasks/${userId}/taskList`);
-            
-    //         unsubscribeTasks = onSnapshot(tasksRef, (snapshot) => {
-    //             const fetchedTasks = snapshot.docs.map((doc) => ({
-    //                 id: doc.id,
-    //                 ...doc.data(),
-    //             }));
-
-    //             setRawTasks(fetchedTasks);
-    //             setLoading(false);
-    //         });
-    //     });
-    //     return () => {
-    //         if (unsubscribeTasks) {
-    //             unsubscribeTasks();
-    //         };
-    //         unsubscribeAuth();
-    //     };
-    // }, []);
     useEffect(() => {
         const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
             if (!currentUser) {
                 console.log('No user is signed in.');
                 setRawTasks([]);
+                setProjects([]);
                 setLoading(false);
             } else {
                 setUserId(currentUser.uid);
@@ -139,6 +113,27 @@ const HomeScreen = ({ navigation }) => {
         };
     }, [userId]);
 
+    // Fetch projects
+    useEffect(() => {
+        if (!userId) return;
+        const projectsRef = collection(db, `projects/${userId}/userProjects`);
+        const unsubscribeProjects = onSnapshot(projectsRef, (snapshot) => {
+            const fetchedProjects = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+            console.log('Fetched projects:', fetchedProjects);
+            setProjects(fetchedProjects);
+        }, (error) => {
+            console.error("Snapshot listener error:", error);
+        });
+        return () => {
+            if (unsubscribeProjects) {
+                unsubscribeProjects();
+            }
+        };
+    }, [userId]);
+
     // Sort tasks whenever rawTasks or sortOption changes
     useEffect(() => {
         let sortedTasks = [...rawTasks];
@@ -157,34 +152,34 @@ const HomeScreen = ({ navigation }) => {
         setTasks(sortedTasks);
     }, [rawTasks, sortOption]);
 
-    const renderTaskItem = ({ item }) => (
-        // <TouchableOpacity 
-        //     style={styles.taskItem}
-        //     onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
-        // >
-        //     <Text style={styles.taskTitle}>{item.title}</Text>
-        //     <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-        //     <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-        // </TouchableOpacity>
+    // const renderTaskItem = ({ item }) => (
+    //     // <TouchableOpacity 
+    //     //     style={styles.taskItem}
+    //     //     onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
+    //     // >
+    //     //     <Text style={styles.taskTitle}>{item.title}</Text>
+    //     //     <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+    //     //     <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+    //     // </TouchableOpacity>
 
-        <TouchableOpacity 
-            style={[styles.taskItem, isActive && {opacity:0.7}]}
-            onLongPress={drag}
-            onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
-        >
-            <Text style={styles.taskTitle}>{item.title}</Text>
-            <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-            <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-        </TouchableOpacity>
-    );
+    //     <TouchableOpacity 
+    //         style={[styles.taskItem, isActive && {opacity:0.7}]}
+    //         onLongPress={drag}
+    //         onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
+    //     >
+    //         <Text style={styles.taskTitle}>{item.title}</Text>
+    //         <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+    //         <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+    //     </TouchableOpacity>
+    // );
 
     useEffect(() => {
         if (viewMode === 'list') {
-            const { noProject, byProject } = groupTasksByProject(tasks);
-            const newData = buildListData(noProject, byProject);
+            const { noProject, byProject } = groupTasksByProject(tasks, projects);
+            const newData = buildListData(noProject, byProject, projects);
             setData(newData);
         }
-    }, [tasks, viewMode]);
+    }, [tasks, viewMode, projects]);
 
     // const renderListView = () => {
     //     return loading ? (
@@ -231,7 +226,7 @@ const HomeScreen = ({ navigation }) => {
         // if (!tasks.length) {
         //     return <Text style={styles.noTasksText}>No tasks found</Text>;
         // }
-        return <KanbanBoard userId={userId} rawTasks={tasks} navigation={navigation} grouping={grouping} />;
+        return <KanbanBoard userId={userId} rawTasks={tasks} projects={projects} navigation={navigation} grouping={grouping} />;
         
 
     //     return (
@@ -331,28 +326,55 @@ const HomeScreen = ({ navigation }) => {
             return;
         }
 
-        if (selectedTasks && selectedTasks.length === 2) {
-            // Create project by associating two tasks
-            try {
-                await updateTasksProject(userId, selectedTasks, projectName);
-                setShowProjectModal(false);
-                setDraggingTask(null);
-                setHoveredTask(null);
-                Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
-            } catch (err) {
-                console.error(err);
-                Alert.alert('Error', err.message);
-                // Revert data
-                setShowProjectModal(false);
-                setData(originalData);
-                setOriginalData([]);
-                setDraggingTask(null);
-                setHoveredTask(null);
+        // if (selectedTasks && selectedTasks.length === 2) {
+        //     // Create project by associating two tasks
+        //     try {
+        //         await updateTasksProject(userId, selectedTasks, projectName);
+        //         setShowProjectModal(false);
+        //         setDraggingTask(null);
+        //         setHoveredTask(null);
+        //         Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
+        //     } catch (err) {
+        //         console.error(err);
+        //         Alert.alert('Error', err.message);
+        //         // Revert data
+        //         setShowProjectModal(false);
+        //         setData(originalData);
+        //         setOriginalData([]);
+        //         setDraggingTask(null);
+        //         setHoveredTask(null);
+        //     }
+        // } else {
+        //     // Creating a project without assigning tasks
+        //     setShowProjectModal(false);
+        //     Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
+        // }
+        try {
+            // Create a new project in Firebase
+            const projectId = await createProject(userId, projectName);
+
+            if (selectedTasks && selectedTasks.length === 2) {
+                // Assign selected tasks to the new project
+                await assignTasksToProject(userId, selectedTasks, projectId);
+                Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
+            } else {
+                // Create an empty project
+                Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
             }
-        } else {
-            // Creating a project without assigning tasks
+
+            // Reset states
             setShowProjectModal(false);
-            Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
+            setDraggingTask(null);
+            setHoveredTask(null);
+        } catch (err) {
+            console.error(err);
+            Alert.alert('Error', err.message);
+            // Revert data if needed
+            setShowProjectModal(false);
+            setData(originalData);
+            setOriginalData([]);
+            setDraggingTask(null);
+            setHoveredTask(null);
         }
         
     };
@@ -360,6 +382,36 @@ const HomeScreen = ({ navigation }) => {
     const handleAddProjectFromList = () => {
         setShowProjectModal(true);
     };
+
+    // Open Project Modal via Add Project button in Kanban View
+    const handleAddProjectFromKanban = () => {
+        setShowProjectModal(true);
+    };
+
+    // Render Task Item
+    const renderTask = useCallback(({ item, drag, isActive }) => {
+        return (
+            <TouchableOpacity 
+                style={[styles.taskItem, isActive && { opacity: 0.7 }]}
+                onLongPress={() => {
+                    setDraggingTask(item);
+                    const sourceColumn = grouping === 'priority' 
+                        ? PRIORITIES.find(col => col === item.priority)
+                        : projects.find(p => p.id === item.projectId);
+                    setSourceColumnKey(sourceColumn ? sourceColumn.key : null);
+                    drag();
+                }}
+                onPress={() => {
+                    navigation.navigate('TaskDetailsScreen', { taskId: item.id });
+                }}
+            >
+                <Text style={styles.taskTitle}>{item.title}</Text>
+                <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+                <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+            </TouchableOpacity>
+        );
+    }, [grouping, projects, navigation]);
+
 
     if (loading) {
         return (
@@ -449,13 +501,26 @@ const HomeScreen = ({ navigation }) => {
                 }
 
                 if (finalProject !== originalProject) {
+                    // Find the project ID
+                    const project = projects.find(p => p.id === finalProject);
+                    const projectId = project ? project.id : null;
+
                     // Update project field for draggedItem
                     if (!userId) {
                         // revert 
                         setData(oldData);
                         return;
                     }
-                    await updateTasksProject(userId, [draggedItem], finalProject || null);
+                    // await updateTasksProject(userId, [draggedItem], finalProject || null);
+                    try {
+                        await assignTasksToProject(userId, [draggedItem], projectId || null);
+                        Alert.alert('Success', `Task moved to ${finalProject ? project.name : 'Unassigned Projects list'}.`);
+                    } catch (error) {
+                        console.error('Error updating task:', error);
+                        Alert.alert('Error', 'Failed to update task.');
+                        setData(oldData); // Revert on error
+                        return;
+                    }
                 }
             }
             // If just reordering within the same section with no project change, the new order is stored locally
@@ -479,7 +544,40 @@ const HomeScreen = ({ navigation }) => {
                 />
             </View>
         );
-    }
+    };
+
+    // Handle moving a task via modal
+    const handleMove = async (targetProjectId) => {
+        setIsMoveModalVisible(false);
+        if (!draggingTask || !sourceColumnKey) return;
+
+        const targetProject = targetProjectId ? projects.find(p => p.id === targetProjectId) : { name: 'No Project' };
+
+        try {
+            if (targetProjectId) {
+                await assignTasksToProject(userId, [draggingTask], targetProjectId);
+                Alert.alert('Success', `Task moved to ${targetProject.name}.`);
+            } else {
+                // Unassign the task from any project
+                await unassignTasksFromProject(userId, [draggingTask]);
+                Alert.alert('Success', `Task unassigned from project.`);
+            }
+        } catch (error) {
+            console.error('Error updating task:', error);
+            Alert.alert('Error', 'Failed to update task.');
+        }
+
+        // Reset dragging state
+        setDraggingTask(null);
+        setSourceColumnKey(null);
+    };
+
+    // Cancel the move modal
+    const handleCancelMove = () => {
+        setIsMoveModalVisible(false);
+        setDraggingTask(null);
+        setSourceColumnKey(null);
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -534,6 +632,16 @@ const HomeScreen = ({ navigation }) => {
             >
                 <Ionicons name="add" size={32} color="white" />
             </TouchableOpacity>
+
+            {/* Move To Modal */}
+            <MoveToModal
+                visible={isMoveModalVisible}
+                onClose={handleCancelMove}
+                onMove={handleMove}
+                columns={grouping === 'project' ? projects : PRIORITIES.map(p => ({ id: p, name: p }))}
+                currentColumnKey={grouping === 'project' ? draggingTask?.projectId : draggingTask?.priority}
+            />
+
             {/* Project Creation Modal */}
             <ProjectModal
                 visible={showProjectModal}
@@ -545,8 +653,8 @@ const HomeScreen = ({ navigation }) => {
                     setDraggingTask(null); 
                     setHoveredTask(null);
                 }}
-                // onCreate={handleCreateProject}
-                onCreate={(projectName) => handleCreateProject(projectName, [])}
+                onCreate={handleCreateProject}
+                // onCreate={(projectName) => handleCreateProject(projectName, [])}
                 selectedTasks={draggingTask && hoveredTask ? [draggingTask, hoveredTask] : []}
             />
         </SafeAreaView>
@@ -677,6 +785,12 @@ const styles = StyleSheet.create({
     projectHeaderText: {
         fontSize:16,
         fontWeight:'bold'
+    },
+    instructionsText: {
+        textAlign: 'center',
+        margin: 10,
+        fontSize: 14,
+        color: '#666',
     },
 });
 

@@ -1,9 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions, ActivityIndicator, ScrollView } from 'react-native';
-// import { NestableDraggableFlatList, ScaleDecorator, RenderItemParams, DraggableFlatList } from 'react-native-draggable-flatlist';
 import DraggableFlatList from 'react-native-draggable-flatlist';
-// import { DraxProvider, DraxView } from 'react-native-drax';
-// import { Board, Column, } from 'react-native-dnd-board';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { PRIORITIES } from '../helpers/priority';
@@ -11,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MoveToModal from '../components/MoveToModal';
 import ProjectModal from '../components/ProjectModal';
 import { groupTasksByProject } from '../helpers/projects';
-import { updateTasksProject } from '../helpers/firestoreHelpers';
+import { updateTasksProject, assignTasksToProject, unassignTasksFromProject, createProject  } from '../helpers/firestoreHelpers';
 import AddProjectButton from './AddProjectButton';
 
 const { width } = Dimensions.get('window');
@@ -26,16 +23,7 @@ const isDueSoon = (dueDate) => {
 const COLUMN_WIDTH = 250;
 const COLUMN_MARGIN = 10;
 
-const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
-    // const [columns, setColumns] = useState(() => {
-    //     return PRIORITIES.map(priority => ({
-    //         key: priority,
-    //         title: `${priority} Priority`,
-    //         data: rawTasks.filter(task => task.priority === priority),
-    //     }));
-    // });
-    // State to manage columns based on grouping style
-    // const [grouping, setGrouping] = useState('priority');
+const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
     const [columns, setColumns] = useState([]);
     // State to manage loading indicator
     const [isLoading, setIsLoading] = useState(true);
@@ -43,47 +31,12 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
     const [draggingItem, setDraggingItem] = useState(null);
     const [sourceColumnKey, setSourceColumnKey] = useState(null);
     const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
-     // State to manage 'Due Soon' filters per column
-    // const [dueSoonFilters, setDueSoonFilters] = useState(() =>
-    //     PRIORITIES.reduce((acc, p) => {
-    //         acc[p] = false;
-    //         return acc;
-    //     }, {})
-    // );
+    // State to manage 'Due Soon' filters per column
     const [dueSoonFilters, setDueSoonFilters] = useState({});
-    // State to manage selected tasks for project creation
-    const [selectedTasks, setSelectedTasks] = useState([]);
+    // Project creation modal
     const [isProjectModalVisible, setIsProjectModalVisible] = useState(false);
     const [projectModalTasks, setProjectModalTasks] = useState([]);
-
-    // useEffect(() => {
-    //     // Initialize columns based on PRIORITIES
-    //     const initializeColumns = () => {
-    //         // const updatedColumns = PRIORITIES.map(priority => ({
-    //         //     key: priority,
-    //         //     title: `${priority} Priority`,
-    //         //     data: rawTasks.filter(task => task.priority === priority),
-    //         // }));
-    //         const updatedColumns = PRIORITIES.map((priority) => {
-    //             let tasksForColumn = rawTasks.filter((task) => task.priority === priority);
-
-    //             // Apply 'Due Soon' filter if active
-    //             if (dueSoonFilters[priority]) {
-    //                 tasksForColumn = tasksForColumn.filter((task) => isDueSoon(task.dueDate));
-    //             }
-
-    //             return {
-    //                 key: priority,
-    //                 title: `${priority} Priority (${tasksForColumn.length})`, // Include task count
-    //                 data: tasksForColumn,
-    //             };
-    //         });
-    //         setColumns(updatedColumns);
-    //         setIsLoading(false);
-    //     };
-
-    //     initializeColumns();
-    // }, [rawTasks, dueSoonFilters]);
+    
     // Initialize columns based on grouping
     useEffect(() => {
         const initializeColumns = () => {
@@ -105,7 +58,7 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
                 });
             } else if (grouping === 'project') {
                 // Group tasks by project
-                const { noProject, byProject } = groupTasksByProject(rawTasks);
+                const { noProject, byProject } = groupTasksByProject(rawTasks, projects);
                 if (noProject.length > 0) {
                     updatedColumns.push({
                         key: 'No Project',
@@ -117,12 +70,16 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
                     let tasksForProject = byProject[pName];
 
                     if (dueSoonFilters[pName]) {
-                        tasksForColumn = tasksForColumn.filter((task) => isDueSoon(task.dueDate));
+                        tasksForProject = tasksForProject.filter(task => isDueSoon(task.dueDate));
                     }
+
+                    // Find project name
+                    const theProject = projects.find(p => p.id === pName);
+                    const titleName = theProject ? theProject.name : `Project ${pName}`;
 
                     updatedColumns.push({
                         key: pName,
-                        title: `${pName} (${tasksForProject.length})`,
+                        title: `${titleName} (${tasksForProject.length})`,
                         data: tasksForProject,
                     });
                 }
@@ -132,7 +89,7 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
         };
 
         initializeColumns();
-    }, [rawTasks, grouping, dueSoonFilters]);
+    }, [rawTasks, grouping, projects, dueSoonFilters]);
 
     // Initialize 'dueSoonFilters' based on grouping and columns
     useEffect(() => {
@@ -144,7 +101,7 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
                 });
             } else if (grouping === 'project') {
                 // Collect all project names
-                const { noProject, byProject } = groupTasksByProject(rawTasks);
+                const { noProject, byProject } = groupTasksByProject(rawTasks, projects);
                 if (noProject.length > 0) {
                     initialFilters['No Project'] = false;
                 }
@@ -156,49 +113,13 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
         };
 
         initializeDueSoonFilters();
-    }, [grouping, rawTasks]);
+    }, [grouping, rawTasks, projects]);
 
 
     // Handle 'add' project action from Kanban view
     const handleAddProject = () => {
-        // if (grouping === 'project') {
-        //     if (selectedTasks.length === 2) {
-        //         setProjectModalTasks(selectedTasks);
-        //         setShowProjectModal(true);
-        //     } else {
-        //         Alert.alert('Select Tasks', 'Please select exactly two tasks to create a project.');
-        //     }
-        // } else {
-        //     // If grouped by priority, switch to project grouping
-        //     Alert.alert('Switch Grouping', 'Please switch to Project grouping to create a project.');
-        // }
         setIsProjectModalVisible(true);
     };
-
-
-
-    // const handleReceiveDragDrop = async (event, targetPriority) => {
-    //     console.log('Drag Drop Event:', event);
-    //     const draggedTask = event.dragged.payload;
-    //     console.log('Dragged Task:', draggedTask);
-    //     console.log('Target Priority:', targetPriority);
-    //     if (draggedTask.priority === targetPriority) return; // No change
-
-    //     try {
-    //         // Update task priority in Firebase
-    //         const taskRef = doc(db, `tasks/${userId}/taskList`, draggedTask.id);
-    //         await updateDoc(taskRef, { priority: targetPriority });
-
-    //         Alert.alert('Success', `Task "${draggedTask.title}" moved to ${targetPriority} priority.`);
-    //     } catch (error) {
-    //         console.error('Error updating task priority:', error);
-    //         Alert.alert('Error', 'Failed to update task priority.');
-    //     }
-    // };
-
-    // const handleTaskPress = (taskId) => {
-    //     navigation.navigate('TaskDetailsScreen', { taskId });
-    // };
 
     const handleDragEnd = useCallback((columnKey, newData) => {
         setColumns(prevColumns => {
@@ -217,62 +138,33 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
         }
     };
 
-    const handleMove = async (targetColumnKey) => {
+    // Handle moving a task via modal
+    const handleMove = async (targetProjectId) => {
         setIsMoveModalVisible(false);
         if (!draggingItem || !sourceColumnKey) return;
-
-        // Remove task from source column
-        const sourceColumn = columns.find(col => col.key === sourceColumnKey);
-        const newSourceData = sourceColumn.data.filter(task => task.id !== draggingItem.id);
-
-        // Add task to target column
-        const targetColumn = columns.find(col => col.key === targetColumnKey);
-        let updatedTask = { ...draggingItem };
-
-        // const newTargetData = [...targetColumn.data, { ...draggingItem, priority: targetColumnKey }];
-
-
-        if (grouping === 'priority') {
-            updatedTask.priority = targetColumnKey;
-        } else if (grouping === 'project') {
-            updatedTask.project = targetColumnKey === 'No Project' ? null : targetColumnKey;
-        }
-
-        const newTargetData = [...targetColumn.data, updatedTask];
-
-        setColumns(prevColumns => {
-            return prevColumns.map(col => {
-                if (col.key === sourceColumnKey) {
-                    return { ...col, data: newSourceData };
-                }
-                if (col.key === targetColumnKey) {
-                    return { ...col, data: newTargetData };
-                }
-                return col;
-            });
-        });
-
-        // Update Firebase
-        // try {
-        //     const taskRef = doc(db, `tasks/${userId}/taskList`, draggingItem.id);
-        //     await updateDoc(taskRef, { priority: targetColumnKey });
-        //     Alert.alert('Success', `Task moved to ${targetColumnKey} priority.`);
-        // } catch (error) {
-        //     console.error('Error updating task priority:', error);
-        //     Alert.alert('Error', 'Failed to update task priority.');
-        // }
-
         try {
-            const taskRef = doc(db, `tasks/${userId}/taskList`, draggingItem.id);
-            const updateData = grouping === 'priority' ? { priority: targetColumnKey } : { project: targetColumnKey === 'No Project' ? null : targetColumnKey };
-            await updateDoc(taskRef, updateData);
-            Alert.alert('Success', `Task moved to ${targetColumnKey} ${grouping === 'priority' ? 'priority' : 'project'}.`);
+            if (grouping === 'priority') {
+                // Update the task's priority in Firestore
+                const taskRef = doc(db, `tasks/${userId}/taskList`, draggingItem.id);
+                await updateDoc(taskRef, { priority: targetProjectId });
+
+                Alert.alert('Success', `Task moved to ${targetProjectId} priority.`);
+            } else {
+                if (targetProjectId) {
+                    const targetProject = projects.find(p => p.id === targetProjectId);
+                    await assignTasksToProject(userId, [draggingItem], targetProjectId);
+                    Alert.alert('Success', `Task moved to ${targetProject ? targetProject.name : '??'}.`);
+                } else {
+                    await unassignTasksFromProject(userId, [draggingItem]);
+                    Alert.alert('Success', `Task unassigned from project.`);
+                }
+            }
         } catch (error) {
             console.error('Error updating task:', error);
             Alert.alert('Error', 'Failed to update task.');
         }
-
-        // Reset dragging state
+    
+        // Clear
         setDraggingItem(null);
         setSourceColumnKey(null);
     };
@@ -283,29 +175,8 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
         setSourceColumnKey(null);
     };
 
-    // const renderTask = useCallback((task) => (
-    //     // <TouchableOpacity 
-    //     //     style={styles.taskItem}
-    //     //     onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: task.id })}
-    //     // >
-    //     //     <Text style={styles.taskTitle}>{task.title}</Text>
-    //     //     <Text style={styles.taskDetails}>Due: {new Date(task.dueDate).toLocaleString()}</Text>
-    //     //     <Text style={styles.taskDetails}>Priority: {task.priority}</Text>
-    //     // </TouchableOpacity>
-    //     <View>
-    //         <Text style={styles.taskTitle}>{task.title}</Text>
-    //         <Text style={styles.taskDetails}>Due: {new Date(task.dueDate).toLocaleString()}</Text>
-    //         <Text style={styles.taskDetails}>Priority: {task.priority}</Text>
-    //     </View>
-    // ), [navigation]);
 
     // Toggle 'Due Soon' filter for a specific column
-    // const toggleDueSoonFilter = (priority) => {
-    //     setDueSoonFilters((prev) => ({
-    //         ...prev,
-    //         [priority]: !prev[priority],
-    //     }));
-    // };
     const toggleDueSoonFilter = (columnKey) => {
         setDueSoonFilters((prev) => ({
             ...prev,
@@ -321,129 +192,80 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
             return;
         }
 
-        // if (selectedTasks && selectedTasks.length === 2) {
-        //     // Associate selected tasks with the new project
-        //     try {
-        //         await updateTasksProject(userId, selectedTasks, projectName);
-        //         Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
-        //     } catch (err) {
-        //         console.error(err);
-        //         Alert.alert('Error', err.message);
-        //     }
-        // } else {
-        //     // Creating a project without assigning tasks
-        //     Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
-        // }
+        try {
+            // Create a new project in Firebase
+            const projectId = await createProject(userId, projectName);
 
-        // // Reset selection
-        // setSelectedTasks([]);
-        if (projectModalTasks && projectModalTasks.length === 2) {
-            // Associate selected tasks with the new project
-            try {
-                await updateTasksProject(userId, projectModalTasks, projectName);
-                Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
-                setIsProjectModalVisible(false);
-                setSelectedTasks([]);
-            } catch (err) {
-                console.error(err);
-                Alert.alert('Error', err.message);
-                setIsProjectModalVisible(false);
+            if (projectModalTasks && projectModalTasks.length === 2) {
+                // Assign selected tasks to the new project
+                await assignTasksToProject(userId, projectModalTasks, projectId);
+                Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
+            } else {
+                // Create an empty project
+                Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
             }
-        } else {
-            // Creating a project without assigning tasks
-            Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
-            setIsProjectModalVisible(false);
+
+            // Reset states
+            // setIsProjectModalVisible(false);
+            // setDraggingItem(null);
+            // setSourceColumnKey(null);
+            // setProjectModalTasks([]);
+        } catch (err) {
+            console.error(err);
+            Alert.alert('Error', err.message);
+            // Revert data
+            // setIsProjectModalVisible(false);
         }
+        setIsProjectModalVisible(false);
+        setDraggingItem(null);
+        setSourceColumnKey(null);
+        setProjectModalTasks([]);
     };
 
     const renderTask = useCallback(({ item, drag, isActive }) => {
-        const isSelected = selectedTasks.some(task => task.id === item.id);
+        // const isSelected = selectedTasks.some(task => task.id === item.id);
 
         return (
-            <TouchableOpacity
-                style={[
-                    styles.taskItem,
-                    { 
-                        backgroundColor: isActive ? '#e0ffe0' : isSelected ? '#d0f0d0' : '#fff',
-                        borderColor: isActive ? '#ff0000' : isSelected ? '#00aa00' : '#ddd',
-                        borderWidth: isActive || isSelected ? 2 : 1,
-                    },
-                ]}
-                onLongPress={() => {
-                    setDraggingItem(item);
-                    // Find the source column
-                    const sourceColumn = columns.find(col => col.data.some(task => task.id === item.id));
-                    setSourceColumnKey(sourceColumn ? sourceColumn.key : null);
-                    drag();
-                    setTimeout(() => {
-                        // handleMovePress();
-                    }, 200);
-                }}
-                onPress={() => {
-                    if (grouping === 'project') {
-                        // In project grouping, allow selecting tasks for project creation
-                        // if (selectedTasks.length < 2) {
-                        //     setSelectedTasks(prev => [...prev, item]);
-                        // } else {
-                        //     setSelectedTasks(prev => prev.filter(task => task.id !== item.id));
-                        // }
-                        if (isSelected) {
-                            setSelectedTasks(prev => prev.filter(task => task.id !== item.id));
+            <View style={[styles.taskItem, isActive && { opacity: 0.7 }]}>
+                <TouchableOpacity
+                    onLongPress={() => {
+                        setDraggingItem(item);
+                        // Find the source column
+                        // const sourceColumn = columns.find(col => col.data.some(task => task.id === item.id));
+                        const sourceColumn = grouping === 'priority' 
+                            ? PRIORITIES.find(col => col === item.priority)
+                            : projects.find(p => p.id === item.projectId);
+                        setSourceColumnKey(sourceColumn ? sourceColumn.key : null);
+                        drag();
+                        setTimeout(() => {
+                            // handleMovePress();
+                        }, 200);
+                    }}
+                    onPress={() => {navigation.navigate('TaskDetailsScreen', { taskId: item.id });}}
+                >
+                    <Text style={styles.taskTitle}>{item.title}</Text>
+                    <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+                    <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+                </TouchableOpacity>
+                {/* Icon that opens MoveToModal */}
+                <TouchableOpacity
+                    style={styles.moveIconContainer}
+                    onPress={() => {
+                        // open move modal
+                        setDraggingItem(item);
+                        if (grouping === 'priority') {
+                        setSourceColumnKey(item.priority);
                         } else {
-                            if (selectedTasks.length < 2) {
-                                setSelectedTasks(prev => [...prev, item]);
-                            } else {
-                                Alert.alert('Limit Reached', 'You can only select up to two tasks to create a project.');
-                            }
+                        setSourceColumnKey(item.projectId || 'No Project');
                         }
-                    } else {
-                        // In priority grouping, navigate to task details
-                        navigation.navigate('TaskDetailsScreen', { taskId: item.id });
-                    }
-                }}
-            >
-                <Text style={styles.taskTitle}>{item.title}</Text>
-                <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-                <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-            </TouchableOpacity>
+                        setIsMoveModalVisible(true);
+                    }}
+                    >
+                    <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+                </TouchableOpacity>
+            </View>
         );
-    }, [columns, selectedTasks, grouping, navigation]);
-
-    // const renderColumn = (priority) => (
-    //     <View key={priority} style={styles.column}>
-    //         <Text style={styles.columnTitle}>{priority} Priority</Text>
-    //         <DraxView
-    //             style={styles.dropZone}
-    //             receivingStyle={styles.receiving}
-    //             onReceiveDragDrop={(event) => handleReceiveDragDrop(event, priority)}
-    //             // payload={{ priority }}
-    //             type='task'
-    //         >
-    //             {columns[priority].map(task => (
-    //                 <DraxView
-    //                     key={task.id}
-    //                     style={styles.draggable}
-    //                     draggingStyle={styles.dragging}
-    //                     dragReleasedStyle={styles.dragging}
-    //                     hoverDraggingStyle={styles.hoverDragging}
-    //                     dragPayload={task}
-    //                     longPressDelay={150}
-    //                     type='task'
-    //                     onDragStart={() => console.log(`Drag started for task ${task.id}`)}
-    //                     onDragEnd={() => console.log(`Drag ended for task ${task.id}`)}
-    //                 >
-    //                     {/* {renderTask(task)} */}
-    //                     <Pressable
-    //                         onPress={() => handleTaskPress(task.id)}
-    //                         style={styles.taskItemPressable}
-    //                     >
-    //                         {renderTask(task)}
-    //                     </Pressable>
-    //                 </DraxView>
-    //             ))}
-    //         </DraxView>
-    //     </View>
-    // );
+    }, [grouping, projects, navigation]);
 
     const renderColumn = (column) => (
         <View key={column.key} style={styles.column}>
@@ -471,14 +293,6 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
             />
         </View>
     );
-
-    // if (isLoading) {
-    //     return (
-    //         <View style={styles.loadingContainer}>
-    //             <ActivityIndicator size="large" color="#0000ff" />
-    //         </View>
-    //     );
-    // }
 
     return (
         // <DraxProvider>
@@ -509,8 +323,15 @@ const KanbanBoard = ({ userId, rawTasks, navigation, grouping }) => {
                     visible={isMoveModalVisible}
                     onClose={handleCancelMove}
                     onMove={handleMove}
-                    columns={columns}
-                    currentColumnKey={sourceColumnKey}
+                    // columns={columns}
+                    // currentColumnKey={sourceColumnKey}
+                    // columns={grouping === 'project' ? projects : PRIORITIES.map(p => ({ id: p, name: p }))}
+                    columns={
+                        grouping === 'project'
+                            ? projects.map(p => ({key: p.id, title: p.name}))
+                            : PRIORITIES.map(pr => ({key: pr, title: pr}))
+                    }
+                    currentColumnKey={grouping === 'project' ? draggingItem?.projectId || 'No Project' : draggingItem?.priority}
                 />
                 <ProjectModal
                 visible={isProjectModalVisible}
@@ -566,26 +387,11 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
     },
-    // dropZone: {
-    //     minHeight: 300,
-    //     padding: 5,
-    //     borderRadius: 8,
-    // },
-    // receiving: {
-    //     borderColor: '#007bff',
-    //     borderWidth: 2,
-    //     backgroundColor: '#d0e8ff',
-    // },
-    // draggable: {
-    //     marginBottom: 10,
-    // },
-    // dragging: {
-    //     opacity: 0.2,
-    // },
-    // hoverDragging: {
-    //     borderColor: 'red',
-    //     borderWidth: 2,
-    // },
+    moveIconContainer: {
+        marginLeft: 10,
+        paddingHorizontal: 5,
+        paddingVertical: 2,
+    },
     tasksContainer: {
         paddingBottom: 100,
     },

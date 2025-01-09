@@ -1,4 +1,4 @@
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 // Open a project creation modal
@@ -17,12 +17,16 @@ const styles = StyleSheet.create({
     buttonContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 5,
+        padding: 10,
+        backgroundColor: '#fff',
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: '#007bff',
     },
     buttonLabel: {
-        marginLeft: 8,
+        marginLeft: 5,
         color: '#007bff',
-        fontSize: 14,
+        fontSize: 16,
     },
 });
 
