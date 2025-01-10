@@ -1,4 +1,4 @@
-import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { cancelTaskNotification, scheduleTaskNotification } from '../helpers/notificationsHelpers'; 
 import { removeFileFromSupabase } from '../helpers/supabaseStorageHelpers';
@@ -48,6 +48,114 @@ export async function fetchTaskDetails(userId, taskId, db) {
     };
 }
 
+// Create a new task in Firestore, schedule notification, handle attachments
+export async function createTask({
+    userId,
+    db,
+    currentTask,
+    setTaskId,
+    setOriginalTask,
+    setOriginalAttachments,
+    setDeletedAttachments,
+    setAddedAttachments,
+}) {
+    const {
+        title,
+        notes,
+        dueDate,
+        notification,
+        priority,
+        subtasks,
+        attachments,
+    } = currentTask;
+
+    try {
+        // Prepare subtasks for Firestore by converting dueDate to ISO strings
+        const subtasksForDb = subtasks.map(subtask => ({
+            ...subtask,
+            dueDate: subtask.dueDate.toISOString(),
+        }));
+
+        // Prepare attachments for Firestore
+        const attachmentsForDb = attachments.map(a => ({
+            name: a.name, 
+            supabaseKey: a.supabaseKey, 
+            mimeType: a.mimeType,
+            signedUrl: a.signedUrl,
+        }));
+
+        // Create to-do list's data
+        const taskData = {
+            title: title,
+            notes: notes.trim() || null,
+            dueDate: dueDate.toISOString(),
+            notification: notification,
+            priority: priority,
+            subtasks: subtasksForDb,
+            attachments: attachmentsForDb,
+            userId: userId,
+            createdAt: new Date().toISOString(),
+            eventId: null,
+        };
+
+        // Add the task to Firestore
+        const taskCollectionRef = collection(db, `tasks/${userId}/taskList`);
+        const docRef = await addDoc(taskCollectionRef, taskData);
+        const taskId = docRef.id;
+        setTaskId(taskId);
+
+        // Schedule Notification for the main to-do list
+        let mainNotificationId = null;
+        if (notification !== 'None') {
+            mainNotificationId = await scheduleTaskNotification(title, notification, dueDate);
+            // Update Firestore with the notificationId
+            await updateDoc(doc(db, `tasks/${userId}/taskList`, taskId), {
+                notificationId: mainNotificationId
+            });
+        }
+
+        // Schedule Notifications for Subtasks
+        for (let i = 0; i < subtasks.length; i++) {
+            const subtask = subtasks[i];
+            if (subtask.reminder !== 'None') {
+                const subtaskNotificationId = await scheduleTaskNotification(
+                    subtask.title,
+                    subtask.reminder,
+                    subtask.dueDate
+                );
+                // Update subtask with notificationId
+                subtasksForDb[i].notificationId = subtaskNotificationId;
+            }
+        }
+
+        // Update Firestore with subtasks' notificationIds
+        await updateDoc(doc(db, `tasks/${userId}/taskList`, taskId), {
+            subtasks: subtasksForDb
+        });
+
+        // Set original task and attachments
+        setOriginalTask({
+            title: title,
+            notes: notes,
+            dueDate: dueDate,
+            notification: notification,
+            priority: priority,
+            subtasks: subtasksForDb,
+            notificationId: mainNotificationId,
+            attachments: attachmentsForDb,
+        });
+
+        setOriginalAttachments(attachmentsForDb);
+        setDeletedAttachments([]);
+        setAddedAttachments([]);
+
+    } catch (error) {
+        console.error('Error creating task:', error);
+        Alert.alert('Error', 'Failed to create task.');
+        throw error;
+    }
+}
+
 // Save the task in Firestore, handling notifications and attachments
 export async function saveTask({
     userId,
@@ -71,89 +179,97 @@ export async function saveTask({
         notificationId: currentNotifId,
     } = currentTask;
 
-    // Handle main task notification
-    let newNotificationId = currentNotifId;
-    const mainReminderChanged =
-        originalTask.notification !== notification ||
-        originalTask.dueDate.getTime() !== dueDate.getTime();
+    try {
+        // Handle main task notification
+        let newNotificationId = currentNotifId;
+        const mainReminderChanged =
+            originalTask.notification !== notification ||
+            originalTask.dueDate.getTime() !== dueDate.getTime();
 
-    if (mainReminderChanged) {
-        // Cancel old notification
-        if (originalTask.notificationId) {
-            await cancelTaskNotification(originalTask.notificationId);
+        if (mainReminderChanged) {
+            // Cancel old notification
+            if (originalTask.notificationId) {
+                await cancelTaskNotification(originalTask.notificationId);
+            }
+            // Schedule new notification
+            newNotificationId = await scheduleTaskNotification(title, notification, dueDate);
         }
-        // Schedule new notification
-        newNotificationId = await scheduleTaskNotification(title, notification, dueDate);
-    }
 
-    // Handle subtasks notifications
-    let updatedSubtasks = [...subtasks];
-    if (originalTask) {
-        for (let i = 0; i < updatedSubtasks.length; i++) {
-            const subtask = updatedSubtasks[i];
-            const originalSubtask = originalTask.subtasks[i] || {};
-            const reminderChanged = originalSubtask.reminder !== subtask.reminder;
-            const dueDateChanged =
-                originalSubtask.dueDate &&
-                new Date(originalSubtask.dueDate).getTime() !== subtask.dueDate.getTime();
+        // Handle subtasks notifications
+        let updatedSubtasks = [...subtasks];
+        if (originalTask) {
+            for (let i = 0; i < updatedSubtasks.length; i++) {
+                const subtask = updatedSubtasks[i];
+                const originalSubtask = originalTask.subtasks[i] || {};
+                const reminderChanged = originalSubtask.reminder !== subtask.reminder;
+                const dueDateChanged =
+                    originalSubtask.dueDate &&
+                    new Date(originalSubtask.dueDate).getTime() !== subtask.dueDate.getTime();
 
-            if (reminderChanged || dueDateChanged) {
-                // Cancel old subtask notification
-                if (subtask.notificationId) {
-                    await cancelTaskNotification(subtask.notificationId);
+                if (reminderChanged || dueDateChanged) {
+                    // Cancel old subtask notification
+                    if (subtask.notificationId) {
+                        await cancelTaskNotification(subtask.notificationId);
+                    }
+                    // Schedule new subtask notification if needed
+                    let newSubtaskNotificationId = null;
+                    if (subtask.reminder !== 'None') {
+                        newSubtaskNotificationId = await scheduleTaskNotification(
+                            subtask.title,
+                            subtask.reminder,
+                            subtask.dueDate
+                        );
+                    }
+                    updatedSubtasks[i] = {
+                        ...subtask,
+                        notificationId: newSubtaskNotificationId,
+                    };
                 }
-                // Schedule new subtask notification if needed
-                let newSubtaskNotificationId = null;
-                if (subtask.reminder !== 'None') {
-                    newSubtaskNotificationId = await scheduleTaskNotification(
-                        subtask.title,
-                        subtask.reminder,
-                        subtask.dueDate
-                    );
-                }
-                updatedSubtasks[i] = {
-                    ...subtask,
-                    notificationId: newSubtaskNotificationId,
-                };
             }
         }
-    }
 
-    // Convert subtasks' dueDates to ISO strings for Firestore
-    updatedSubtasks = updatedSubtasks.map(s => ({
-        ...s,
-        dueDate: s.dueDate.toISOString(),
-    }));
+        // Convert subtasks' dueDates to ISO strings for Firestore
+        updatedSubtasks = updatedSubtasks.map(s => ({
+            ...s,
+            // dueDate: s.dueDate.toISOString(),
+            dueDate: new Date(s.dueDate).toISOString(),
+        }));
 
-    // Update Firestore document
-    const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-    await updateDoc(taskDocRef, {
-        title: title,
-        notes: notes.trim() || null,
-        dueDate: dueDate.toISOString(),
-        notification: notification,
-        priority: priority,
-        subtasks: updatedSubtasks,
-        notificationId: newNotificationId || null,
-        attachments: attachments,
-    });
+        // Update Firestore document
+        const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+        await updateDoc(taskDocRef, {
+            title: title,
+            notes: notes.trim() || null,
+            // dueDate: dueDate.toISOString(),
+            dueDate: new Date(dueDate).toISOString(),
+            notification: notification,
+            priority: priority,
+            subtasks: updatedSubtasks,
+            notificationId: newNotificationId || null,
+            attachments: attachments,
+        });
 
-    // Delete attachments from Supabase if flagged
-    for (const attachment of deletedAttachments) {
-        if (attachment.supabaseKey) {
-            const success = await removeFileFromSupabase(attachment.supabaseKey);
-            if (!success) {
-                Alert.alert('Error', `Failed to delete attachment "${attachment.name}" from storage.`);
+        // Delete attachments from Supabase if flagged
+        for (const attachment of deletedAttachments) {
+            if (attachment.supabaseKey) {
+                const success = await removeFileFromSupabase(attachment.supabaseKey);
+                if (!success) {
+                    Alert.alert('Error', `Failed to delete attachment "${attachment.name}" from storage.`);
+                }
             }
         }
-    }
 
-    // Clear tracking states
-    setOriginalAttachments(attachments);
-    setDeletedAttachments([]);
-    setAddedAttachments([]);
+        // Clear tracking states
+        setOriginalAttachments(attachments);
+        setDeletedAttachments([]);
+        setAddedAttachments([]);
+    } catch (error) {
+        Alert.alert('Error', 'Failed to save task.');
+        throw error;
+    }
 }
 
+// Delete the entire to-do list with notifications and attachments
 export async function deleteTask(userId, task, navigation) {
     try {
         if (!userId || !task?.id) {
@@ -280,7 +396,7 @@ export async function deleteSubtask({
     }
 }
 
-// Add the main task to the user's calendar
+// Add the to-do list to the user's calendar
 export async function addTaskToCalendar({
     userId,
     taskId,
