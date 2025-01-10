@@ -62,13 +62,13 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
             } else if (grouping === 'project') {
                 // Group tasks by project
                 const { noProject, byProject } = groupTasksByProject(rawTasks, projects);
-                if (noProject.length > 0) {
+                // if (noProject.length > 0) {
                     updatedColumns.push({
                         key: 'No Project',
-                        title: `No Project (${noProject.length})`,
+                        title: `Unassigned (${noProject.length})`,
                         data: noProject,
                     });
-                }
+                // }
                 for (let pName in byProject) {
                     let tasksForProject = byProject[pName];
 

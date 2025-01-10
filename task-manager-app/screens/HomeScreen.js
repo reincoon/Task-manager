@@ -15,25 +15,17 @@ import AddProjectButton from '../components/AddProjectButton';
 import MoveToModal from '../components/MoveToModal';
 
 const HomeScreen = ({ navigation }) => {
-    // const [visible, setVisible] = useState(false);
     const [rawTasks, setRawTasks] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sortOption, setSortOption] = useState(null);
     const [viewMode, setViewMode] = useState('list');
-    // const [columnFilters, setColumnFilters] = useState(
-    //     PRIORITIES.reduce((acc, p) => {
-    //         acc[p] = { dueSoon: false };
-    //         return acc;
-    //     }, {})
-    // );
     const [showProjectModal, setShowProjectModal] = useState(false);
     // const [emptyProjectName, setEmptyProjectName] = useState('');
     const [userId, setUserId] = useState(null);
     const [draggingTask, setDraggingTask] = useState(null);
     const [hoveredTask, setHoveredTask] = useState(null);
     const [data, setData] = useState([]);
-    // const originalDataRef = useRef([]);
     const [originalData, setOriginalData] = useState([]);
     const [grouping, setGrouping] = useState('priority');
     const [projects, setProjects] = useState([]);
@@ -41,8 +33,6 @@ const HomeScreen = ({ navigation }) => {
 
     const menuRef = useRef();
 
-    // const hideMenu = () => setVisible(false);
-    // const showMenu = () => setVisible(true);
     const hideMenu = () => {
         if (menuRef.current) {
             menuRef.current.hide();
@@ -152,27 +142,6 @@ const HomeScreen = ({ navigation }) => {
         setTasks(sortedTasks);
     }, [rawTasks, sortOption]);
 
-    // const renderTaskItem = ({ item }) => (
-    //     // <TouchableOpacity 
-    //     //     style={styles.taskItem}
-    //     //     onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
-    //     // >
-    //     //     <Text style={styles.taskTitle}>{item.title}</Text>
-    //     //     <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-    //     //     <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-    //     // </TouchableOpacity>
-
-    //     <TouchableOpacity 
-    //         style={[styles.taskItem, isActive && {opacity:0.7}]}
-    //         onLongPress={drag}
-    //         onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
-    //     >
-    //         <Text style={styles.taskTitle}>{item.title}</Text>
-    //         <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-    //         <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-    //     </TouchableOpacity>
-    // );
-
     useEffect(() => {
         if (viewMode === 'list') {
             const { noProject, byProject } = groupTasksByProject(tasks, projects);
@@ -181,174 +150,17 @@ const HomeScreen = ({ navigation }) => {
         }
     }, [tasks, viewMode, projects]);
 
-    // const renderListView = () => {
-    //     return loading ? (
-    //         <Text style={styles.loadingText}>Loading to-do lists...</Text>
-    //     ) : tasks.length > 0 ? (
-    //         <FlatList
-    //             data={tasks}
-    //             keyExtractor={(item) => item.id}
-    //             renderItem={renderTaskItem}
-    //         />
-    //     ) : (
-    //         <Text style={styles.noTasksText}>No tasks available. Create a new to-do list!</Text>
-    //     );
-    // };
-
-    // const filterTasksForColumn = (priorityLevel) => {
-    //     let columnTasks = tasks.filter(t => t.priority === priorityLevel);
-    //     const { dueSoon } = columnFilters[priorityLevel];
-    //     if (dueSoon) {
-    //         const now = Date.now();
-    //         columnTasks = columnTasks.filter(t => {
-    //             const dueTime = new Date(t.dueDate).getTime();
-    //             return dueTime > now && dueTime - now <= dueSoonThreshold;
-    //         });
-    //     }
-    //     return columnTasks;
-    // };
-
     const renderKanbanView = () => {
-        // Group tasks by priority
-        // const tasksByPriority = PRIORITIES.map(priorityLevel => ({
-        //     priority: priorityLevel,
-        //     tasks: tasks.filter(t => t.priority === priorityLevel)
-        // }));
-        // const tasksByPriority = PRIORITIES.map(priorityLevel => {
-        //     return {
-        //         priority: priorityLevel,
-        //         tasks: filterTasksForColumn(priorityLevel)
-        //     };
-        // });
-        // if (loading) {
-        //     return <ActivityIndicator style={{ marginTop: 20 }} />;
-        // }
-        // if (!tasks.length) {
-        //     return <Text style={styles.noTasksText}>No tasks found</Text>;
-        // }
         return <KanbanBoard userId={userId} rawTasks={tasks} projects={projects} navigation={navigation} grouping={grouping} />;
-        
-
-    //     return (
-    //         <ScrollView horizontal style={{ flex: 1 }}>
-    //             {tasksByPriority.map((column, index) => (
-    //                 <View key={index} style={styles.kanbanColumn}>
-    //                     <Text style={styles.kanbanColumnTitle}>{column.priority}</Text>
-    //                     {column.tasks.length > 0 ? (
-    //                         column.tasks.map(task => (
-    //                             <TouchableOpacity 
-    //                                 key={task.id} 
-    //                                 style={styles.kanbanTaskItem}
-    //                                 onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: task.id })}
-    //                             >
-    //                                 <Text style={styles.taskTitle}>{task.title}</Text>
-    //                                 <Text style={styles.taskDetails}>Due: {new Date(task.dueDate).toLocaleString()}</Text>
-    //                             </TouchableOpacity>
-    //                         ))
-    //                     ) : (
-    //                         <Text style={styles.noTasksText}>No tasks</Text>
-    //                     )}
-    //                 </View>
-    //             ))}
-    //         </ScrollView>
-    //     );
-    // };
-
-        // return (
-        //     <ScrollView horizontal style={{ flex: 1 }}>
-        //         {tasksByPriority.map((column, index) => (
-        //             <View key={index} style={styles.kanbanColumn}>
-        //                 <View style={styles.kanbanColumnHeader}>
-        //                     <Text style={styles.kanbanColumnTitle}>
-        //                         {column.priority} ({column.tasks.length})
-        //                     </Text>
-        //                     <TouchableOpacity 
-        //                         style={styles.filterButton}
-        //                         onPress={() => toggleDueSoonFilter(column.priority)}
-        //                     >
-        //                         <Text style={styles.filterButtonText}>
-        //                             {columnFilters[column.priority].dueSoon ? "All" : "Due Soon"}
-        //                         </Text>
-        //                     </TouchableOpacity>
-        //                 </View>
-        //                 {column.tasks.length > 0 ? (
-        //                     column.tasks.map(task => (
-        //                         <TouchableOpacity 
-        //                             key={task.id} 
-        //                             style={styles.kanbanTaskItem}
-        //                             onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: task.id })}
-        //                         >
-        //                             <Text style={styles.taskTitle}>{task.title}</Text>
-        //                             <Text style={styles.taskDetails}>Due: {new Date(task.dueDate).toLocaleString()}</Text>
-        //                         </TouchableOpacity>
-        //                     ))
-        //                 ) : (
-        //                     <Text style={styles.noTasksText}>No tasks</Text>
-        //                 )}
-        //             </View>
-        //         ))}
-        //     </ScrollView>
-        // );
     };
 
     const handleCreateProject = async (projectName, selectedTasks) => {
-        // if (!userId || !draggingTask || !hoveredTask) {
-        //     setShowProjectModal(false);
-        //     // restore original data since user canceled or something went wrong
-        //     // setData(originalDataRef.current);
-        //     setData(originalData);
-        //     setOriginalData([]);
-        //     setDraggingTask(null);
-        //     setHoveredTask(null);
-        //     return;
-        // }
-        // // Update both to-do lists in Firestore
-        // try {
-        //     await updateTasksProject(userId, [draggingTask, hoveredTask], projectName);
-        //     setShowProjectModal(false);
-        //     setDraggingTask(null);
-        //     setHoveredTask(null);
-        //     Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
-        // } catch (err) {
-        //     console.error(err);
-        //     Alert.alert('Error', err.message);
-        //     // revert data
-        //     setShowProjectModal(false);
-        //     // setData(originalDataRef.current);
-        //     setData(originalData);
-        //     setOriginalData([]);
-        //     setDraggingTask(null);
-        //     setHoveredTask(null);
-        // }
         if (!userId) {
             setShowProjectModal(false);
             Alert.alert('Error', 'User not signed in.');
             return;
         }
 
-        // if (selectedTasks && selectedTasks.length === 2) {
-        //     // Create project by associating two tasks
-        //     try {
-        //         await updateTasksProject(userId, selectedTasks, projectName);
-        //         setShowProjectModal(false);
-        //         setDraggingTask(null);
-        //         setHoveredTask(null);
-        //         Alert.alert('Project Created', `Project "${projectName}" created successfully!`);
-        //     } catch (err) {
-        //         console.error(err);
-        //         Alert.alert('Error', err.message);
-        //         // Revert data
-        //         setShowProjectModal(false);
-        //         setData(originalData);
-        //         setOriginalData([]);
-        //         setDraggingTask(null);
-        //         setHoveredTask(null);
-        //     }
-        // } else {
-        //     // Creating a project without assigning tasks
-        //     setShowProjectModal(false);
-        //     Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
-        // }
         try {
             // Create a new project in Firebase
             const projectId = await createProject(userId, projectName);
@@ -421,9 +233,6 @@ const HomeScreen = ({ navigation }) => {
         );
     }
     const renderListView = () => {
-        // if (loading) {
-        //     return <ActivityIndicator style={{marginTop:20}} />;
-        // }
         if (data.length === 0) {
             return <Text style={styles.noTasksText}>No tasks available. Create a new to-do list!</Text>;
         }
@@ -439,7 +248,7 @@ const HomeScreen = ({ navigation }) => {
             if (item.type === 'noProjectHeader') {
                 return (
                     <View style={[styles.projectHeader, {backgroundColor:'#ccc'}]}>
-                        <Text style={styles.projectHeaderText}>To-do lists without a Project</Text>
+                        <Text style={styles.projectHeaderText}>Unassigned To-Do Lists</Text>
                     </View>
                 );
             }
@@ -471,7 +280,6 @@ const HomeScreen = ({ navigation }) => {
 
             // Save original data in case it's needed to revert
             const oldData = data;
-            // originalDataRef.current = oldData;
             setOriginalData(oldData);
 
             // Find the project/noProject section above the dropped position
@@ -551,7 +359,7 @@ const HomeScreen = ({ navigation }) => {
         setIsMoveModalVisible(false);
         if (!draggingTask || !sourceColumnKey) return;
 
-        const targetProject = targetProjectId ? projects.find(p => p.id === targetProjectId) : { name: 'No Project' };
+        const targetProject = targetProjectId ? projects.find(p => p.id === targetProjectId) : { name: 'Unassigned' };
 
         try {
             if (targetProjectId) {
@@ -611,19 +419,6 @@ const HomeScreen = ({ navigation }) => {
             </View>
 
             {viewMode === 'list' ? renderListView() : renderKanbanView()}
-
-            {/* Example Task List
-            {loading ? (
-                <Text style={styles.loadingText}>Loading to-do lists...</Text>
-            ) : tasks.length > 0 ? (
-                <FlatList
-                    data={tasks}
-                    keyExtractor={ (item) => item.id}
-                    renderItem={renderTaskItem}
-                />
-            ) : (
-                <Text style={styles.noTasksText}>No tasks available. Create a new to-do list!</Text>
-            )} */}
 
             {/* Floating Action button */}
             <TouchableOpacity

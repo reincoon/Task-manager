@@ -22,10 +22,10 @@ export function groupTasksByProject(tasks, projects) {
 // Create a flat data structure for DraggableFlatList
 export function buildListData(noProject, byProject, projects) {
     let data = [];
-    if (noProject.length > 0) {
-        data.push({ type: 'noProjectHeader' });
-        noProject.forEach(task => data.push({ type: 'task', ...task }));
-    }
+    // if (noProject.length > 0) {
+    data.push({ type: 'noProjectHeader' });
+    noProject.forEach(task => data.push({ type: 'task', ...task }));
+    // }
 
     // for (let pName in byProject) {
     //     const project = projects.find(p => p.id === pName);
