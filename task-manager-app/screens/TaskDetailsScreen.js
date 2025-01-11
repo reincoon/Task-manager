@@ -506,6 +506,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 // Alert.alert('Deleted', 'Task deleted successfully');
                 // navigation.goBack();
                 try {
+                    console.log('Deleting to-do list. Subtasks:', subtasks);
+                    console.log('Deleting to-do list. Attachments:', attachments);
                     await deleteTask(userId, {
                         id: taskId,
                         notificationId: taskNotificationId,

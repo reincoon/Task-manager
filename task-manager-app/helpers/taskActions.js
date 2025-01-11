@@ -277,16 +277,20 @@ export async function deleteTask(userId, task, navigation) {
         }
         // e.g. Cancel notifications
         if (task.notificationId) {
+            console.log(`Canceling main task notification: ${task.notificationId}`);
             await cancelTaskNotification(task.notificationId);
         }
 
         // Cancel subtask notifications
         if (task.subtasks) {
-            for (const subtask of task.subtasks) {
+            task.subtasks.forEach(async (subtask, index) => {
                 if (subtask.notificationId) {
+                    console.log(`Canceling subtask ${index} notification: ${subtask.notificationId}`);
                     await cancelTaskNotification(subtask.notificationId);
+                } else {
+                    console.log(`Subtask ${index} has no notificationId`);
                 }
-            }
+            });
         }
 
         // Delete attachments if needed
