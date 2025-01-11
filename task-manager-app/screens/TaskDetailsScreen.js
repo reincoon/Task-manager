@@ -606,37 +606,15 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         );
     };
 
-    // Add a to-do list to calendar
-    const addTaskToCalendar = async () => {
+    const addTaskToCalendarHandler = async () => {
         if (!userId) {
             Alert.alert('Error', 'No user logged in.');
             return;
         }
-        // const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-        // const snapshot = await getDoc(taskDocRef);
-        // if (!snapshot.exists()) {
-        //     Alert.alert('Error', 'Task not found.');
-        //     return;
-        // }
-        // const data = snapshot.data();
-        // const doAddEvent = async () => {
-        //     const eventId = await addEventToCalendar(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`, true);
-        //     if (eventId) {
-        //         await updateDoc(taskDocRef, { eventId });
-        //         setTaskNotificationId(eventId);
-        //     }
-        // };
-
-        // if (data.eventId) {
-        //     await promptAddEventAnyway(taskTitle, dueDate, '', data.eventId, doAddEvent);
-        // } else {
-        //     await promptAddEvent(taskTitle, dueDate, '', doAddEvent);
-        // }  
         try {
             await addTaskToCalendar({
                 userId,
                 taskId,
-                db,
                 taskTitle,
                 dueDate,
                 setTaskNotificationId,
@@ -654,51 +632,18 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             Alert.alert('Success', 'Task added to calendar');
         } catch (err) {
             console.error('Error adding task to calendar:', err);
-            Alert.alert('Error', 'Failed to add task to calendar.');
-        }      
+        }
     };
-    // Add a subtask to calendar
-    const addSubtaskToCalendar  = async (subtask, index) => {
-        // await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`);
+
+    const addSubtaskToCalendarHandler = async (subtask, index) => {
         if (!userId) {
             Alert.alert('Error', 'No user logged in.');
             return;
         }
-        // const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-        // const snapshot = await getDoc(taskDocRef);
-        // if (!snapshot.exists()) {
-        //     Alert.alert('Error', 'Task not found.');
-        //     return;
-        // }
-        // const data = snapshot.data();
-        // let updatedSubtasks = data.subtasks || [];
-        
-        // const doAddSubtaskEvent = async () => {
-        //     const eventId = await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`, true);
-        //     if (eventId) {
-        //         updatedSubtasks[index] = {
-        //             ...updatedSubtasks[index],
-        //             eventId
-        //         };
-        //         await updateDoc(taskDocRef, { subtasks: updatedSubtasks });
-        //         setSubtasks(prev => {
-        //             const copy = [...prev];
-        //             copy[index] = { ...copy[index], eventId };
-        //             return copy;
-        //         });
-        //     }
-        // };
-
-        // if (updatedSubtasks[index].eventId) {
-        //     await promptAddEventAnyway(subtask.title, subtask.dueDate, '', updatedSubtasks[index].eventId, doAddSubtaskEvent);
-        // } else {
-        //     await promptAddEvent(subtask.title, subtask.dueDate, '', doAddSubtaskEvent);
-        // }
         try {
             await addSubtaskToCalendar({
                 userId,
                 taskId,
-                db,
                 subtask,
                 index,
                 setSubtasks,
@@ -716,9 +661,123 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             Alert.alert('Success', 'Subtask added to calendar');
         } catch (err) {
             console.error('Error adding subtask to calendar:', err);
-            Alert.alert('Error', 'Failed to add subtask to calendar.');
         }
     };
+
+
+    // Add a to-do list to calendar
+    // const addTaskToCalendar = async () => {
+    //     if (!userId) {
+    //         Alert.alert('Error', 'No user logged in.');
+    //         return;
+    //     }
+    //     // const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+    //     // const snapshot = await getDoc(taskDocRef);
+    //     // if (!snapshot.exists()) {
+    //     //     Alert.alert('Error', 'Task not found.');
+    //     //     return;
+    //     // }
+    //     // const data = snapshot.data();
+    //     // const doAddEvent = async () => {
+    //     //     const eventId = await addEventToCalendar(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`, true);
+    //     //     if (eventId) {
+    //     //         await updateDoc(taskDocRef, { eventId });
+    //     //         setTaskNotificationId(eventId);
+    //     //     }
+    //     // };
+
+    //     // if (data.eventId) {
+    //     //     await promptAddEventAnyway(taskTitle, dueDate, '', data.eventId, doAddEvent);
+    //     // } else {
+    //     //     await promptAddEvent(taskTitle, dueDate, '', doAddEvent);
+    //     // }  
+    //     try {
+    //         await addTaskToCalendar({
+    //             userId,
+    //             taskId,
+    //             db,
+    //             taskTitle,
+    //             dueDate,
+    //             setTaskNotificationId,
+    //             promptAddEventAnyway: (title, date, notes, existingId, onConfirm) => {
+    //                 Alert.alert(
+    //                     'Already in Calendar',
+    //                     'This event already exists. Do you want to add another one anyway?',
+    //                     [
+    //                         { text: 'Cancel', style: 'cancel' },
+    //                         { text: 'Add Anyway', onPress: onConfirm },
+    //                     ]
+    //                 );
+    //             },
+    //         });
+    //         Alert.alert('Success', 'Task added to calendar');
+    //     } catch (err) {
+    //         console.error('Error adding task to calendar:', err);
+    //         Alert.alert('Error', 'Failed to add task to calendar.');
+    //     }      
+    // };
+    // Add a subtask to calendar
+    // const addSubtaskToCalendar  = async (subtask, index) => {
+    //     // await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`);
+    //     if (!userId) {
+    //         Alert.alert('Error', 'No user logged in.');
+    //         return;
+    //     }
+    //     // const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+    //     // const snapshot = await getDoc(taskDocRef);
+    //     // if (!snapshot.exists()) {
+    //     //     Alert.alert('Error', 'Task not found.');
+    //     //     return;
+    //     // }
+    //     // const data = snapshot.data();
+    //     // let updatedSubtasks = data.subtasks || [];
+        
+    //     // const doAddSubtaskEvent = async () => {
+    //     //     const eventId = await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`, true);
+    //     //     if (eventId) {
+    //     //         updatedSubtasks[index] = {
+    //     //             ...updatedSubtasks[index],
+    //     //             eventId
+    //     //         };
+    //     //         await updateDoc(taskDocRef, { subtasks: updatedSubtasks });
+    //     //         setSubtasks(prev => {
+    //     //             const copy = [...prev];
+    //     //             copy[index] = { ...copy[index], eventId };
+    //     //             return copy;
+    //     //         });
+    //     //     }
+    //     // };
+
+    //     // if (updatedSubtasks[index].eventId) {
+    //     //     await promptAddEventAnyway(subtask.title, subtask.dueDate, '', updatedSubtasks[index].eventId, doAddSubtaskEvent);
+    //     // } else {
+    //     //     await promptAddEvent(subtask.title, subtask.dueDate, '', doAddSubtaskEvent);
+    //     // }
+    //     try {
+    //         await addSubtaskToCalendar({
+    //             userId,
+    //             taskId,
+    //             db,
+    //             subtask,
+    //             index,
+    //             setSubtasks,
+    //             promptAddEventAnyway: (title, date, notes, existingId, onConfirm) => {
+    //                 Alert.alert(
+    //                     'Already in Calendar',
+    //                     'This subtask already exists. Do you want to add another one anyway?',
+    //                     [
+    //                         { text: 'Cancel', style: 'cancel' },
+    //                         { text: 'Add Anyway', onPress: onConfirm },
+    //                     ]
+    //                 );
+    //             },
+    //         });
+    //         Alert.alert('Success', 'Subtask added to calendar');
+    //     } catch (err) {
+    //         console.error('Error adding subtask to calendar:', err);
+    //         Alert.alert('Error', 'Failed to add subtask to calendar.');
+    //     }
+    // };
 
     if (loading) {
         return (
@@ -814,7 +873,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 {/* Add to-do list to calendar */}
                 <TouchableOpacity
                     style={[styles.button, { backgroundColor: '#FFA726' }]}
-                    onPress={addTaskToCalendar}
+                    onPress={addTaskToCalendarHandler}
                 >
                     <Ionicons name="calendar-outline" size={20} color="white" />
                     <Text style={styles.buttonText}>Add To-Do List to Calendar</Text>
@@ -824,7 +883,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     subtasks={subtasks} 
                     onEditSubtask={handleEditSubtask}
                     onDeleteSubtask={handleDeleteSubtask}
-                    onAddSubtaskToCalendar={addSubtaskToCalendar}
+                    onAddSubtaskToCalendar={addSubtaskToCalendarHandler}
                 />
                 {/* Attachments list */}
                 <AttachmentsList

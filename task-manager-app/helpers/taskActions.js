@@ -1,5 +1,5 @@
-import { doc, getDoc, updateDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+import { doc, getDoc, updateDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
 import { cancelTaskNotification, scheduleTaskNotification } from '../helpers/notificationsHelpers'; 
 import { removeFileFromSupabase } from '../helpers/supabaseStorageHelpers';
 import { addEventToCalendar } from './calendar';
@@ -404,7 +404,7 @@ export async function deleteSubtask({
 export async function addTaskToCalendar({
     userId,
     taskId,
-    db,
+    // db,
     taskTitle,
     dueDate,
     setTaskNotificationId,
@@ -420,10 +420,13 @@ export async function addTaskToCalendar({
         const existingEventId = data.eventId;
 
         const doAddEvent = async () => {
-            const eventId = await addCalendarEvent(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`, true);
+            console.log('[addTaskToCalendar] about to add event =>', { taskTitle, dueDate });
+            const eventId = await addEventToCalendar(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`, true);
             if (eventId) {
                 await updateDoc(taskDocRef, { eventId });
-                setTaskNotificationId(eventId);
+                if (typeof setTaskNotificationId === 'function') {
+                    setTaskNotificationId(eventId);
+                }
             }
         };
 
@@ -443,7 +446,7 @@ export async function addTaskToCalendar({
 export async function addSubtaskToCalendar({
     userId,
     taskId,
-    db,
+    // db,
     subtask,
     index,
     setSubtasks,
@@ -460,7 +463,8 @@ export async function addSubtaskToCalendar({
         let updatedSubtasks = data.subtasks || [];
 
         const doAddSubtaskEvent = async () => {
-            const eventId = await addCalendarEvent(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`, true);
+            console.log('[addSubtaskToCalendar] about to add subtask =>', subtask);
+            const eventId = await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`, true);
             if (eventId) {
                 updatedSubtasks[index] = {
                     ...updatedSubtasks[index],
