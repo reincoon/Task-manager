@@ -12,6 +12,7 @@ import { groupTasksByProject } from '../helpers/projects';
 import { updateTasksProject, assignTasksToProject, unassignTasksFromProject, createProject  } from '../helpers/firestoreHelpers';
 import AddProjectButton from './AddProjectButton';
 import { deleteTask } from '../helpers/taskActions';
+import TodoCard from '../components/TodoCard';
 
 const { width } = Dimensions.get('window');
 
@@ -225,6 +226,13 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
         setProjectModalTasks([]);
     };
 
+    // A helper to find the project name
+    const getProjectName = (projectId) => {
+        if (!projectId) return 'Unassigned';
+        const found = projects.find((p) => p.id === projectId);
+        return found ? found.name : 'Unassigned';
+    };
+
     const handleOpenMoveModal = useCallback((task) => {
         setDraggingItem(task);
         if (grouping === 'priority') {
@@ -236,76 +244,118 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
     }, [grouping]);
 
     const renderTask = useCallback(({ item, drag, isActive }) => {
+        const projectName = getProjectName(item.projectId);
+
         return (
-            <View style={[styles.taskItem, isActive && { opacity: 0.7 }]}>
-                <View style={styles.cardHeaderRow}>
-                    {/* <Text style={styles.taskTitle} numberOfLines={1}>
-                        {item.title}
-                    </Text> */}
-                    <TouchableOpacity
-                        onLongPress={() => {
-                            setDraggingItem(item);
-                            // Find the source column
-                            // const sourceColumn = columns.find(col => col.data.some(task => task.id === item.id));
-                            const sourceColumn = grouping === 'priority' 
-                                ? PRIORITIES.find(col => col === item.priority)
-                                : projects.find(p => p.id === item.projectId);
-                            setSourceColumnKey(sourceColumn ? sourceColumn.key : null);
-                            drag();
-                            setTimeout(() => {
-                                // handleMovePress();
-                            }, 200);
-                        }}
-                        onPress={() => {navigation.navigate('TaskDetailsScreen', { taskId: item.id });}}
-                    >
-                        <Text style={styles.taskTitle}>{item.title}</Text>
-                        <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-                        <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-                    </TouchableOpacity>
-                    {/* Icon that opens MoveToModal */}
-                    <TouchableOpacity
-                        style={styles.moveIconContainer}
-                        onPress={() => {
-                            // open move modal
-                            setDraggingItem(item);
-                            if (grouping === 'priority') {
-                            setSourceColumnKey(item.priority);
-                            } else {
-                            setSourceColumnKey(item.projectId || 'No Project');
-                            }
-                            setIsMoveModalVisible(true);
-                        }}
-                    >
-                        <Ionicons name="ellipsis-vertical" size={20} color="#666" />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.cardBodyRow}>
-                    <TouchableOpacity
-                        onPress={() => {
-                            Alert.alert('Delete Task', 'Are you sure?', [
-                                { text: 'Cancel', style: 'cancel' },
-                                {
-                                    text: 'Delete',
-                                    style: 'destructive',
-                                    onPress: async () => {
-                                        try {
-                                            await deleteTask(userId, item, navigation);
-                                            Alert.alert('Deleted', 'Task deleted successfully');
-                                        } catch (err) {
-                                            console.error('Error deleting task:', err);
-                                            Alert.alert('Error', 'Could not delete task');
-                                        }
-                                    },
-                                },
-                            ]);
-                        }}
-                    >
-                        <Ionicons name="trash-outline" size={20} color="#ff0000" />
-                    </TouchableOpacity>
-                </View>
-            </View>
+            // <View style={[styles.taskItem, isActive && { opacity: 0.7 }]}>
+            //     <View style={styles.cardHeaderRow}>
+            //         {/* <Text style={styles.taskTitle} numberOfLines={1}>
+            //             {item.title}
+            //         </Text> */}
+            //         <TouchableOpacity
+            //             onLongPress={() => {
+            //                 setDraggingItem(item);
+            //                 // Find the source column
+            //                 // const sourceColumn = columns.find(col => col.data.some(task => task.id === item.id));
+            //                 const sourceColumn = grouping === 'priority' 
+            //                     ? PRIORITIES.find(col => col === item.priority)
+            //                     : projects.find(p => p.id === item.projectId);
+            //                 setSourceColumnKey(sourceColumn ? sourceColumn.key : null);
+            //                 drag();
+            //                 setTimeout(() => {
+            //                     // handleMovePress();
+            //                 }, 200);
+            //             }}
+            //             onPress={() => {navigation.navigate('TaskDetailsScreen', { taskId: item.id });}}
+            //         >
+            //             <Text style={styles.taskTitle}>{item.title}</Text>
+            //             <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+            //             <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+            //         </TouchableOpacity>
+            //         {/* Icon that opens MoveToModal */}
+            //         <TouchableOpacity
+            //             style={styles.moveIconContainer}
+            //             onPress={() => {
+            //                 // open move modal
+            //                 setDraggingItem(item);
+            //                 if (grouping === 'priority') {
+            //                 setSourceColumnKey(item.priority);
+            //                 } else {
+            //                 setSourceColumnKey(item.projectId || 'No Project');
+            //                 }
+            //                 setIsMoveModalVisible(true);
+            //             }}
+            //         >
+            //             <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+            //         </TouchableOpacity>
+            //     </View>
+            //     <View style={styles.cardBodyRow}>
+            //         <TouchableOpacity
+            //             onPress={() => {
+            //                 Alert.alert('Delete Task', 'Are you sure?', [
+            //                     { text: 'Cancel', style: 'cancel' },
+            //                     {
+            //                         text: 'Delete',
+            //                         style: 'destructive',
+            //                         onPress: async () => {
+            //                             try {
+            //                                 await deleteTask(userId, item, navigation);
+            //                                 Alert.alert('Deleted', 'Task deleted successfully');
+            //                             } catch (err) {
+            //                                 console.error('Error deleting task:', err);
+            //                                 Alert.alert('Error', 'Could not delete task');
+            //                             }
+            //                         },
+            //                     },
+            //                 ]);
+            //             }}
+            //         >
+            //             <Ionicons name="trash-outline" size={20} color="#ff0000" />
+            //         </TouchableOpacity>
+            //     </View>
+            // </View>
+            <TodoCard
+                task={item}
+                projectName={projectName}
+                onLongPress={() => {
+                    setDraggingItem(item);
+                    // find the source column:
+                    if (grouping === 'priority') {
+                        setSourceColumnKey(item.priority);
+                    } else {
+                        setSourceColumnKey(item.projectId || 'No Project');
+                    }
+                    drag();
+                }}
+                onPress={() => {
+                    // Navigate to details
+                    navigation.navigate('TaskDetailsScreen', { taskId: item.id });
+                }}
+                onDeleteTask={() => {
+                    Alert.alert('Delete Task', 'Are you sure?', [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: async () => {
+                                try {
+                                    await deleteTask(userId, item, navigation, false);
+                                    Alert.alert('Deleted', 'Task deleted successfully');
+                                } catch (err) {
+                                    console.error('Error deleting task:', err);
+                                    Alert.alert('Error', 'Could not delete task');
+                                }
+                            },
+                        },
+                    ]);
+                }}
+                showMoveButton={true}
+                onMoveTask={() => {
+                    handleOpenMoveModal(item);
+                }}
+            />
         );
-    }, [grouping, projects, navigation]);
+    }, [grouping, projects, navigation, userId, handleOpenMoveModal]);
 
 
     const renderColumn = (column) => (

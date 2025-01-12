@@ -513,7 +513,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                         notificationId: taskNotificationId,
                         subtasks,
                         attachments,
-                    }, navigation);
+                    }, navigation, true);
                     Alert.alert('Deleted', 'Task deleted successfully');
                 } catch (err) {
                     console.error('Error deleting task:', err);

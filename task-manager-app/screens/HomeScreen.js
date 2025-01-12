@@ -13,6 +13,7 @@ import { groupTasksByProject, buildListData } from '../helpers/projects';
 import KanbanBoard from '../components/KanbanBoard';
 import AddProjectButton from '../components/AddProjectButton';
 import MoveToModal from '../components/MoveToModal';
+import TodoCard from '../components/TodoCard';
 
 const HomeScreen = ({ navigation }) => {
     const [rawTasks, setRawTasks] = useState([]);
@@ -224,6 +225,12 @@ const HomeScreen = ({ navigation }) => {
         );
     }, [grouping, projects, navigation]);
 
+    // Helper to get project name
+    const getProjectName = (projectId) => {
+        if (!projectId) return 'Unassigned';
+        const found = projects.find((p) => p.id === projectId);
+        return found ? found.name : 'Unassigned';
+    };
 
     if (loading) {
         return (
@@ -252,19 +259,55 @@ const HomeScreen = ({ navigation }) => {
                     </View>
                 );
             }
-            // It's a task
-            return (
-                <TouchableOpacity 
-                    style={[styles.taskItem, isActive && {opacity:0.7}]}
-                    onLongPress={drag}
-                    onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
-                >
-                    <Text style={styles.taskTitle}>{item.title}</Text>
-                    <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-                    <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-                </TouchableOpacity>
-            );
+            if (item.type === 'task') {
+                const projectName = getProjectName(item.projectId);
+                return (
+                    <TodoCard
+                        task={item}
+                        projectName={projectName}
+                        onLongPress={drag}
+                        onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
+                        onDeleteTask={() => {
+                            // optionally handle a delete confirm here if desired
+                            Alert.alert('Confirm', 'Delete this to-do list?', [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                    text: 'Delete',
+                                    style: 'destructive',
+                                    onPress: async () => {
+                                        try {
+                                            await deleteTask(userId, item, navigation, false);
+                                            Alert.alert('Deleted', 'Task deleted successfully');
+                                        } catch (err) {
+                                            console.error('Error deleting task:', err);
+                                            Alert.alert('Error', 'Could not delete task');
+                                        }
+                                    },
+                                },
+                            ]);
+                        }}
+                        showMoveButton={false}
+                    />
+                );
+            }
+
+            return null;
         };
+
+
+            // // It's a task
+            // return (
+            //     <TouchableOpacity 
+            //         style={[styles.taskItem, isActive && {opacity:0.7}]}
+            //         onLongPress={drag}
+            //         onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
+            //     >
+            //         <Text style={styles.taskTitle}>{item.title}</Text>
+            //         <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+            //         <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+            //     </TouchableOpacity>
+            // );
+        // };
 
         const keyExtractor = (item, index) => {
             if (item.type === 'projectHeader') return `projectHeader-${item.projectName}-${index}`;

@@ -270,12 +270,12 @@ export async function saveTask({
 }
 
 // Delete the entire to-do list with notifications and attachments
-export async function deleteTask(userId, task, navigation) {
+export async function deleteTask(userId, task, navigation, shouldNavigateBack = true) {
     try {
         if (!userId || !task?.id) {
             throw new Error('No user or task specified');
         }
-        // e.g. Cancel notifications
+        // Cancel to-do list notifications
         if (task.notificationId) {
             console.log(`Canceling main task notification: ${task.notificationId}`);
             await cancelTaskNotification(task.notificationId);
@@ -310,7 +310,9 @@ export async function deleteTask(userId, task, navigation) {
         await deleteDoc(taskDocRef);
 
         // Navigate back
-        navigation.goBack();
+        if (shouldNavigateBack) {
+            navigation.goBack();
+        }
     } catch (error) {
         console.error('Error deleting task:', error);
         Alert.alert('Error', 'Failed to delete task.');
