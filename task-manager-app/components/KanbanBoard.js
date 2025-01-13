@@ -71,19 +71,19 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
                         data: noProject,
                     });
                 // }
-                for (let pName in byProject) {
-                    let tasksForProject = byProject[pName];
+                for (let pId in byProject) {
+                    let tasksForProject = byProject[pId];
 
-                    if (dueSoonFilters[pName]) {
+                    if (dueSoonFilters[pId]) {
                         tasksForProject = tasksForProject.filter(task => isDueSoon(task.dueDate));
                     }
 
                     // Find project name
-                    const theProject = projects.find(p => p.id === pName);
-                    const titleName = theProject ? theProject.name : `Project ${pName}`;
+                    const theProject = projects.find(p => p.id === pId);
+                    const titleName = theProject ? theProject.name : `Project ${pId}`;
 
                     updatedColumns.push({
-                        key: pName,
+                        key: pId,
                         title: `${titleName} (${tasksForProject.length})`,
                         data: tasksForProject,
                     });
@@ -107,11 +107,15 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
             } else if (grouping === 'project') {
                 // Collect all project names
                 const { noProject, byProject } = groupTasksByProject(rawTasks, projects);
-                if (noProject.length > 0) {
-                    initialFilters['No Project'] = false;
-                }
-                for (let pName in byProject) {
-                    initialFilters[pName] = false;
+                // if (noProject.length > 0) {
+                //     initialFilters['No Project'] = false;
+                // }
+                // for (let pName in byProject) {
+                //     initialFilters[pName] = false;
+                // }
+                initialFilters['No Project'] = false;
+                for (let pId in byProject) {
+                    initialFilters[pId] = false;
                 }
             }
             setDueSoonFilters(initialFilters);
@@ -126,28 +130,37 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
         setIsProjectModalVisible(true);
     };
 
-    const handleDragEnd = useCallback((columnKey, newData) => {
+    const handleDragEnd = useCallback(async (columnKey, newData) => {
         setColumns(prevColumns => {
             return prevColumns.map(column => {
                 if (column.key === columnKey) {
-                    reorderTasks(columnKey, newData);
+                    // reorderTasks(columnKey, newData);
                     return { ...column, data: newData };
                 }
                 return column;
             });
         });
-    }, []);
+
+        try {
+            // Fetch all tasks in the column after reordering
+            const tasksInColumn = newData.filter(task => task.projectId === columnKey || (columnKey === 'No Project' && !task.projectId));
+
+            // Update Firestore with new order
+            await updateTasksProject(userId, tasksInColumn, columnKey === 'No Project' ? null : columnKey);
+
+            Alert.alert('Success', 'Tasks reordered successfully.');
+        } catch (error) {
+            console.error('Error reordering in Kanban:', error);
+            Alert.alert('Error', 'Failed to reorder tasks.');
+    // Or revert the UI change by re-initializing columns
+        }
+    }, [userId]);
 
     
     async function reorderTasks(columnKey, tasksInColumn) {
         if (!userId) return;
         try {
-            const batch = writeBatch(db);
-            tasksInColumn.forEach((task, index) => {
-                const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-                batch.update(taskRef, { order: index });
-            });
-            await batch.commit();
+            await reorderTasksWithinProject(userId, tasksInColumn, columnKey === 'No Project' ? null : columnKey);
         } catch (err) {
             console.error('Error reordering in Kanban:', err);
         }
@@ -160,32 +173,47 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
     };
 
     // Handle moving a task via modal
-    const handleMove = useCallback((targetProjectId) => {
+    const handleMove = useCallback(async (targetProjectId) => {
         setIsMoveModalVisible(false);
         if (!draggingItem || !sourceColumnKey) return;
-        try {
-            if (grouping === 'priority') {
-                // Update the task's priority in Firestore
-                const taskRef = doc(db, `tasks/${userId}/taskList`, draggingItem.id);
-                updateDoc(taskRef, { priority: targetProjectId });
+        const targetProject = targetProjectId ? projects.find(p => p.id === targetProjectId) : { name: 'Unassigned' };
 
-                Alert.alert('Success', `Task moved to ${targetProjectId} priority.`);
+        // try {
+        //     if (grouping === 'priority') {
+        //         // Update the task's priority in Firestore
+        //         const taskRef = doc(db, `tasks/${userId}/taskList`, draggingItem.id);
+        //         updateDoc(taskRef, { priority: targetProjectId });
+
+        //         Alert.alert('Success', `Task moved to ${targetProjectId} priority.`);
+        //     } else {
+        //         if (targetProjectId) {
+        //             const targetProject = projects.find(p => p.id === targetProjectId);
+        //             assignTasksToProject(userId, [draggingItem], targetProjectId);
+        //             Alert.alert('Success', `Task moved to ${targetProject ? targetProject.name : '??'}.`);
+        //         } else {
+        //             unassignTasksFromProject(userId, [draggingItem]);
+        //             Alert.alert('Success', `Task unassigned from project.`);
+        //         }
+        //     }
+        // } catch (error) {
+        //     console.error('Error updating task:', error);
+        //     Alert.alert('Error', 'Failed to update task.');
+        // }
+
+        try {
+            if (targetProjectId) {
+                await updateTasksProject(userId, [draggingItem], targetProjectId);
+                Alert.alert('Success', `Task moved to ${targetProject.name}.`);
             } else {
-                if (targetProjectId) {
-                    const targetProject = projects.find(p => p.id === targetProjectId);
-                    assignTasksToProject(userId, [draggingItem], targetProjectId);
-                    Alert.alert('Success', `Task moved to ${targetProject ? targetProject.name : '??'}.`);
-                } else {
-                    unassignTasksFromProject(userId, [draggingItem]);
-                    Alert.alert('Success', `Task unassigned from project.`);
-                }
+                await updateTasksProject(userId, [draggingItem], null);
+                Alert.alert('Success', `Task unassigned from project.`);
             }
         } catch (error) {
             console.error('Error updating task:', error);
             Alert.alert('Error', 'Failed to update task.');
         }
     
-        // Clear
+        // Reset dragging state
         setDraggingItem(null);
         setSourceColumnKey(null);
     }, [draggingItem, sourceColumnKey, grouping, projects, userId]);
@@ -219,7 +247,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
 
             if (projectModalTasks && projectModalTasks.length === 2) {
                 // Assign selected tasks to the new project
-                await assignTasksToProject(userId, projectModalTasks, projectId);
+                await updateTasksProject(userId, projectModalTasks, projectId);
                 Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
             } else {
                 // Create an empty project
@@ -238,8 +266,8 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
             // setIsProjectModalVisible(false);
         }
         setIsProjectModalVisible(false);
-        setDraggingItem(null);
-        setSourceColumnKey(null);
+        // setDraggingItem(null);
+        // setSourceColumnKey(null);
         setProjectModalTasks([]);
     };
 

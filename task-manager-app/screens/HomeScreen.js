@@ -14,7 +14,6 @@ import KanbanBoard from '../components/KanbanBoard';
 import AddProjectButton from '../components/AddProjectButton';
 import MoveToModal from '../components/MoveToModal';
 import TodoCard from '../components/TodoCard';
-import { writeBatch, doc } from 'firebase/firestore';
 
 const HomeScreen = ({ navigation }) => {
     const [rawTasks, setRawTasks] = useState([]);
@@ -170,7 +169,7 @@ const HomeScreen = ({ navigation }) => {
 
             if (selectedTasks && selectedTasks.length === 2) {
                 // Assign selected tasks to the new project
-                await assignTasksToProject(userId, selectedTasks, projectId);
+                await updateTasksProject(userId, selectedTasks, projectId);
                 Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
             } else {
                 // Create an empty project
@@ -270,7 +269,7 @@ const HomeScreen = ({ navigation }) => {
                         onLongPress={drag}
                         onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
                         onDeleteTask={() => {
-                            // optionally handle a delete confirm here if desired
+                            // handle a delete confirm
                             Alert.alert('Confirm', 'Delete this to-do list?', [
                                 { text: 'Cancel', style: 'cancel' },
                                 {
@@ -320,136 +319,178 @@ const HomeScreen = ({ navigation }) => {
         const onDragEnd = async ({ data: newData, from, to }) => {
             if (from === to) return;
 
-            const draggedItem = newData[from];
-            const droppedItem = newData[to];
+            const draggedItem = newData[to];
+            const droppedItem = newData[from];
 
             // Save original data in case it's needed to revert
             const oldData = data;
             setOriginalData(oldData);
 
-            // Find the project/noProject section above the dropped position
-            let finalProject = null;
-            for (let i = to; i >= 0; i--) {
-                if (newData[i].type === 'projectHeader') {
-                    // finalProject = newData[i].projectName;
-                    finalProject = newData[i].pName;
-                    break;
-                }
-                if (newData[i].type === 'noProjectHeader') {
-                    finalProject = null; 
-                    break;
-                }
-            }
+            // // Find the project/noProject section above the dropped position
+            // let finalProject = null;
+            // for (let i = to; i >= 0; i--) {
+            //     if (newData[i].type === 'projectHeader') {
+            //         // finalProject = newData[i].projectName;
+            //         finalProject = newData[i].pName;
+            //         break;
+            //     }
+            //     if (newData[i].type === 'noProjectHeader') {
+            //         finalProject = null; 
+            //         break;
+            //     }
+            // }
 
-            // If draggedItem is a task
-            if (draggedItem.type === 'task') {
-                const originalProject = draggedItem.projectId || null;
+            // // If draggedItem is a task
+            // if (draggedItem.type === 'task') {
+            //     const originalProject = draggedItem.projectId || null;
 
-                // Creating a new project with 2 unassigned tasks
-                if (droppedItem.type === 'task' && !droppedItem.projectId && !originalProject && draggedItem.id !== droppedItem.id) {
-                    setDraggingTask(draggedItem);
-                    setHoveredTask(droppedItem);
-                    setShowProjectModal(true);
-                    setData(oldData);
-                    return;
-                }
+            //     // Creating a new project with 2 unassigned tasks
+            //     if (droppedItem.type === 'task' && !droppedItem.projectId && !originalProject && draggedItem.id !== droppedItem.id) {
+            //         setDraggingTask(draggedItem);
+            //         setHoveredTask(droppedItem);
+            //         setShowProjectModal(true);
+            //         setData(oldData);
+            //         return;
+            //     }
 
-                // if (finalProject !== originalProject) {
-                //     // Find the project ID
-                //     const project = projects.find(p => p.id === finalProject);
-                //     const projectName = project ? project.name : null;
-                //     const projectId = project ? project.id : null;
+            //     // if (finalProject !== originalProject) {
+            //     //     // Find the project ID
+            //     //     const project = projects.find(p => p.id === finalProject);
+            //     //     const projectName = project ? project.name : null;
+            //     //     const projectId = project ? project.id : null;
 
-                //     // Update project field for draggedItem
-                //     if (!userId) {
-                //         // revert 
-                //         setData(oldData);
-                //         return;
-                //     }
-                //     // await updateTasksProject(userId, [draggedItem], finalProject || null);
+            //     //     // Update project field for draggedItem
+            //     //     if (!userId) {
+            //     //         // revert 
+            //     //         setData(oldData);
+            //     //         return;
+            //     //     }
+            //     //     // await updateTasksProject(userId, [draggedItem], finalProject || null);
                     
-                //     // Assign draggedTask and hoveredTask to the new project
-                //     // const tasksToAssign = hoveredTask ? [draggedItem, hoveredTask] : [draggedItem];
-                //     // try {
-                //     //     await assignTasksToProject(userId, tasksToAssign, projectId || null);
-                //     //     Alert.alert('Success', `Task moved to ${finalProject ? project.name : 'Unassigned Projects list'}.`);
-                //     try {
-                //         if (projectId) {
-                //             // Assign to new project
-                //             await assignTasksToProject(userId, [draggedItem], projectId);
-                //             Alert.alert('Success', `Task moved to ${projectName}.`);
-                //         } else {
-                //             // Unassign from project
-                //             await unassignTasksFromProject(userId, [draggedItem]);
-                //             Alert.alert('Success', `Task unassigned from project.`);
-                //         }    
-                //     } catch (error) {
-                //         console.error('Error updating task:', error);
-                //         Alert.alert('Error', 'Failed to update task.');
-                //         setData(oldData); // Revert on error
-                //         return;
-                //     }
-                // } else {
-                //     // Reordering within the same project
-                //     try {
-                //         // Extract tasks within the same project
-                //         const tasksInProject = newData
-                //             .filter(item => item.type === 'task' && item.projectId === originalProject)
-                //             .sort((a, b) => a.order - b.order);
+            //     //     // Assign draggedTask and hoveredTask to the new project
+            //     //     // const tasksToAssign = hoveredTask ? [draggedItem, hoveredTask] : [draggedItem];
+            //     //     // try {
+            //     //     //     await assignTasksToProject(userId, tasksToAssign, projectId || null);
+            //     //     //     Alert.alert('Success', `Task moved to ${finalProject ? project.name : 'Unassigned Projects list'}.`);
+            //     //     try {
+            //     //         if (projectId) {
+            //     //             // Assign to new project
+            //     //             await assignTasksToProject(userId, [draggedItem], projectId);
+            //     //             Alert.alert('Success', `Task moved to ${projectName}.`);
+            //     //         } else {
+            //     //             // Unassign from project
+            //     //             await unassignTasksFromProject(userId, [draggedItem]);
+            //     //             Alert.alert('Success', `Task unassigned from project.`);
+            //     //         }    
+            //     //     } catch (error) {
+            //     //         console.error('Error updating task:', error);
+            //     //         Alert.alert('Error', 'Failed to update task.');
+            //     //         setData(oldData); // Revert on error
+            //     //         return;
+            //     //     }
+            //     // } else {
+            //     //     // Reordering within the same project
+            //     //     try {
+            //     //         // Extract tasks within the same project
+            //     //         const tasksInProject = newData
+            //     //             .filter(item => item.type === 'task' && item.projectId === originalProject)
+            //     //             .sort((a, b) => a.order - b.order);
 
-                //         // Update order values
-                //         const batch = writeBatch(db);
-                //         tasksInProject.forEach((task, index) => {
-                //             const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-                //             batch.update(taskRef, { order: index });
-                //         });
-                //         await batch.commit();
-                //         Alert.alert('Success', 'Tasks reordered successfully.');
-                //     } catch (error) {
-                //         console.error('Error reordering tasks:', error);
-                //         Alert.alert('Error', 'Failed to reorder tasks.');
-                //         setData(oldData); // Revert on error
-                //         return;
-                //     }
-                // }
-                try {
-                    if (finalProject !== originalProject) {
-                        //  A) The user is moving the task to a *different project* (or unassigning)
-                        if (!userId) return;
-                        if (finalProject) {
-                            // Assign to new project
-                            await assignTasksToProject(userId, [draggedItem], finalProject);
-                            Alert.alert('Success', `Task moved to that project.`);
-                        } else {
-                            // No project => unassign
-                            await unassignTasksFromProject(userId, [draggedItem]);
-                            Alert.alert('Success', `Task unassigned from project.`);
-                        }
-                    } else {
-                        //  B) The user is *just reordering within the same project or no project*
+            //     //         // Update order values
+            //     //         const batch = writeBatch(db);
+            //     //         tasksInProject.forEach((task, index) => {
+            //     //             const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
+            //     //             batch.update(taskRef, { order: index });
+            //     //         });
+            //     //         await batch.commit();
+            //     //         Alert.alert('Success', 'Tasks reordered successfully.');
+            //     //     } catch (error) {
+            //     //         console.error('Error reordering tasks:', error);
+            //     //         Alert.alert('Error', 'Failed to reorder tasks.');
+            //     //         setData(oldData); // Revert on error
+            //     //         return;
+            //     //     }
+            //     // }
+            //     try {
+            //         if (finalProject !== originalProject) {
+            //             //  A) The user is moving the task to a *different project* (or unassigning)
+            //             if (!userId) return;
+            //             if (finalProject) {
+            //                 // Assign to new project
+            //                 await assignTasksToProject(userId, [draggedItem], finalProject);
+            //                 Alert.alert('Success', `Task moved to that project.`);
+            //             } else {
+            //                 // No project => unassign
+            //                 await unassignTasksFromProject(userId, [draggedItem]);
+            //                 Alert.alert('Success', `Task unassigned from project.`);
+            //             }
+            //         } else {
+            //             //  B) The user is *just reordering within the same project or no project*
         
-                        // We gather tasks in the same project
-                        const tasksInSameProject = newData
-                            .filter(x => x.type === 'task' && x.projectId === originalProject);
+            //             // We gather tasks in the same project
+            //             const tasksInSameProject = newData
+            //                 .filter(x => x.type === 'task' && x.projectId === originalProject);
         
-                        // //  Re-assign indexes from 0..(length-1)
-                        // const batch = writeBatch(db);
-                        // tasksInSameProject.forEach((task, idx) => {
-                        //     const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-                        //     batch.update(taskRef, { order: idx });
-                        // });
-                        // await batch.commit();
+            //             // //  Re-assign indexes from 0..(length-1)
+            //             // const batch = writeBatch(db);
+            //             // tasksInSameProject.forEach((task, idx) => {
+            //             //     const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
+            //             //     batch.update(taskRef, { order: idx });
+            //             // });
+            //             // await batch.commit();
 
-                        await reorderTasksWithinProject(userId, tasksInSameProject, originalProject);
+            //             await reorderTasksWithinProject(userId, tasksInSameProject, originalProject);
         
-                        Alert.alert('Success', 'Tasks reordered successfully in the same project!');
+            //             Alert.alert('Success', 'Tasks reordered successfully in the same project!');
+            //         }
+            //     } catch (error) {
+            //         console.error('Error in onDragEnd:', error);
+            //         Alert.alert('Error', 'Failed to update tasks after drag-and-drop.');
+            //         setData(oldData); // revert
+            //         return;
+            //     }
+            // }
+
+            try {
+                // Determine the project/group based on the new position
+                let finalProjectId = null;
+                for (let i = to; i >= 0; i--) {
+                    if (newData[i].type === 'projectHeader') {
+                        finalProjectId = newData[i].pName; // pName is projectId
+                        break;
                     }
-                } catch (error) {
-                    console.error('Error in onDragEnd:', error);
-                    Alert.alert('Error', 'Failed to update tasks after drag-and-drop.');
-                    setData(oldData); // revert
-                    return;
+                    if (newData[i].type === 'noProjectHeader') {
+                        finalProjectId = null;
+                        break;
+                    }
                 }
+
+                // If the dragged item is a task
+                if (draggedItem.type === 'task') {
+                    const originalProjectId = draggedItem.projectId || null;
+
+                    if (finalProjectId !== originalProjectId) {
+                        // Moving to a different project or unassigned
+                        const tasksToUpdate = [draggedItem];
+                        await updateTasksProject(userId, tasksToUpdate, finalProjectId);
+                        Alert.alert('Success', `Task moved to ${finalProjectId ? 'the selected project' : 'Unassigned Projects list'}.`);
+                    } else {
+                        // Reordering within the same project or unassigned
+                        const tasksInSameProject = newData
+                            .filter(item => item.type === 'task' && item.projectId === originalProjectId)
+                            .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+                        await reorderTasksWithinProject(userId, tasksInSameProject, originalProjectId);
+                        Alert.alert('Success', 'Tasks reordered successfully.');
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error in onDragEnd:', error);
+                Alert.alert('Error', 'Failed to update tasks after drag-and-drop.');
+                // Revert to original data
+                setData(oldData);
+                return;
             }
             // If just reordering within the same section with no project change, the new order is stored locally
             setData(newData);
@@ -483,11 +524,11 @@ const HomeScreen = ({ navigation }) => {
 
         try {
             if (targetProjectId) {
-                await assignTasksToProject(userId, [draggingTask], targetProjectId);
+                await updateTasksProject(userId, [draggingTask], targetProjectId);
                 Alert.alert('Success', `Task moved to ${targetProject.name}.`);
             } else {
                 // Unassign the task from any project
-                await unassignTasksFromProject(userId, [draggingTask]);
+                await updateTasksProject(userId, [draggingTask], null);
                 Alert.alert('Success', `Task unassigned from project.`);
             }
         } catch (error) {

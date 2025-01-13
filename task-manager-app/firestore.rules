@@ -31,5 +31,11 @@ service cloud.firestore {
       // Inherit the same permissions from the parent task
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Rules for projects collection
+    match /projects/{userId}/userProjects/{projectId} {
+      // Allow access only if the user's ID matches the collection path
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }
