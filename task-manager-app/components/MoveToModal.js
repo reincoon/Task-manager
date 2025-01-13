@@ -2,6 +2,10 @@ import {Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 // import Modal from 'react-native-modal';
 
 const MoveToModal = ({ visible, onClose, onMove, columns, currentColumnKey }) => {
+    if (!visible) {
+        return null;
+    }
+
     return (
         <Modal
             transparent={true}
@@ -20,13 +24,13 @@ const MoveToModal = ({ visible, onClose, onMove, columns, currentColumnKey }) =>
             <View style={styles.modalBackground}>
                 <View style={styles.modalContainer}>
                     <Text style={styles.modalTitle}>Move Task To</Text>
-                    {columns.map(column => {
+                    {columns.map((column, index) => {
                         if (column.key !== currentColumnKey) {
                             return (
                                 <TouchableOpacity
-                                    key={column.key}
+                                    key={column.key || column.id || index}
                                     style={styles.button}
-                                    onPress={() => onMove(column.key)}
+                                    onPress={() => onMove(column.key || column.id)}
                                 >
                                     <Text style={styles.buttonText}>{column.title}</Text>
                                 </TouchableOpacity>

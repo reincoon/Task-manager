@@ -1,4 +1,4 @@
-import { doc, updateDoc, collection, addDoc, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 // Add or update eventId for a To-Do list
@@ -45,6 +45,7 @@ export async function updateTasksProject(userId, tasks, projectId = null) {
     }
 
     const batch = writeBatch(db);
+    
     tasks.forEach(task => {
         const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
         const updateData = projectId ? { projectId } : { projectId: null };
@@ -74,9 +75,17 @@ export async function assignTasksToProject(userId, tasks, projectId) {
     }
 
     const batch = writeBatch(db);
+    const tasksRef = collection(db, `tasks/${userId}/taskList`);
+
+    // Fetch current tasks in the project to determine the starting order
+    const q = query(tasksRef, where("projectId", "==", projectId));
+    const snapshot = await getDocs(q);
+    const currentOrders = snapshot.docs.map(doc => doc.data().order || 0);
+    let nextOrder = currentOrders.length > 0 ? Math.max(...currentOrders) + 1 : 0;
+
     tasks.forEach(task => {
         const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-        batch.update(taskRef, { projectId });
+        batch.update(taskRef, { projectId, order: nextOrder++ });
     });
     await batch.commit();
 }
@@ -88,10 +97,30 @@ export async function unassignTasksFromProject(userId, tasks) {
     }
     
     const batch = writeBatch(db);
+    const tasksRef = collection(db, `tasks/${userId}/taskList`);
+
+    // Fetch current unassigned tasks to determine the starting order
+    const q = query(tasksRef, where("projectId", "==", null));
+    const snapshot = await getDocs(q);
+    const currentOrders = snapshot.docs.map(doc => doc.data().order || 0);
+    let nextOrder = currentOrders.length > 0 ? Math.max(...currentOrders) + 1 : 0;
+
     tasks.forEach(task => {
         const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-        batch.update(taskRef, { projectId: null });
+        batch.update(taskRef, { projectId: null, order: nextOrder++ });
     });
     await batch.commit();
 }
 
+// Reorder to-do lists within the same project
+export async function reorderTasksWithinProject(userId, tasks, projectId = null) {
+    const batch = writeBatch(db);
+    // Sort tasks by their current order or fallback 0
+    const sorted = [...tasks].sort((a,b) => (a.order || 0) - (b.order || 0));
+    // Reassign a new order
+    sorted.forEach((task, idx) => {
+        const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
+        batch.update(taskRef, { order: idx, projectId });
+    });
+    await batch.commit();
+}

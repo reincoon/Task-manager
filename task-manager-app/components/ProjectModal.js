@@ -19,7 +19,7 @@ const ProjectModal = ({ visible, onCancel, onCreate, selectedTasks }) => {
             Alert.alert('Error', 'Please select exactly two tasks to create a project.');
             return;
         }
-        onCreate(projectName.trim());
+        onCreate(projectName.trim(), selectedTasks);
         // setProjectName('');
     };
 

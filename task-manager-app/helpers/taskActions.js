@@ -1,5 +1,5 @@
 import { db } from '../firebaseConfig';
-import { doc, getDoc, updateDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, getDocs, updateDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
 import { cancelTaskNotification, scheduleTaskNotification } from '../helpers/notificationsHelpers'; 
 import { removeFileFromSupabase } from '../helpers/supabaseStorageHelpers';
 import { addEventToCalendar } from './calendar';
@@ -7,7 +7,7 @@ import * as FileSystem from 'expo-file-system';
 import { Alert } from 'react-native';
 
 // Fetch task details from Firestore
-export async function fetchTaskDetails(userId, taskId, db) {
+export async function fetchTaskDetails(userId, taskId) {
     const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
     const taskSnapshot = await getDoc(taskDocRef);
     if (!taskSnapshot.exists()) {
@@ -51,7 +51,7 @@ export async function fetchTaskDetails(userId, taskId, db) {
 // Create a new task in Firestore, schedule notification, handle attachments
 export async function createTask({
     userId,
-    db,
+    // db,
     currentTask,
     setTaskId,
     setOriginalTask,
@@ -84,6 +84,15 @@ export async function createTask({
             signedUrl: a.signedUrl,
         }));
 
+        // Determine the next order value in unassigned tasks
+        const tasksRef = collection(db, `tasks/${userId}/taskList`);
+        const q = query(tasksRef, where("projectId", "==", null));
+        const snapshot = await getDocs(q);
+        const orderValues = snapshot.docs
+            .map(doc => doc.data().order || 0)
+            .sort((a, b) => b - a); // sort descending to get the max
+        const nextOrder = orderValues.length > 0 ? orderValues[0] + 1 : 0;
+
         // Create to-do list's data
         const taskData = {
             title: title,
@@ -96,6 +105,8 @@ export async function createTask({
             userId: userId,
             createdAt: new Date().toISOString(),
             eventId: null,
+            projectId: null,
+            order: nextOrder,
         };
 
         // Add the task to Firestore
@@ -160,7 +171,7 @@ export async function createTask({
 export async function saveTask({
     userId,
     taskId,
-    db,
+    // db,
     originalTask,
     currentTask,
     deletedAttachments,
@@ -368,7 +379,7 @@ export async function cancelTaskChanges({
 export async function deleteSubtask({
     userId,
     taskId,
-    db,
+    // db,
     subtasks,
     index,
     setSubtasks,

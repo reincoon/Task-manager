@@ -13,6 +13,7 @@ import { updateTasksProject, assignTasksToProject, unassignTasksFromProject, cre
 import AddProjectButton from './AddProjectButton';
 import { deleteTask } from '../helpers/taskActions';
 import TodoCard from '../components/TodoCard';
+import { writeBatch } from 'firebase/firestore';
 
 const { width } = Dimensions.get('window');
 
@@ -129,12 +130,28 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
         setColumns(prevColumns => {
             return prevColumns.map(column => {
                 if (column.key === columnKey) {
+                    reorderTasks(columnKey, newData);
                     return { ...column, data: newData };
                 }
                 return column;
             });
         });
     }, []);
+
+    
+    async function reorderTasks(columnKey, tasksInColumn) {
+        if (!userId) return;
+        try {
+            const batch = writeBatch(db);
+            tasksInColumn.forEach((task, index) => {
+                const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
+                batch.update(taskRef, { order: index });
+            });
+            await batch.commit();
+        } catch (err) {
+            console.error('Error reordering in Kanban:', err);
+        }
+    }
 
     const handleMovePress = () => {
         if (draggingItem && sourceColumnKey) {
