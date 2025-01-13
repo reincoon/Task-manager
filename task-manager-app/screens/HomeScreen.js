@@ -128,29 +128,30 @@ const HomeScreen = ({ navigation }) => {
 
     // Sort tasks whenever rawTasks or sortOption changes
     useEffect(() => {
-        let sortedTasks = [...rawTasks];
-        if (sortOption === 'priority') {
-            // Sort by priority
-            sortedTasks.sort((a, b) => {
-                return (PRIORITY_ORDER[a.priority] || 999) - (PRIORITY_ORDER[b.priority] || 999);
-            });
-        } else if (sortOption === 'date') {
-            // Sort by date
-            sortedTasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-        } else if (sortOption === 'alphabetical') {
-            // Sort alphabetically
-            sortedTasks.sort((a, b) => a.title.localeCompare(b.title));
-        }
-        setTasks(sortedTasks);
+        // let sortedTasks = [...rawTasks];
+        // if (sortOption === 'priority') {
+        //     // Sort by priority
+        //     sortedTasks.sort((a, b) => {
+        //         return (PRIORITY_ORDER[a.priority] || 999) - (PRIORITY_ORDER[b.priority] || 999);
+        //     });
+        // } else if (sortOption === 'date') {
+        //     // Sort by date
+        //     sortedTasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+        // } else if (sortOption === 'alphabetical') {
+        //     // Sort alphabetically
+        //     sortedTasks.sort((a, b) => a.title.localeCompare(b.title));
+        // }
+        // setTasks(sortedTasks);
+        setTasks([...rawTasks]);
     }, [rawTasks, sortOption]);
 
     useEffect(() => {
         if (viewMode === 'list') {
             const { noProject, byProject } = groupTasksByProject(tasks, projects);
-            const newData = buildListData(noProject, byProject, projects);
+            const newData = buildListData(noProject, byProject, projects, sortOption);
             setData(newData);
         }
-    }, [tasks, viewMode, projects]);
+    }, [tasks, viewMode, projects, sortOption]);
 
     const renderKanbanView = () => {
         return <KanbanBoard userId={userId} rawTasks={tasks} projects={projects} navigation={navigation} grouping={grouping} />;
@@ -197,34 +198,34 @@ const HomeScreen = ({ navigation }) => {
         setShowProjectModal(true);
     };
 
-    // Open Project Modal via Add Project button in Kanban View
-    const handleAddProjectFromKanban = () => {
-        setShowProjectModal(true);
-    };
+    // // Open Project Modal via Add Project button in Kanban View
+    // const handleAddProjectFromKanban = () => {
+    //     setShowProjectModal(true);
+    // };
 
     // Render Task Item
-    const renderTask = useCallback(({ item, drag, isActive }) => {
-        return (
-            <TouchableOpacity 
-                style={[styles.taskItem, isActive && { opacity: 0.7 }]}
-                onLongPress={() => {
-                    setDraggingTask(item);
-                    const sourceColumn = grouping === 'priority' 
-                        ? PRIORITIES.find(col => col === item.priority)
-                        : projects.find(p => p.id === item.projectId);
-                    setSourceColumnKey(sourceColumn ? sourceColumn.id : null);
-                    drag();
-                }}
-                onPress={() => {
-                    navigation.navigate('TaskDetailsScreen', { taskId: item.id });
-                }}
-            >
-                <Text style={styles.taskTitle}>{item.title}</Text>
-                <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-                <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-            </TouchableOpacity>
-        );
-    }, [grouping, projects, navigation]);
+    // const renderTask = useCallback(({ item, drag, isActive }) => {
+    //     return (
+    //         <TouchableOpacity 
+    //             style={[styles.taskItem, isActive && { opacity: 0.7 }]}
+    //             onLongPress={() => {
+    //                 setDraggingTask(item);
+    //                 const sourceColumn = grouping === 'priority' 
+    //                     ? PRIORITIES.find(col => col === item.priority)
+    //                     : projects.find(p => p.id === item.projectId);
+    //                 setSourceColumnKey(sourceColumn ? sourceColumn.id : null);
+    //                 drag();
+    //             }}
+    //             onPress={() => {
+    //                 navigation.navigate('TaskDetailsScreen', { taskId: item.id });
+    //             }}
+    //         >
+    //             <Text style={styles.taskTitle}>{item.title}</Text>
+    //             <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
+    //             <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
+    //         </TouchableOpacity>
+    //     );
+    // }, [grouping, projects, navigation]);
 
     // Helper to get project name
     const getProjectName = (projectId) => {
@@ -242,14 +243,20 @@ const HomeScreen = ({ navigation }) => {
     }
     const renderListView = () => {
         if (data.length === 0) {
-            return <Text style={styles.noTasksText}>No tasks available. Create a new to-do list!</Text>;
+            return (
+                <Text style={styles.noTasksText}>
+                    No tasks available. Create a new to-do list!
+                </Text>
+            );
         }
 
         const renderItem = ({ item, drag, isActive }) => {
             if (item.type === 'projectHeader') {
                 return (
                     <View style={styles.projectHeader}>
-                        <Text style={[styles.projectHeaderText, {color: '#333'}]}>{item.projectName}</Text>
+                        <Text style={[styles.projectHeaderText, {color: '#333'}]}>
+                            {item.projectName}
+                        </Text>
                     </View>
                 );
             }
@@ -295,24 +302,13 @@ const HomeScreen = ({ navigation }) => {
             return null;
         };
 
-
-            // // It's a task
-            // return (
-            //     <TouchableOpacity 
-            //         style={[styles.taskItem, isActive && {opacity:0.7}]}
-            //         onLongPress={drag}
-            //         onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
-            //     >
-            //         <Text style={styles.taskTitle}>{item.title}</Text>
-            //         <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-            //         <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-            //     </TouchableOpacity>
-            // );
-        // };
-
         const keyExtractor = (item, index) => {
-            if (item.type === 'projectHeader') return `projectHeader-${item.projectName}-${index}`;
-            if (item.type === 'noProjectHeader') return `noProjectHeader-${index}`;
+            if (item.type === 'projectHeader') {
+                return `projectHeader-${item.projectName}-${index}`;
+            }
+            if (item.type === 'noProjectHeader') {
+                return `noProjectHeader-${index}`;
+            }
             return item.id;
         };
 
@@ -320,143 +316,18 @@ const HomeScreen = ({ navigation }) => {
             if (from === to) return;
 
             const draggedItem = newData[to];
-            const droppedItem = newData[from];
+            // const droppedItem = newData[from];
 
             // Save original data in case it's needed to revert
             const oldData = data;
             setOriginalData(oldData);
-
-            // // Find the project/noProject section above the dropped position
-            // let finalProject = null;
-            // for (let i = to; i >= 0; i--) {
-            //     if (newData[i].type === 'projectHeader') {
-            //         // finalProject = newData[i].projectName;
-            //         finalProject = newData[i].pName;
-            //         break;
-            //     }
-            //     if (newData[i].type === 'noProjectHeader') {
-            //         finalProject = null; 
-            //         break;
-            //     }
-            // }
-
-            // // If draggedItem is a task
-            // if (draggedItem.type === 'task') {
-            //     const originalProject = draggedItem.projectId || null;
-
-            //     // Creating a new project with 2 unassigned tasks
-            //     if (droppedItem.type === 'task' && !droppedItem.projectId && !originalProject && draggedItem.id !== droppedItem.id) {
-            //         setDraggingTask(draggedItem);
-            //         setHoveredTask(droppedItem);
-            //         setShowProjectModal(true);
-            //         setData(oldData);
-            //         return;
-            //     }
-
-            //     // if (finalProject !== originalProject) {
-            //     //     // Find the project ID
-            //     //     const project = projects.find(p => p.id === finalProject);
-            //     //     const projectName = project ? project.name : null;
-            //     //     const projectId = project ? project.id : null;
-
-            //     //     // Update project field for draggedItem
-            //     //     if (!userId) {
-            //     //         // revert 
-            //     //         setData(oldData);
-            //     //         return;
-            //     //     }
-            //     //     // await updateTasksProject(userId, [draggedItem], finalProject || null);
-                    
-            //     //     // Assign draggedTask and hoveredTask to the new project
-            //     //     // const tasksToAssign = hoveredTask ? [draggedItem, hoveredTask] : [draggedItem];
-            //     //     // try {
-            //     //     //     await assignTasksToProject(userId, tasksToAssign, projectId || null);
-            //     //     //     Alert.alert('Success', `Task moved to ${finalProject ? project.name : 'Unassigned Projects list'}.`);
-            //     //     try {
-            //     //         if (projectId) {
-            //     //             // Assign to new project
-            //     //             await assignTasksToProject(userId, [draggedItem], projectId);
-            //     //             Alert.alert('Success', `Task moved to ${projectName}.`);
-            //     //         } else {
-            //     //             // Unassign from project
-            //     //             await unassignTasksFromProject(userId, [draggedItem]);
-            //     //             Alert.alert('Success', `Task unassigned from project.`);
-            //     //         }    
-            //     //     } catch (error) {
-            //     //         console.error('Error updating task:', error);
-            //     //         Alert.alert('Error', 'Failed to update task.');
-            //     //         setData(oldData); // Revert on error
-            //     //         return;
-            //     //     }
-            //     // } else {
-            //     //     // Reordering within the same project
-            //     //     try {
-            //     //         // Extract tasks within the same project
-            //     //         const tasksInProject = newData
-            //     //             .filter(item => item.type === 'task' && item.projectId === originalProject)
-            //     //             .sort((a, b) => a.order - b.order);
-
-            //     //         // Update order values
-            //     //         const batch = writeBatch(db);
-            //     //         tasksInProject.forEach((task, index) => {
-            //     //             const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-            //     //             batch.update(taskRef, { order: index });
-            //     //         });
-            //     //         await batch.commit();
-            //     //         Alert.alert('Success', 'Tasks reordered successfully.');
-            //     //     } catch (error) {
-            //     //         console.error('Error reordering tasks:', error);
-            //     //         Alert.alert('Error', 'Failed to reorder tasks.');
-            //     //         setData(oldData); // Revert on error
-            //     //         return;
-            //     //     }
-            //     // }
-            //     try {
-            //         if (finalProject !== originalProject) {
-            //             //  A) The user is moving the task to a *different project* (or unassigning)
-            //             if (!userId) return;
-            //             if (finalProject) {
-            //                 // Assign to new project
-            //                 await assignTasksToProject(userId, [draggedItem], finalProject);
-            //                 Alert.alert('Success', `Task moved to that project.`);
-            //             } else {
-            //                 // No project => unassign
-            //                 await unassignTasksFromProject(userId, [draggedItem]);
-            //                 Alert.alert('Success', `Task unassigned from project.`);
-            //             }
-            //         } else {
-            //             //  B) The user is *just reordering within the same project or no project*
-        
-            //             // We gather tasks in the same project
-            //             const tasksInSameProject = newData
-            //                 .filter(x => x.type === 'task' && x.projectId === originalProject);
-        
-            //             // //  Re-assign indexes from 0..(length-1)
-            //             // const batch = writeBatch(db);
-            //             // tasksInSameProject.forEach((task, idx) => {
-            //             //     const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-            //             //     batch.update(taskRef, { order: idx });
-            //             // });
-            //             // await batch.commit();
-
-            //             await reorderTasksWithinProject(userId, tasksInSameProject, originalProject);
-        
-            //             Alert.alert('Success', 'Tasks reordered successfully in the same project!');
-            //         }
-            //     } catch (error) {
-            //         console.error('Error in onDragEnd:', error);
-            //         Alert.alert('Error', 'Failed to update tasks after drag-and-drop.');
-            //         setData(oldData); // revert
-            //         return;
-            //     }
-            // }
 
             try {
                 // Determine the project/group based on the new position
                 let finalProjectId = null;
                 for (let i = to; i >= 0; i--) {
                     if (newData[i].type === 'projectHeader') {
-                        finalProjectId = newData[i].pName; // pName is projectId
+                        finalProjectId = newData[i].pName;
                         break;
                     }
                     if (newData[i].type === 'noProjectHeader') {
@@ -471,20 +342,20 @@ const HomeScreen = ({ navigation }) => {
 
                     if (finalProjectId !== originalProjectId) {
                         // Moving to a different project or unassigned
-                        const tasksToUpdate = [draggedItem];
-                        await updateTasksProject(userId, tasksToUpdate, finalProjectId);
+                        await updateTasksProject(userId, [draggedItem], finalProjectId);
                         Alert.alert('Success', `Task moved to ${finalProjectId ? 'the selected project' : 'Unassigned Projects list'}.`);
                     } else {
                         // Reordering within the same project or unassigned
                         const tasksInSameProject = newData
                             .filter(item => item.type === 'task' && item.projectId === originalProjectId)
-                            .sort((a, b) => (a.order || 0) - (b.order || 0));
+                            // .sort((a, b) => (a.order || 0) - (b.order || 0));
 
                         await reorderTasksWithinProject(userId, tasksInSameProject, originalProjectId);
                         Alert.alert('Success', 'Tasks reordered successfully.');
                     }
                 }
-
+                // Revert to custom order mode
+                setSortOption(null);
             } catch (error) {
                 console.error('Error in onDragEnd:', error);
                 Alert.alert('Error', 'Failed to update tasks after drag-and-drop.');
@@ -523,14 +394,13 @@ const HomeScreen = ({ navigation }) => {
         const targetProject = targetProjectId ? projects.find(p => p.id === targetProjectId) : { name: 'Unassigned' };
 
         try {
-            if (targetProjectId) {
-                await updateTasksProject(userId, [draggingTask], targetProjectId);
-                Alert.alert('Success', `Task moved to ${targetProject.name}.`);
-            } else {
-                // Unassign the task from any project
-                await updateTasksProject(userId, [draggingTask], null);
-                Alert.alert('Success', `Task unassigned from project.`);
-            }
+            await updateTasksProject(userId, [draggingTask], targetProjectId || null);
+            Alert.alert(
+                'Success',
+                targetProjectId
+                    ? `Task moved to ${targetProject.name}.`
+                    : 'Task unassigned from project.'
+            );
         } catch (error) {
             console.error('Error updating task:', error);
             Alert.alert('Error', 'Failed to update task.');

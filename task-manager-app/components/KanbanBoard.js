@@ -1,19 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions, ActivityIndicator, ScrollView } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
-import { Menu, MenuItem, MenuDivider } from 'react-native-material-menu';
 import { PRIORITIES } from '../helpers/priority';
-import { Ionicons } from '@expo/vector-icons';
 import MoveToModal from '../components/MoveToModal';
 import ProjectModal from '../components/ProjectModal';
 import { groupTasksByProject } from '../helpers/projects';
-import { updateTasksProject, assignTasksToProject, unassignTasksFromProject, createProject  } from '../helpers/firestoreHelpers';
+import { updateTasksProject, createProject  } from '../helpers/firestoreHelpers';
 import AddProjectButton from './AddProjectButton';
 import { deleteTask } from '../helpers/taskActions';
 import TodoCard from '../components/TodoCard';
-import { writeBatch } from 'firebase/firestore';
 
 const { width } = Dimensions.get('window');
 
@@ -107,12 +102,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
             } else if (grouping === 'project') {
                 // Collect all project names
                 const { noProject, byProject } = groupTasksByProject(rawTasks, projects);
-                // if (noProject.length > 0) {
-                //     initialFilters['No Project'] = false;
-                // }
-                // for (let pName in byProject) {
-                //     initialFilters[pName] = false;
-                // }
                 initialFilters['No Project'] = false;
                 for (let pId in byProject) {
                     initialFilters[pId] = false;
@@ -178,28 +167,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
         if (!draggingItem || !sourceColumnKey) return;
         const targetProject = targetProjectId ? projects.find(p => p.id === targetProjectId) : { name: 'Unassigned' };
 
-        // try {
-        //     if (grouping === 'priority') {
-        //         // Update the task's priority in Firestore
-        //         const taskRef = doc(db, `tasks/${userId}/taskList`, draggingItem.id);
-        //         updateDoc(taskRef, { priority: targetProjectId });
-
-        //         Alert.alert('Success', `Task moved to ${targetProjectId} priority.`);
-        //     } else {
-        //         if (targetProjectId) {
-        //             const targetProject = projects.find(p => p.id === targetProjectId);
-        //             assignTasksToProject(userId, [draggingItem], targetProjectId);
-        //             Alert.alert('Success', `Task moved to ${targetProject ? targetProject.name : '??'}.`);
-        //         } else {
-        //             unassignTasksFromProject(userId, [draggingItem]);
-        //             Alert.alert('Success', `Task unassigned from project.`);
-        //         }
-        //     }
-        // } catch (error) {
-        //     console.error('Error updating task:', error);
-        //     Alert.alert('Error', 'Failed to update task.');
-        // }
-
         try {
             if (targetProjectId) {
                 await updateTasksProject(userId, [draggingItem], targetProjectId);
@@ -254,11 +221,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
                 Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
             }
 
-            // Reset states
-            // setIsProjectModalVisible(false);
-            // setDraggingItem(null);
-            // setSourceColumnKey(null);
-            // setProjectModalTasks([]);
         } catch (err) {
             console.error(err);
             Alert.alert('Error', err.message);
@@ -292,73 +254,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
         const projectName = getProjectName(item.projectId);
 
         return (
-            // <View style={[styles.taskItem, isActive && { opacity: 0.7 }]}>
-            //     <View style={styles.cardHeaderRow}>
-            //         {/* <Text style={styles.taskTitle} numberOfLines={1}>
-            //             {item.title}
-            //         </Text> */}
-            //         <TouchableOpacity
-            //             onLongPress={() => {
-            //                 setDraggingItem(item);
-            //                 // Find the source column
-            //                 // const sourceColumn = columns.find(col => col.data.some(task => task.id === item.id));
-            //                 const sourceColumn = grouping === 'priority' 
-            //                     ? PRIORITIES.find(col => col === item.priority)
-            //                     : projects.find(p => p.id === item.projectId);
-            //                 setSourceColumnKey(sourceColumn ? sourceColumn.key : null);
-            //                 drag();
-            //                 setTimeout(() => {
-            //                     // handleMovePress();
-            //                 }, 200);
-            //             }}
-            //             onPress={() => {navigation.navigate('TaskDetailsScreen', { taskId: item.id });}}
-            //         >
-            //             <Text style={styles.taskTitle}>{item.title}</Text>
-            //             <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-            //             <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-            //         </TouchableOpacity>
-            //         {/* Icon that opens MoveToModal */}
-            //         <TouchableOpacity
-            //             style={styles.moveIconContainer}
-            //             onPress={() => {
-            //                 // open move modal
-            //                 setDraggingItem(item);
-            //                 if (grouping === 'priority') {
-            //                 setSourceColumnKey(item.priority);
-            //                 } else {
-            //                 setSourceColumnKey(item.projectId || 'No Project');
-            //                 }
-            //                 setIsMoveModalVisible(true);
-            //             }}
-            //         >
-            //             <Ionicons name="ellipsis-vertical" size={20} color="#666" />
-            //         </TouchableOpacity>
-            //     </View>
-            //     <View style={styles.cardBodyRow}>
-            //         <TouchableOpacity
-            //             onPress={() => {
-            //                 Alert.alert('Delete Task', 'Are you sure?', [
-            //                     { text: 'Cancel', style: 'cancel' },
-            //                     {
-            //                         text: 'Delete',
-            //                         style: 'destructive',
-            //                         onPress: async () => {
-            //                             try {
-            //                                 await deleteTask(userId, item, navigation);
-            //                                 Alert.alert('Deleted', 'Task deleted successfully');
-            //                             } catch (err) {
-            //                                 console.error('Error deleting task:', err);
-            //                                 Alert.alert('Error', 'Could not delete task');
-            //                             }
-            //                         },
-            //                     },
-            //                 ]);
-            //             }}
-            //         >
-            //             <Ionicons name="trash-outline" size={20} color="#ff0000" />
-            //         </TouchableOpacity>
-            //     </View>
-            // </View>
+            
             <TodoCard
                 task={item}
                 projectName={projectName}
@@ -441,16 +337,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
                         onPress={handleAddProject}
                         label="Add Project"
                     />
-                    {/* <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <TouchableOpacity style={styles.toggleButton} onPress={() => setGrouping(prev => prev === 'priority' ? 'project' : 'priority')}>
-                            <Text style={styles.toggleButtonText}>
-                                {grouping === 'priority' ? 'Group by Project' : 'Group by Priority'}
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.addProjectButton} onPress={handleAddProject}>
-                            <Ionicons name="add-circle" size={30} color="#007bff" />
-                        </TouchableOpacity>
-                    </View> */}
                 </View>
                 <ScrollView horizontal contentContainerStyle={styles.columnsContainer}>
                     {columns.map(column => renderColumn(column))}
@@ -459,9 +345,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
                     visible={isMoveModalVisible}
                     onClose={handleCancelMove}
                     onMove={handleMove}
-                    // columns={columns}
-                    // currentColumnKey={sourceColumnKey}
-                    // columns={grouping === 'project' ? projects : PRIORITIES.map(p => ({ id: p, name: p }))}
                     columns={
                         grouping === 'project'
                             ? projects.map(p => ({key: p.id, title: p.name}))
