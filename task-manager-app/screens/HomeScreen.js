@@ -469,6 +469,7 @@ const HomeScreen = ({ navigation }) => {
                     <MenuItem onPress={() => handleMenuOption('Sort by Date')}>Sort by Date</MenuItem>
                     <MenuItem onPress={() => handleMenuOption('Sort by Priority')}>Sort by Priority</MenuItem>
                     <MenuItem onPress={() => handleMenuOption('Sort Alphabetically')}>Sort Alphabetically</MenuItem>
+                    <MenuItem onPress={() => handleMenuOption('Sort by Colour')}>Sort by Colour</MenuItem>
                 </Menu>
             </View>
 
