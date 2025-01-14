@@ -11,6 +11,9 @@ const TodoCard = ({ task, projectName, onPress, onLongPress, onDeleteTask, showM
 
     return (
         <View style={styles.card}>
+            {/* Colour indicator */}
+            <View style={[styles.colourIndicator, { backgroundColor: task.colour || '#95A5A6' }]} />
+
             {/* Task details */}
             <TouchableOpacity
                 style={styles.cardTouchable}
@@ -58,7 +61,8 @@ export default TodoCard;
 
 const styles = StyleSheet.create({
     card: {
-        padding: 8,
+        flexDirection: 'row',
+        padding: 10,
         backgroundColor: '#fff',
         borderRadius: 8,
         marginBottom: 10,
@@ -69,6 +73,14 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowRadius: 4,
         elevation: 2,
+        alignItems: 'center',
+    },
+    colourIndicator: {
+        margin: 5,
+        width: 10,
+        height: '100%',
+        borderTopLeftRadius: 8,
+        borderBottomLeftRadius: 8,
     },
     cardTouchable: {
         flex: 1,

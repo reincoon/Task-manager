@@ -16,6 +16,7 @@ import AddProjectButton from '../components/AddProjectButton';
 import MoveToModal from '../components/MoveToModal';
 // import TodoCard from '../components/TodoCard';
 import { deleteTask as deleteTaskHelper } from '../helpers/taskActions';
+import { COLOURS } from '../helpers/constants';
 
 const HomeScreen = ({ navigation }) => {
     const [rawTasks, setRawTasks] = useState([]);
@@ -58,6 +59,9 @@ const HomeScreen = ({ navigation }) => {
             setSortOption('date');
         } else if (option === 'Sort Alphabetically') {
             setSortOption('alphabetical');
+        } else if (option === 'Sort by Colour') {
+            setSortOption('colour');
+            setGrouping('project');
         } else if (option === 'Kanban View') {
             // Switch to Kanban view
             setViewMode('kanban');
@@ -244,7 +248,7 @@ const HomeScreen = ({ navigation }) => {
     const renderListView = () => {
         return (
             <ListView
-            userId={userId}
+                userId={userId}
                 tasks={tasks}
                 projects={projects}
                 sortOption={sortOption}

@@ -1,4 +1,4 @@
-import { PRIORITY_ORDER } from "./constants";
+import { PRIORITY_ORDER, COLOUR_ORDER } from "./constants";
 // Group to-do lists by projects
 export function groupTasksByProject(tasks, projects) {
     const noProject = tasks.filter(t => !t.projectId);
@@ -29,6 +29,8 @@ function applySortOption(a, b, sortOption) {
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
     } else if (sortOption === 'alphabetical') {
         return a.title.localeCompare(b.title);
+    } else if (sortOption === 'colour') {
+        return (COLOUR_ORDER[a.colour] || 999) - (COLOUR_ORDER[b.colour] || 999);
     }
     return (a.order || 0) - (b.order || 0);
 }

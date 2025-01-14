@@ -1,10 +1,11 @@
 import { db } from '../firebaseConfig';
-import { doc, getDoc, getDocs, updateDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, getDocs, updateDoc, deleteDoc, addDoc, collection, query, where } from 'firebase/firestore';
 import { cancelTaskNotification, scheduleTaskNotification } from '../helpers/notificationsHelpers'; 
 import { removeFileFromSupabase } from '../helpers/supabaseStorageHelpers';
 import { addEventToCalendar } from './calendar';
 import * as FileSystem from 'expo-file-system';
 import { Alert } from 'react-native';
+import { COLOURS } from './constants';
 
 // Fetch task details from Firestore
 export async function fetchTaskDetails(userId, taskId) {
@@ -45,6 +46,7 @@ export async function fetchTaskDetails(userId, taskId) {
         subtasks: fetchedSubtasks,
         notificationId: data.notificationId || null,
         attachments: data.attachments || [],
+        colour: data.colour || COLOURS[0].value,
     };
 }
 
@@ -59,15 +61,7 @@ export async function createTask({
     setDeletedAttachments,
     setAddedAttachments,
 }) {
-    const {
-        title,
-        notes,
-        dueDate,
-        notification,
-        priority,
-        subtasks,
-        attachments,
-    } = currentTask;
+    const {title, notes, dueDate, notification, priority, subtasks, attachments, colour} = currentTask;
 
     try {
         // Prepare subtasks for Firestore by converting dueDate to ISO strings
@@ -107,6 +101,7 @@ export async function createTask({
             eventId: null,
             projectId: null,
             order: nextOrder,
+            colour: colour,
         };
 
         // Add the task to Firestore
@@ -154,6 +149,7 @@ export async function createTask({
             subtasks: subtasksForDb,
             notificationId: mainNotificationId,
             attachments: attachmentsForDb,
+            colour: colour,
         });
 
         setOriginalAttachments(attachmentsForDb);
@@ -188,6 +184,7 @@ export async function saveTask({
         subtasks,
         attachments,
         notificationId: currentNotifId,
+        colour,
     } = currentTask;
 
     try {
@@ -258,6 +255,7 @@ export async function saveTask({
             subtasks: updatedSubtasks,
             notificationId: newNotificationId || null,
             attachments: attachments,
+            colour: colour,
         });
 
         // Delete attachments from Supabase if flagged

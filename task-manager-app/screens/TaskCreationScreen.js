@@ -7,7 +7,7 @@ import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 import NotificationPicker from '../components/NotificationPicker';
 import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
 import { requestNotificationPermissions, scheduleNotification } from '../helpers/notifications';
-import { NOTIFICATION_OPTIONS, NOTIFICATION_TIME_OFFSETS } from '../helpers/constants';
+import { COLOURS, NOTIFICATION_OPTIONS } from '../helpers/constants';
 import { cyclePriority } from '../helpers/priority';
 // import { formatDateTime } from '../helpers/date';
 import DateTimeSelector from '../components/DateTimeSelector';
@@ -20,6 +20,7 @@ import * as FileSystem from 'expo-file-system';
 import { addAttachmentOfflineAndOnline, removeAttachment, deleteAllAttachmentsFromSupabase } from '../helpers/attachmentHelpers';
 import { removeFileFromSupabase } from '../helpers/supabaseStorageHelpers';
 import { createTask, addSubtaskToCalendar, addTaskToCalendar } from '../helpers/taskActions';
+import ColourPicker from '../components/ColourPicker';
 
 const TaskCreationScreen = ({ navigation }) => {
     const [taskTitle, setTaskTitle] = useState('');
@@ -49,6 +50,7 @@ const TaskCreationScreen = ({ navigation }) => {
     const [userId, setUserId] = useState(null);
 
     const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+    const [selectedColour, setSelectedColour] = useState(COLOURS[0].value);
 
     // // Request permissions for notifications
     // useEffect(() => {
@@ -211,6 +213,7 @@ const TaskCreationScreen = ({ navigation }) => {
                 priority,
                 subtasks,
                 attachments,
+                colour: selectedColour,
             };
 
             await createTask({
@@ -276,7 +279,6 @@ const TaskCreationScreen = ({ navigation }) => {
                     );
                 },
             });
-            Alert.alert('Success', 'Task added to calendar');
         } catch (error) {
             console.error('Error adding task to calendar:', error);
             Alert.alert('Error', 'Failed to add task to calendar.');
@@ -333,7 +335,6 @@ const TaskCreationScreen = ({ navigation }) => {
                     );
                 },
             });
-            Alert.alert('Success', 'Subtask added to calendar');
         } catch (error) {
             console.error('Error adding subtask to calendar:', error);
             Alert.alert('Error', 'Failed to add subtask to calendar.');
@@ -377,6 +378,7 @@ const TaskCreationScreen = ({ navigation }) => {
             setNotification('None');
             setPriorityState('Low');
             setSubtasks([]);
+            setSelectedColour(COLOURS[0].value);
 
             navigation.goBack();
         } catch (error) {
@@ -420,6 +422,15 @@ const TaskCreationScreen = ({ navigation }) => {
                     placeholder="Notes"
                     multiline
                 />
+
+                {/* Color Picker */}
+                <View style={{ marginBottom: 20 }}>
+                    <Text style={{ marginBottom: 10, fontWeight: '600' }}>Category Colour:</Text>
+                    <ColourPicker
+                        selectedColour={selectedColour}
+                        onSelectColour={setSelectedColour}
+                    />
+                </View>
 
                 {/* Due date selector */}
                 <DateTimeSelector date={dueDate} onDateChange={setDueDate} />
