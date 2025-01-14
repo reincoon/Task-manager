@@ -9,20 +9,6 @@ const TodoCard = ({ task, projectName, onPress, onLongPress, onDeleteTask, showM
     const subtaskCount = Array.isArray(task.subtasks) ? task.subtasks.length : 0;
     const attachmentCount = Array.isArray(task.attachments) ? task.attachments.length : 0;
 
-    // const menuRef = useRef();
-
-    // const hideMenu = () => {
-    //     if (menuRef.current) {
-    //         menuRef.current.hide();
-    //     }
-    // };
-
-    // const showMenuHandler = () => {
-    //     if (menuRef.current) {
-    //         menuRef.current.show();
-    //     }
-    // };
-
     return (
         <View style={styles.card}>
             {/* Task details */}
