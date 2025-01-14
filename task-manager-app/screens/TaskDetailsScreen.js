@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../firebaseConfig';
-import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import NotificationPicker from '../components/NotificationPicker';
 import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
 import DateTimeSelector from '../components/DateTimeSelector';
@@ -10,14 +9,11 @@ import SubtaskList from '../components/SubtaskList';
 import AttachmentsList from '../components/AttachmentsList';
 
 import { requestNotificationPermissions } from '../helpers/notifications';
-import { NOTIFICATION_OPTIONS } from '../helpers/constants';
+import { NOTIFICATION_OPTIONS, COLOURS } from '../helpers/constants';
 import { cyclePriority } from '../helpers/priority';
-// import { scheduleTaskNotification, cancelTaskNotification } from '../helpers/notificationsHelpers';
-// import { addEventToCalendar } from '../helpers/calendar';
 import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/attachmentHelpers';
-import { removeFileFromSupabase } from '../helpers/supabaseStorageHelpers';
-// import * as FileSystem from 'expo-file-system';
 import { fetchTaskDetails, saveTask, cancelTaskChanges, deleteTask, deleteSubtask, addTaskToCalendar, addSubtaskToCalendar } from '../helpers/taskActions';
+import ColourPicker from '../components/ColourPicker';
 
 const TaskDetailsScreen = ({ route, navigation }) => {
     const { taskId } = route.params;
@@ -51,6 +47,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     const [addedAttachments, setAddedAttachments] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
     const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+    const [selectedColour, setSelectedColour] = useState(COLOURS[0].value);
 
     // Request notification permissions and get user ID
     useEffect(() => {
@@ -69,71 +66,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         };
     }, [navigation]);
 
-    
-    // useEffect(() => {
-        // const fetchTask = async () => {
-        //     if (!userId) return;
-
-        //     const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-        //     const taskSnapshot = await getDoc(taskDocRef);
-        //     if (!taskSnapshot.exists()) {
-        //         Alert.alert('Error', 'Task not found.');
-        //         navigation.goBack();
-        //         return;
-        //     }
-
-        //     const data = taskSnapshot.data();
-        //     // Convert to-do list dueDate to Date object
-        //     let mainDueDate = new Date(data.dueDate);
-        //     if (isNaN(mainDueDate.getTime())) {
-        //         mainDueDate = new Date();
-        //     }
-        //     // Convert each subtask's dueDate to a Date object
-        //     let fetchedSubtasks = data.subtasks || [];
-        //     fetchedSubtasks = fetchedSubtasks.map(subtask => {
-        //         let validDueDate = new Date(subtask.dueDate);
-        //         if (isNaN(validDueDate.getTime())) {
-        //             // If invalid, default to current date or dueDate of the task
-        //             validDueDate = new Date();
-        //         }
-        //         return {
-        //             ...subtask,
-        //             dueDate: validDueDate,
-        //         };    
-        //     });
-
-        //     setTaskTitle(data.title);
-        //     setNotes(data.notes || '');
-        //     setDueDate(mainDueDate);
-        //     setNotification(data.notification || 'None');
-        //     setPriority(data.priority || 'Low');
-        //     setSubtasks(fetchedSubtasks);
-        //     setTaskNotificationId(data.notificationId || null);
-
-        //     // Initialise attachments
-        //     const fetchedAttachments = data.attachments || [];
-        //     setOriginalAttachments(fetchedAttachments);
-        //     setAttachments(fetchedAttachments);
-
-        //     setOriginalTask({
-        //         title: data.title,
-        //         notes: data.notes || '',
-        //         dueDate: mainDueDate,
-        //         notification: data.notification || 'None',
-        //         priority: data.priority || 'Low',
-        //         subtasks: fetchedSubtasks,
-        //         notificationId: data.notificationId || null,
-        //     });
-
-        //     setLoading(false);
-        // };
-        // // fetchTask();
-        // if (userId) {
-        //     fetchTask();
-        // }
-
-    // }, [userId, taskId, navigation]);
-
     // Fetch task details once userId is available
     useEffect(() => {
         async function loadTask() {
@@ -150,8 +82,13 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 setTaskNotificationId(fetched.notificationId);
                 setAttachments(fetched.attachments);
 
+                // Fetch colour
+                if (fetched.colour) {
+                    setSelectedColour(fetched.colour);
+                }
+                // Keep original atatchments
                 setOriginalAttachments(fetched.attachments);
-
+                // Store the original task
                 setOriginalTask({
                     title: fetched.title,
                     notes: fetched.notes,
@@ -161,6 +98,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     subtasks: fetched.subtasks,
                     notificationId: fetched.notificationId,
                     attachments: fetched.attachments,
+                    colour: fetched.colour || COLOURS[0].value,
                 });
 
                 setLoading(false);
@@ -174,11 +112,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
     // Save the task by calling the saveTask helper function
     const handleSaveTask = async () => {
-        // If an attachment is uploading, block
-        // if (isUploadingAttachment) {
-        //     Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes.');
-        //     return;
-        // }
         if (isSaving || !userId) {
             return;
         }
@@ -191,105 +124,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         }
 
         try {
-        //     // if saved cancel old notification and schedule new one
-        //     let newNotificationId = taskNotificationId;
-        //     const mainReminderChanged  = (originalTask.notification !== notification) || (originalTask.dueDate.getTime() !== dueDate.getTime());
-        //     // If reminder changed, aattempt to reschedule
-        //     if (mainReminderChanged ) {
-        //         // Cancel old notification
-        //         if (taskNotificationId) {
-        //             await cancelTaskNotification(taskNotificationId);
-        //         }
-        //         // Schedule new
-        //         newNotificationId = await scheduleTaskNotification(taskTitle, notification, dueDate);
-        //     }
-
-        //     // Handle subtasks notifications changes
-        //     let updatedSubtasks = [...subtasks];
-            
-        //     if (originalTask) {
-        //         for (let i = 0; i < updatedSubtasks.length; i++) {
-        //             const subtask = updatedSubtasks[i];
-        //             const originalSubtask = originalTask.subtasks[i] || {};
-        //             const reminderChanged = originalSubtask.reminder !== subtask.reminder;
-        //             const dueDateChanged = (originalSubtask.dueDate && 
-        //                 (new Date(originalSubtask.dueDate).getTime() !== subtask.dueDate.getTime()));
-
-        //             if (reminderChanged || dueDateChanged) {
-        //                 // Cancel old subtask notification
-        //                 if (subtask.notificationId) {
-        //                     await cancelTaskNotification(subtask.notificationId);
-        //                 }
-        //                 // Schedule new subtask notification
-        //                 let newSubtaskNotificationId = null;
-        //                 if (subtask.reminder !== 'None') {
-        //                     newSubtaskNotificationId = await scheduleTaskNotification(subtask.title, subtask.reminder, subtask.dueDate);
-        //                 }
-        //                 updatedSubtasks[i] = { ...subtask, notificationId: newSubtaskNotificationId };
-        //             }
-        //         }
-        //     }
-
-        //     updatedSubtasks = updatedSubtasks.map(s => ({
-        //         ...s,
-        //         dueDate: s.dueDate.toISOString()  // Store as ISO string
-        //     }));
-
-        //     // // Determine attachments to remove and add
-        //     // const removedAttachments = originalAttachments.filter(
-        //     //     (orig) => !attachments.some((curr) => curr.localUri === orig.localUri && curr.supabaseKey === orig.supabaseKey)
-        //     // );
-        //     // const addedAttachments = attachments.filter(
-        //     //     (curr) => !originalAttachments.some((orig) => orig.uri === curr.uri)
-        //     // );
-
-        //     // // Delete removed attachments from local storage
-        //     // for (const attachment of removedAttachments) {
-        //     //     try {
-        //     //         await FileSystem.deleteAsync(attachment.uri, { idempotent: true });
-        //     //         console.log('Deleted attachment:', attachment.uri);
-        //     //     } catch (error) {
-        //     //         console.log('Error deleting attachment:', error);
-        //     //         // Continue even if deletion fails
-        //     //     }
-        //     // }
-
-        //     const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-        //     await updateDoc(taskDocRef, {
-        //         title: taskTitle,
-        //         notes: notes.trim() || null,
-        //         dueDate: dueDate.toISOString(),
-        //         notification,
-        //         priority,
-        //         subtasks: updatedSubtasks,
-        //         notificationId: newNotificationId || null,
-        //         attachments,
-        //     });
-
-        //     // Delete deleted attachments from Supabase
-        //     for (const attachment of deletedAttachments) {
-        //         if (attachment.supabaseKey) {
-        //             const success = await removeFileFromSupabase(attachment.supabaseKey);
-        //             if (!success) {
-        //                 Alert.alert('Error', `Failed to delete attachment "${attachment.name}" from storage.`);
-        //             }
-        //         }
-        //     }
-
-        //     // Clear tracking states
-        //     setDeletedAttachments([]);
-        //     setAddedAttachments([]);
-
-        //     // Update originalAttachments to the new attachments
-        //     setOriginalAttachments(attachments);
-
-        //     Alert.alert('Success', 'Task updated successfully');
-        //     navigation.goBack();
-        // } catch (error) {
-        //     Alert.alert('Error', error.message);
-        // } finally {
-        //     setIsSaving(false);
-        // }
             await saveTask({
                 userId,
                 taskId,
@@ -304,6 +138,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     subtasks,
                     attachments,
                     notificationId: taskNotificationId,
+                    colour: selectedColour,
                 },
                 deletedAttachments,
                 setOriginalAttachments,
@@ -321,69 +156,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
     // Cancel any changes by calling the cancelTaskChanges helper function
     const handleCancel = async () => {
-        // // Determine added and removed attachments
-        // const removedAttachments = originalAttachments.filter(
-        //     (orig) => !attachments.some((curr) => curr.uri === orig.uri)
-        // );
-        // const addedAttachments = attachments.filter(
-        //     (curr) => !originalAttachments.some((orig) => orig.uri === curr.uri)
-        // );
-        // remove newly added attachments
-        // const newlyAdded = attachments.filter(
-        //     (curr) => !originalAttachments.some(
-        //         (orig) =>
-        //             orig.localUri === curr.localUri &&
-        //             orig.supabaseKey === curr.supabaseKey
-        //     )
-        // );
-        // // Delete added attachments from local storage
-        // for (const na of newlyAdded) {
-        //     if (na.localUri) {
-        //         await FileSystem.deleteAsync(na.localUri, { idempotent: true });
-        //     }
-    //NEED TO REMOVE FROM SUPABASE TOO 
-
-        // If an attachment is uploading, block the user
-        // if (isUploadingAttachment) {
-        //     Alert.alert('Please Wait', 'A file is still uploading. Please wait until it finishes before canceling.');
-        //     return;
-        // }
-
         try {
-        //     // Identify 'addedAttachments' as those in 'addedAttachments' state
-        //     for (const attachment of addedAttachments) {
-        //         if (attachment.supabaseKey) {
-        //             await removeFileFromSupabase(attachment.supabaseKey);
-        //         }
-        //         // Delete local files
-        //         if (attachment.localUri) {
-        //             await FileSystem.deleteAsync(attachment.localUri, { idempotent: true });
-        //         }
-        //     }
-
-        //     // Revert attachments to originalAttachments
-        //     setAttachments(originalAttachments);
-
-        //     // Clear tracking states
-        //     setDeletedAttachments([]);
-        //     setAddedAttachments([]);
-
-        //     // Revert other states to originalTask
-        //     if (originalTask) {
-        //         setTaskTitle(originalTask.title);
-        //         setNotes(originalTask.notes);
-        //         setDueDate(originalTask.dueDate);
-        //         setNotification(originalTask.notification);
-        //         setPriority(originalTask.priority);
-        //         setSubtasks(originalTask.subtasks);
-        //     }
-
-        //     navigation.goBack();
-        //     // navigation.navigate('Home');
-        // } catch (error) {
-        //     console.log('Error during cancellation:', error);
-        //     Alert.alert('Error', 'Failed to cancel task editing.');
-        // }
             await cancelTaskChanges({
                 originalTask,
                 addedAttachments,
@@ -397,35 +170,13 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 setPriority,
                 setSubtasks,
             });
+            // Revert colour
+            setSelectedColour(originalTask?.colour || COLOURS[0].value);
             navigation.goBack();
         } catch (error) {
             Alert.alert('Error', 'Failed to cancel task editing.');
             console.log('Error during cancellation:', error);
         }
-
-
-
-            // try {
-            //     await FileSystem.deleteAsync(attachment.uri, { idempotent: true });
-            //     console.log('Deleted added attachment:', attachment.uri);
-            // } catch (error) {
-            //     console.log('Error deleting added attachment:', error);
-            //     // Continue even if deletion fails
-            // }
-        
-        // // Revert attachments to originalAttachments
-        // setAttachments(originalAttachments);
-
-        // // Revert to original task if the user doesn't want to save
-        // if (originalTask) {
-        //     setTaskTitle(originalTask.title);
-        //     setNotes(originalTask.notes);
-        //     setDueDate(originalTask.dueDate);
-        //     setNotification(originalTask.notification);
-        //     setPriority(originalTask.priority);
-        //     setSubtasks(originalTask.subtasks);
-        // }
-        // navigation.goBack();
     };
 
     // Add or edit a subtask by updating the local state
@@ -435,16 +186,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             return;
         }
 
-        // // Schedule Subtask Notification
-        // let subtaskDueDate = currentSubtask.dueDate;
-
-        // if (!(subtaskDueDate instanceof Date) || isNaN(subtaskDueDate.getTime())) {
-        //     subtaskDueDate = new Date();
-        // }
-
         const updatedSubtask = {
             ...currentSubtask,
-            // dueDate: subtaskDueDate,
             dueDate: currentSubtask.dueDate instanceof Date ? currentSubtask.dueDate : new Date(),
         };
 
@@ -475,36 +218,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         Alert.alert('Delete To-Do List', 'Are you sure you want to delete this to-do list?', [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Delete', style: 'destructive', onPress: async () => {
-                // if (!userId) {
-                //     return;
-                // }
-                // const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-
-                // // Cancel to-do list notification
-                // if (taskNotificationId) {
-                //     await cancelTaskNotification(taskNotificationId);
-                // }
-
-                // // Cancel all subtasks notifications
-                // for (const subtask of subtasks) {
-                //     if (subtask.notificationId) {
-                //         await cancelTaskNotification(subtask.notificationId);
-                //     }
-                // }
-                // // Delete all attachments from local storage
-                // for (const attachment of attachments) {
-                //     try {
-                //         await FileSystem.deleteAsync(attachment.uri, { idempotent: true });
-                //         console.log('Deleted attachment:', attachment.uri);
-                //     } catch (error) {
-                //         console.log('Error deleting attachment:', error);
-                //         // Continue even if deletion fails
-                //     }
-                // }
-
-                // await deleteDoc(taskDocRef);
-                // Alert.alert('Deleted', 'Task deleted successfully');
-                // navigation.goBack();
                 try {
                     console.log('Deleting to-do list. Subtasks:', subtasks);
                     console.log('Deleting to-do list. Attachments:', attachments);
@@ -513,6 +226,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                         notificationId: taskNotificationId,
                         subtasks,
                         attachments,
+                        colour: selectedColour,
                     }, navigation, true);
                     Alert.alert('Deleted', 'Task deleted successfully');
                 } catch (err) {
@@ -526,11 +240,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     // Edit a subtask
     const handleEditSubtask = (index) => {
         const subtaskToEdit = subtasks[index];
-        // Check date is valid
-        // let safeDueDate = subtaskToEdit.dueDate;
-        // if (!(safeDueDate instanceof Date) || isNaN(safeDueDate.getTime())) {
-        //     safeDueDate = new Date();
-        // }
         let safeDueDate = subtaskToEdit.dueDate instanceof Date ? subtaskToEdit.dueDate : new Date();
 
         setCurrentSubtask({
@@ -546,26 +255,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         Alert.alert('Delete Subtask', 'Are you sure you want to delete this subtask?', [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Delete', style: 'destructive', onPress: async () => {
-                // const updatedSubtasks = [...subtasks];
-                // const subtaskToDelete = updatedSubtasks[index];
-
-                // // Cancel the subtask's notification
-                // if (subtaskToDelete.notificationId) {
-                //     await cancelTaskNotification(subtaskToDelete.notificationId);
-                // }
-
-                // updatedSubtasks.splice(index, 1);
-                // setSubtasks(updatedSubtasks);
-
-                // // Update Firestore
-                // if (userId && taskId) {
-                //     const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-                //     const subtasksForDb = updatedSubtasks.map(s => ({
-                //         ...s,
-                //         dueDate: s.dueDate.toISOString()
-                //     }));
-                //     await updateDoc(taskDocRef, { subtasks: subtasksForDb });
-                // }
                 try {
                     await deleteSubtask({
                         userId,
@@ -664,121 +353,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         }
     };
 
-
-    // Add a to-do list to calendar
-    // const addTaskToCalendar = async () => {
-    //     if (!userId) {
-    //         Alert.alert('Error', 'No user logged in.');
-    //         return;
-    //     }
-    //     // const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-    //     // const snapshot = await getDoc(taskDocRef);
-    //     // if (!snapshot.exists()) {
-    //     //     Alert.alert('Error', 'Task not found.');
-    //     //     return;
-    //     // }
-    //     // const data = snapshot.data();
-    //     // const doAddEvent = async () => {
-    //     //     const eventId = await addEventToCalendar(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`, true);
-    //     //     if (eventId) {
-    //     //         await updateDoc(taskDocRef, { eventId });
-    //     //         setTaskNotificationId(eventId);
-    //     //     }
-    //     // };
-
-    //     // if (data.eventId) {
-    //     //     await promptAddEventAnyway(taskTitle, dueDate, '', data.eventId, doAddEvent);
-    //     // } else {
-    //     //     await promptAddEvent(taskTitle, dueDate, '', doAddEvent);
-    //     // }  
-    //     try {
-    //         await addTaskToCalendar({
-    //             userId,
-    //             taskId,
-    //             db,
-    //             taskTitle,
-    //             dueDate,
-    //             setTaskNotificationId,
-    //             promptAddEventAnyway: (title, date, notes, existingId, onConfirm) => {
-    //                 Alert.alert(
-    //                     'Already in Calendar',
-    //                     'This event already exists. Do you want to add another one anyway?',
-    //                     [
-    //                         { text: 'Cancel', style: 'cancel' },
-    //                         { text: 'Add Anyway', onPress: onConfirm },
-    //                     ]
-    //                 );
-    //             },
-    //         });
-    //         Alert.alert('Success', 'Task added to calendar');
-    //     } catch (err) {
-    //         console.error('Error adding task to calendar:', err);
-    //         Alert.alert('Error', 'Failed to add task to calendar.');
-    //     }      
-    // };
-    // Add a subtask to calendar
-    // const addSubtaskToCalendar  = async (subtask, index) => {
-    //     // await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`);
-    //     if (!userId) {
-    //         Alert.alert('Error', 'No user logged in.');
-    //         return;
-    //     }
-    //     // const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-    //     // const snapshot = await getDoc(taskDocRef);
-    //     // if (!snapshot.exists()) {
-    //     //     Alert.alert('Error', 'Task not found.');
-    //     //     return;
-    //     // }
-    //     // const data = snapshot.data();
-    //     // let updatedSubtasks = data.subtasks || [];
-        
-    //     // const doAddSubtaskEvent = async () => {
-    //     //     const eventId = await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`, true);
-    //     //     if (eventId) {
-    //     //         updatedSubtasks[index] = {
-    //     //             ...updatedSubtasks[index],
-    //     //             eventId
-    //     //         };
-    //     //         await updateDoc(taskDocRef, { subtasks: updatedSubtasks });
-    //     //         setSubtasks(prev => {
-    //     //             const copy = [...prev];
-    //     //             copy[index] = { ...copy[index], eventId };
-    //     //             return copy;
-    //     //         });
-    //     //     }
-    //     // };
-
-    //     // if (updatedSubtasks[index].eventId) {
-    //     //     await promptAddEventAnyway(subtask.title, subtask.dueDate, '', updatedSubtasks[index].eventId, doAddSubtaskEvent);
-    //     // } else {
-    //     //     await promptAddEvent(subtask.title, subtask.dueDate, '', doAddSubtaskEvent);
-    //     // }
-    //     try {
-    //         await addSubtaskToCalendar({
-    //             userId,
-    //             taskId,
-    //             db,
-    //             subtask,
-    //             index,
-    //             setSubtasks,
-    //             promptAddEventAnyway: (title, date, notes, existingId, onConfirm) => {
-    //                 Alert.alert(
-    //                     'Already in Calendar',
-    //                     'This subtask already exists. Do you want to add another one anyway?',
-    //                     [
-    //                         { text: 'Cancel', style: 'cancel' },
-    //                         { text: 'Add Anyway', onPress: onConfirm },
-    //                     ]
-    //                 );
-    //             },
-    //         });
-    //         Alert.alert('Success', 'Subtask added to calendar');
-    //     } catch (err) {
-    //         console.error('Error adding subtask to calendar:', err);
-    //         Alert.alert('Error', 'Failed to add subtask to calendar.');
-    //     }
-    // };
-
     if (loading) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
@@ -787,11 +361,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         );
     }
 
-    // return loading ? (
-    //     <SafeAreaView style={styles.loadingContainer}>
-    //         <ActivityIndicator size="large" color="#007bff" />
-    //     </SafeAreaView>
-    // ) : (
     return (
         <SafeAreaView style={styles.container}>
             {/* Header */}
@@ -823,6 +392,16 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     placeholder="Notes"
                     multiline
                 />
+                {/* Colour Picker */}
+                <View style={{ marginBottom: 20 }}>
+                    <Text style={{ marginBottom: 10, fontWeight: '600' }}>
+                        Category Colour:
+                    </Text>
+                    <ColourPicker
+                        selectedColour={selectedColour}
+                        onSelectColour={setSelectedColour}
+                    />
+                </View>
                 {/* Due Date selector */}
                 <DateTimeSelector date={dueDate} onDateChange={setDueDate} />
                 {/* Notification picker */}
