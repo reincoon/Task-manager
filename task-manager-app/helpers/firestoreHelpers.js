@@ -29,6 +29,22 @@ export async function updateTasksProject(userId, tasks, projectId = null) {
     await batch.commit();
 }
 
+// Update todo lists' priority
+export async function updateTasksPriority(userId, tasks, newPriority) {
+    if (!userId || !tasks || !newPriority) {
+        throw new Error("User ID, Tasks, and newPriority are required.");
+    }
+
+    const batch = writeBatch(db);
+
+    tasks.forEach(task => {
+        const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
+        batch.update(taskRef, { priority: newPriority });
+    });
+
+    await batch.commit();
+}
+
 // Create a new project and return its ID
 export async function createProject(userId, projectName) {
     if (!userId || !projectName) {

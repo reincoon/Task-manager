@@ -25,6 +25,7 @@ const MoveToModal = ({ visible, onClose, onMove, columns, currentColumnKey }) =>
                 <View style={styles.modalContainer}>
                     <Text style={styles.modalTitle}>Move Task To</Text>
                     {columns.map((column, index) => {
+                        // Prevent moving to the same column
                         if (column.key !== currentColumnKey) {
                             return (
                                 <TouchableOpacity

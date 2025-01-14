@@ -5,12 +5,12 @@ import { PRIORITIES } from '../helpers/priority';
 import MoveToModal from '../components/MoveToModal';
 import ProjectModal from '../components/ProjectModal';
 import { groupTasksByProject } from '../helpers/projects';
-import { updateTasksProject, createProject  } from '../helpers/firestoreHelpers';
+import { updateTasksProject, createProject, updateTasksPriority } from '../helpers/firestoreHelpers';
 import AddProjectButton from './AddProjectButton';
 import { deleteTask } from '../helpers/taskActions';
 import TodoCard from '../components/TodoCard';
 
-const { width } = Dimensions.get('window');
+// const { width } = Dimensions.get('window');
 
 // Helper function to check if a task is due within the next 48 hours
 const isDueSoon = (dueDate) => {
@@ -132,48 +132,80 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
 
         try {
             // Fetch all tasks in the column after reordering
-            const tasksInColumn = newData.filter(task => task.projectId === columnKey || (columnKey === 'No Project' && !task.projectId));
+            // const tasksInColumn = newData.filter(task => task.projectId === columnKey || (columnKey === 'No Project' && !task.projectId));
+            let tasksInColumn;
+            if (grouping === 'project') {
+                tasksInColumn = newData.filter(task => task.projectId === columnKey || (columnKey === 'No Project' && !task.projectId));
+            } else if (grouping === 'priority') {
+                tasksInColumn = newData.filter(task => task.priority === columnKey);
+            }
 
             // Update Firestore with new order
-            await updateTasksProject(userId, tasksInColumn, columnKey === 'No Project' ? null : columnKey);
+            // await updateTasksProject(userId, tasksInColumn, columnKey === 'No Project' ? null : columnKey);
+            // Update Firestore with new order
+            if (grouping === 'project') {
+                await updateTasksProject(userId, tasksInColumn, columnKey === 'No Project' ? null : columnKey);
+            } else if (grouping === 'priority') {
+                await updateTasksPriority(userId, tasksInColumn, columnKey);
+            }
 
             Alert.alert('Success', 'Tasks reordered successfully.');
         } catch (error) {
-            console.error('Error reordering in Kanban:', error);
+            console.error('Error reordering on Kanban Board:', error);
             Alert.alert('Error', 'Failed to reorder tasks.');
     // Or revert the UI change by re-initializing columns
         }
     }, [userId]);
 
     
-    async function reorderTasks(columnKey, tasksInColumn) {
-        if (!userId) return;
-        try {
-            await reorderTasksWithinProject(userId, tasksInColumn, columnKey === 'No Project' ? null : columnKey);
-        } catch (err) {
-            console.error('Error reordering in Kanban:', err);
-        }
-    }
+    // async function reorderTasks(columnKey, tasksInColumn) {
+    //     if (!userId) return;
+    //     try {
+    //         await reorderTasksWithinProject(userId, tasksInColumn, columnKey === 'No Project' ? null : columnKey);
+    //     } catch (err) {
+    //         console.error('Error reordering in Kanban:', err);
+    //     }
+    // }
 
-    const handleMovePress = () => {
-        if (draggingItem && sourceColumnKey) {
-            setIsMoveModalVisible(true);
-        }
-    };
+    // const handleMovePress = () => {
+    //     if (draggingItem && sourceColumnKey) {
+    //         setIsMoveModalVisible(true);
+    //     }
+    // };
 
     // Handle moving a task via modal
-    const handleMove = useCallback(async (targetProjectId) => {
+    const handleMove = useCallback(async (targetKey) => {
         setIsMoveModalVisible(false);
         if (!draggingItem || !sourceColumnKey) return;
-        const targetProject = targetProjectId ? projects.find(p => p.id === targetProjectId) : { name: 'Unassigned' };
+        // const targetProject = targetProjectId ? projects.find(p => p.id === targetProjectId) : { name: 'Unassigned' };
 
         try {
-            if (targetProjectId) {
-                await updateTasksProject(userId, [draggingItem], targetProjectId);
-                Alert.alert('Success', `Task moved to ${targetProject.name}.`);
-            } else {
-                await updateTasksProject(userId, [draggingItem], null);
-                Alert.alert('Success', `Task unassigned from project.`);
+            if (grouping === 'project') {
+                // const targetProject = targetKey ? projects.find(p => p.id === targetKey) : { name: 'Unassigned' };
+                // if (targetKey) {
+                //     await updateTasksProject(userId, [draggingItem], targetKey);
+                //     Alert.alert('Success', `Task moved to ${targetProject.name}.`);
+                // } else {
+                //     await updateTasksProject(userId, [draggingItem], null);
+                //     Alert.alert('Success', 'Task unassigned from project.');
+                // }
+                if (targetKey === 'No Project') {
+                    // Move to 'Unassigned' column
+                    await updateTasksProject(userId, [draggingItem], null);
+                    Alert.alert('Success', 'Task unassigned from a project.');
+                } else {
+                    const targetProject = projects.find(p => p.id === targetKey);
+                    if (targetProject) {
+                        await updateTasksProject(userId, [draggingItem], targetKey);
+                        Alert.alert('Success', `Task moved to ${targetProject.name}.`);
+                    } else {
+                        Alert.alert('Error', 'Target project not found.');
+                    }
+                }
+            } else if (grouping === 'priority') {
+                const targetPriority = targetKey;
+                await updateTasksPriority(userId, [draggingItem], targetPriority);
+                Alert.alert('Success', `Task priority set to ${targetPriority}.`);
             }
         } catch (error) {
             console.error('Error updating task:', error);
@@ -212,14 +244,14 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
             // Create a new project in Firebase
             const projectId = await createProject(userId, projectName);
 
-            if (projectModalTasks && projectModalTasks.length === 2) {
-                // Assign selected tasks to the new project
-                await updateTasksProject(userId, projectModalTasks, projectId);
-                Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
-            } else {
-                // Create an empty project
-                Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
-            }
+            // if (projectModalTasks && projectModalTasks.length === 2) {
+            //     // Assign selected tasks to the new project
+            //     await updateTasksProject(userId, projectModalTasks, projectId);
+            //     Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
+            // } else {
+            // Create an empty project
+            Alert.alert('Project Created', `Project "${projectName}" created. Assign to-do lists to it manually.`);
+            // }
 
         } catch (err) {
             console.error(err);
@@ -254,7 +286,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
         const projectName = getProjectName(item.projectId);
 
         return (
-            
             <TodoCard
                 task={item}
                 projectName={projectName}
@@ -347,8 +378,11 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping }) => {
                     onMove={handleMove}
                     columns={
                         grouping === 'project'
-                            ? projects.map(p => ({key: p.id, title: p.name}))
-                            : PRIORITIES.map(pr => ({key: pr, title: pr}))
+                            ? [
+                                { key: 'No Project', title: 'Unassigned' },
+                                ...projects.map(p => ({ key: p.id, title: p.name }))
+                            ]
+                            : PRIORITIES.map(pr => ({ key: pr, title: pr }))
                     }
                     currentColumnKey={grouping === 'project' ? draggingItem?.projectId || 'No Project' : draggingItem?.priority}
                 />
