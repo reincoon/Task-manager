@@ -191,7 +191,7 @@ const HomeScreen = ({ navigation }) => {
                 />;
     };
 
-    const handleCreateProject = async (projectName, selectedTasks) => {
+    const handleCreateProject = async (projectName) => {
         if (!userId) {
             setShowProjectModal(false);
             Alert.alert('Error', 'User not signed in.');
@@ -202,12 +202,19 @@ const HomeScreen = ({ navigation }) => {
             // Create a new project in Firebase
             const projectId = await createProject(userId, projectName);
 
-            if (selectedTasks && selectedTasks.length === 2) {
-                // Assign selected tasks to the new project
-                await updateTasksProject(userId, selectedTasks, projectId);
+            // if (selectedTasks && selectedTasks.length === 2) {
+            //     // Assign selected tasks to the new project
+            //     await updateTasksProject(userId, selectedTasks, projectId);
+            //     Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
+            // } else {
+            //     // Create an empty project
+            //     Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
+            // }
+            // Assign selected tasks to the new project
+            if (draggingTask && hoveredTask) {
+                await updateTasksProject(userId, [draggingTask, hoveredTask], projectId);
                 Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
             } else {
-                // Create an empty project
                 Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
             }
 
@@ -220,8 +227,8 @@ const HomeScreen = ({ navigation }) => {
             Alert.alert('Error', err.message);
             // Revert data if needed
             setShowProjectModal(false);
-            setData(originalData);
-            setOriginalData([]);
+            // setData(originalData);
+            // setOriginalData([]);
             setDraggingTask(null);
             setHoveredTask(null);
         }
@@ -296,12 +303,12 @@ const HomeScreen = ({ navigation }) => {
                 sortOption={sortOption}
                 setSortOption={setSortOption}
                 navigation={navigation}
-                updateTasksProject={async (tasksArray, finalProjectId) => {
-                    await updateTasksProject(userId, tasksArray, finalProjectId);
-                }}
-                reorderTasksWithinProject={async (projectId, tasksArr) => {
-                    await reorderTasksWithinProject(userId, tasksArr, projectId);
-                }}
+                // updateTasksProject={async (tasksArray, finalProjectId) => {
+                //     await updateTasksProject(userId, tasksArray, finalProjectId);
+                // }}
+                // reorderTasksWithinProject={async (projectId, tasksArr) => {
+                //     await reorderTasksWithinProject(userId, tasksArr, projectId);
+                // }}
                 deleteTask={handleDeleteTask}
                 setDraggingTask={setDraggingTask}
                 setHoveredTask={setHoveredTask}
@@ -543,8 +550,8 @@ const HomeScreen = ({ navigation }) => {
                 onCancel={() => {
                     setShowProjectModal(false); 
                     // setData(originalDataRef.current);
-                    setData(originalData);
-                    setOriginalData([]);
+                    // setData(originalData);
+                    // setOriginalData([]);
                     setDraggingTask(null); 
                     setHoveredTask(null);
                 }}

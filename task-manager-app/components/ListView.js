@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import TodoCard from "./TodoCard";
@@ -21,6 +21,8 @@ const ListView = ({
     grouping,
 }) => {
     const [data, setData] = useState([]);
+    const [originalData, setOriginalData] = useState([]);
+    // const [sourceColumnKey, setSourceColumnKey] = useState(null);
 
     // useEffect(() => {
     //     const { noProject, byProject } = groupTasksByProject(tasks, projects);
@@ -45,7 +47,7 @@ const ListView = ({
         return found ? found.name : 'Unassigned';
     };
 
-    const renderItem = ({ item, drag, isActive }) => {
+    const renderItem = useCallback(({ item, drag, isActive }) => {
         if (item.type === 'projectHeader') {
             return (
                 <View style={styles.projectHeader}>
@@ -78,8 +80,13 @@ const ListView = ({
                     task={item}
                     projectName={projectName}
                     onLongPress={() => {
-                        drag();
                         setDraggingTask(item);
+                        // setSourceColumnKey(
+                        //     grouping === 'project'
+                        //         ? item.projectId || 'No Project'
+                        //         : item.priority
+                        // );
+                        drag();
                     }}
                     onPress={() =>
                         navigation.navigate('TaskDetailsScreen', { taskId: item.id })
@@ -109,7 +116,7 @@ const ListView = ({
         }
 
         return null;
-    };
+    }, [grouping, projects, navigation, setDraggingTask, deleteTask]);
 
     const keyExtractor = (item, index) => {
         if (item.type === 'projectHeader') {
@@ -124,255 +131,134 @@ const ListView = ({
         return item.id;
     };
 
+    // Overlap check
+    const checkOverlapForUnassigned = (newData, draggedIndex) => {
+        if (draggedIndex < 0) return null;
+    
+        // Check item above
+        if (draggedIndex > 0) {
+            const above = newData[draggedIndex - 1];
+            if (above?.type === 'task' && !above.projectId) {
+                return above;
+            }
+        }
+        // Check item below
+        if (draggedIndex < newData.length - 1) {
+            const below = newData[draggedIndex + 1];
+            if (below?.type === 'task' && !below.projectId) {
+                return below;
+            }
+        }
+        return null;
+    };
+
     const onDragEnd = async ({ data: newData, from, to }) => {
         if (from === to) return;
 
         const draggedItem = newData[to];
-        const oldData = data;
+        
         // setOriginalData(oldData);
+        if (draggedItem.type !== 'task') {
+            // Reorder tasks
+            setData(newData);
+            return;
+        }
+        const oldData = data;
 
-        try {
-            if (draggedItem.type === 'task') {
-                const originalProjectId = draggedItem.projectId || null;
-                const originalPriority = draggedItem.priority || 'Low';
+        // // Determine the adjacent task to check for overlap
+        // if (to > 0 && newData[to - 1].type === 'task' && newData[to - 1].projectId === null) {
+        //     targetItem = newData[to - 1];
+        // }
+        // else if (to < newData.length - 1 && newData[to + 1].type === 'task' && newData[to + 1].projectId === null) {
+        //     targetItem = newData[to + 1];
+        // }
 
-                // Determine the project based on the new position
-                let finalProjectId = null;
-                let finalPriority = null;
-                for (let i = to; i >= 0; i--) {
-                    if (newData[i].type === 'projectHeader') {
-                        // finalProjectId = newData[i].projectId ||newData[i].pName;
-                        finalProjectId = newData[i].pName; 
-                        break;
-                    }
-                    if (newData[i].type === 'priorityHeader') {
-                        finalPriority = newData[i].priority;
-                        break;
-                    }
-                    if (newData[i].type === 'noProjectHeader') {
-                        finalProjectId = null;
-                        break;
-                    }
-                }
-
-                // if (finalProjectId !== originalProjectId) {
-                //     // Moving to a different project or unassigned
-                //     await updateTasksProject([draggedItem], finalProjectId);
-                //     Alert.alert(
-                //         'Success',
-                //         `Task moved to ${
-                //             finalProjectId ? 'the selected project' : 'Unassigned Projects list'
-                //         }.`
-                //     );
-                // } else {
-                //     // Reordering within the same project or unassigned
-                //     const tasksInSameProject = newData.filter(
-                //         (item) => item.type === 'task' && item.projectId === originalProjectId
-                //     );
-                //     // await reorderTasksWithinProject(tasksInSameProject, originalProjectId);
-                //     await reorderTasksWithinProject(originalProjectId, tasksInSameProject);
-                //     Alert.alert('Success', 'Tasks reordered successfully.');
-                // }
-
-                console.log('Grouping:', grouping);
-                console.log('Final Project ID:', finalProjectId);
-                console.log('Final Priority:', finalPriority);
-                console.log('Original Project ID:', originalProjectId);
-
-
-                // // Check if the dragged task is adjacent to another unassigned task
-                // const draggedIndex = newData.findIndex(item => item.id === draggedItem.id);
-                // let adjacentTask = null;
-
-                // // Check above
-                // for (let i = draggedIndex -1; i >=0; i--) {
-                //     if (newData[i].type === 'task') {
-                //         adjacentTask = newData[i];
-                //         break;
-                //     }
-                // }
-
-                // // Check below if no adjacentTask above
-                // if (!adjacentTask) {
-                //     for (let i = draggedIndex +1; i < newData.length; i++) {
-                //         if (newData[i].type === 'task') {
-                //             adjacentTask = newData[i];
-                //             break;
-                //         }
-                //     }
-                // }
-
-                // // // Determine if the move is a reorder within the same project
-                // // const isReorder = finalProjectId === originalProjectId;
-                // // Determine if the move is a reorder within the same project or priority
-                // let isReorder = false;
-                // if (grouping === 'project') {
-                //     isReorder = finalProjectId === originalProjectId;
-                // } else if (grouping === 'priority') {
-                //     isReorder = finalPriority === originalPriority;
-                // }
-
-                // // If both todo lists are unassigned and overlap, trigger a modal
-                // if (grouping === 'project') {
-                //     const bothUnassigned = !originalProjectId && !finalProjectId;
-                //     if (bothUnassigned && adjacentTask && !adjacentTask.projectId) {
-                //         // Do not reorder and trigger project creation
-                //         isReorder = false;
-                //         console.log('Detected drag over another unassigned task. Triggering project creation...');
-                        
-                //         // Set the todo lists that will be assigned to a new project
-                //         setDraggingTask(draggedItem);
-                //         setHoveredTask(adjacentTask);
-                //         return;
-                //     }
-                // }
-
-                // // Only trigger ProjectModal if both tasks are unassigned and it's not a reorder
-                // if (!isReorder && finalProjectId === null && !originalProjectId) {
-                //     if (adjacentTask && !adjacentTask.projectId && !draggedItem.projectId) {
-                //         // Both tasks are unassigned, trigger project creation
-                //         setDraggingTask(draggedItem);
-                //         setHoveredTask(adjacentTask);
-                //         return;
-                //     }
-                // }
-
-                // Check adjacency for unassigned overlap
-                if (grouping === 'project') {
-                    const bothUnassigned = !originalProjectId && !finalProjectId;
-                    // Check if a todo list was hovered over another unassigned
-                    const draggedIndex = newData.findIndex((it) => it.id === draggedItem.id);
-                    let adjacentTask = null;
-
-                    // Check above
-                    for (let i = draggedIndex - 1; i >= 0; i--) {
-                        if (newData[i].type === 'task') {
-                            adjacentTask = newData[i];
-                            break;
-                        }
-                    }
-                    // Check below if no adjacency above
-                    if (!adjacentTask) {
-                        for (let i = draggedIndex + 1; i < newData.length; i++) {
-                            if (newData[i].type === 'task') {
-                                adjacentTask = newData[i];
-                                break;
-                            }
-                        }
-                    }
-
-                    if (bothUnassigned && adjacentTask && !adjacentTask.projectId) {
-                        // If overlapped two unassigned tasks, create project modal
-                        console.log('Detected unassigned overlap, trigger project creation');
-                        setDraggingTask(draggedItem);
-                        setHoveredTask(adjacentTask);
-                        return;
-                    }
-                }
-
-                // Perform normal drag-and-drop behaviour
-                // if (finalProjectId !== originalProjectId) {
-                //     // Moving to a different project or unassigned
-                //     await updateTasksProject(userId, [draggedItem], finalProjectId);
-                //     Alert.alert(
-                //         'Success',
-                //         `Task moved to ${
-                //             finalProjectId ? 'the selected project' : 'Unassigned Projects list'
-                //         }.`
-                //     );
-                // } else {
-                //     // Reordering within the same project or unassigned
-                //     const tasksInSameProject = newData.filter(
-                //         (item) => item.type === 'task' && item.projectId === originalProjectId
-                //     );
-                //     await reorderTasksWithinProject(userId, tasksInSameProject, originalProjectId);
-                //     Alert.alert('Success', 'Tasks reordered successfully.');
-                // }
-
-                // Perform normal drag-and-drop behaviour
-                // Now do normal handling
-                if (grouping === 'project') {
-                    // Move or reorder by project
-                    if (finalProjectId !== originalProjectId) {
-                        // Different project
-                        await updateTasksProject(userId, [draggedItem], finalProjectId);
-                        Alert.alert(
-                            'Success',
-                            finalProjectId
-                                ? 'Task moved to that project.'
-                                : 'Task is now unassigned.'
-                        );
-                    } else {
-                        // Reorder within same project/unassigned
-                        const tasksInSameProject = newData.filter(
-                            (it) => it.type === 'task' && it.projectId === originalProjectId
-                        );
-                        await reorderTasks(userId, tasksInSameProject, originalProjectId);
-                        Alert.alert('Success', 'Tasks reordered successfully.');
-                    }
-                } else if (grouping === 'priority') {
-                    // Move or reorder by priority
-                    if (finalPriority && finalPriority !== originalPriority) {
-                        // Updating to a new priority
-                        await updateTasksPriority(userId, [draggedItem], finalPriority);
-                        Alert.alert('Success', `Task priority set to ${finalPriority}.`);
-                    } else {
-                        // reorder within same priority
-                        const tasksInSamePriority = newData.filter(
-                            (it) => it.type === 'task' && it.priority === originalPriority
-                        );
-                        // Reorder in Firestore
-                        await reorderTasks(userId, tasksInSamePriority, null);
-                        Alert.alert('Success', 'Tasks reordered successfully (same priority).');
-                    }
-                }
-
-                // After success, revert to custom order
-                setSortOption(null);
+        if (grouping === 'project' && !draggedItem.projectId) {
+            
+            const overlapTask = checkOverlapForUnassigned(newData, to);
+            if (overlapTask && !overlapTask.projectId) {
+                // Both tasks are unassigned, open project modal
+                setDraggingTask(draggedItem);
+                setHoveredTask(overlapTask);
+                // Revert list to avoid partial reorder
+                setData(oldData);
+                // Alert.alert(
+                //     'Create New Project',
+                //     'Two unassigned tasks detected. Creating a new project with these tasks.',
+                //     [{ text: 'OK' }]
+                // );
+                return;
             }
-            //     if (grouping === 'project' && finalProjectId !== originalProjectId) {
-            //         // Moving to a different project or unassigned
-            //         await updateTasksProject(userId, [draggedItem], finalProjectId);
-            //         Alert.alert(
-            //             'Success',
-            //             `Task moved to ${
-            //                 finalProjectId ? 'the selected project' : 'Unassigned Projects list'
-            //             }.`
-            //         );
-            //     } else if (grouping === 'priority' && finalPriority !== originalPriority) {
-            //         // Move to a different priority
-            //         // await updateTasksWithinPriority(userId, [draggedItem], finalPriority);
-            //         await reorderTasksWithinProject(userId, [draggedItem], originalPriority);
-            //         Alert.alert('Success', `Task priority set to ${finalPriority}.`);
-            //     } else {
-            //         // Reordering within the same project or priority or unassigned
-            //         if (grouping === 'project') {
-            //             const tasksInSameProject = newData.filter(
-            //                 (item) => item.type === 'task' && item.projectId === originalProjectId
-            //             );
-            //             // await reorderTasksWithinProject(tasksInSameProject, originalProjectId);
-            //             await reorderTasksWithinProject(userId, tasksInSameProject, originalProjectId);
-            //             Alert.alert('Success', 'Tasks reordered successfully.');
-            //         } else if (grouping === 'priority') {
-            //             const tasksInSamePriority = newData.filter(
-            //                 (item) => item.type === 'task' && item.priority === originalPriority
-            //             );
-            //             // await reorderTasksWithinProject(userId, tasksInSamePriority, null);
-            //             await reorderTasksWithinProject(userId, tasksInSamePriority, null);
-            //             Alert.alert('Success', 'Tasks reordered successfully.');
-            //         }
-            //     }
+        }
 
+        // Figure out the new group after reordering
+        let finalProjectId = null;
+        let finalPriority = null;
 
-            //     // After manual reordering, reset sortOption to respect custom order
-            //     setSortOption(null);
-                
-            // }
+        // Scan upward from the `to` index to find the nearest header
+        for (let i = to; i >= 0; i--) {
+        const checkItem = newData[i];
+        if (checkItem.type === 'projectHeader') {
+            finalProjectId = checkItem.pName; // stored in .pName by buildListData
+            break;
+        } else if (checkItem.type === 'priorityHeader') {
+            finalPriority = checkItem.priority;
+            break;
+        } else if (checkItem.type === 'noProjectHeader') {
+            finalProjectId = null;
+            break;
+        }
+        }
 
+        // Distinguish whether it's a reorder or a group change
+        const originalProjectId = draggedItem.projectId || null;
+        const originalPriority = draggedItem.priority || 'Low';
 
-            //     // After manual reordering, reset sortOption to respect custom order
-            //     setSortOption(null);
-            // }
+            // Proceed with normal reordering or moving
+        try {
+            if (grouping === 'project') {
+                // If finalProjectId differs from the old project
+                if (finalProjectId !== originalProjectId) {
+                    // Update local item so it visually moves to the new group
+                    draggedItem.projectId = finalProjectId || null;
+        
+                    // Move to new project or unassigned
+                    await updateTasksProject(userId, [draggedItem], finalProjectId);
+                    Alert.alert(
+                        'Success',
+                        finalProjectId ? 'Task moved to the selected project.' : 'Task unassigned.'
+                    );
+                } else {
+                    // Reorder within the same project/unassigned
+                    const tasksInSameProject = newData.filter(
+                        (it) => it.type === 'task' && (it.projectId || null) === originalProjectId
+                    );
+                    // This sets new `order` fields
+                    await reorderTasks(userId, tasksInSameProject, originalProjectId, undefined);
+                    Alert.alert('Success', 'Tasks reordered successfully.');
+                }
+            } else {
+                // Grouping by priority
+
+                // const originalPriority = draggedItem.priority || 'Low';
+                // const finalPriority = draggedItem.priority || 'Low'; 
+
+                if (finalPriority && finalPriority !== originalPriority) {
+                    // Change the priority
+                    draggedItem.priority = finalPriority;
+          
+                    await updateTasksPriority(userId, [draggedItem], finalPriority);
+                    Alert.alert('Success', `Task priority set to "${finalPriority}".`);
+                } else {
+                    // Reordering within the same priority
+                    const tasksInSamePriority = newData.filter(
+                        (it) => it.type === 'task' && (it.priority || 'Low') === originalPriority
+                    );
+                    await reorderTasks(userId, tasksInSamePriority, null, originalPriority);
+                    Alert.alert('Success', 'Tasks reordered within same priority.');
+                }
+            }
+        
         } catch (error) {
             console.error('Error in onDragEnd:', error);
             Alert.alert('Error', 'Failed to update tasks after drag-and-drop.');
@@ -381,6 +267,7 @@ const ListView = ({
         }
         // If reorderinhg within the same section with no project change, store new order
         setData(newData);
+        setSortOption(null);
     };
 
     if (data.length === 0) {
