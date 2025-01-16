@@ -119,15 +119,24 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     };
 
     const handleDragEnd = useCallback(async (columnKey, newData) => {
-        // setColumns(prevColumns => {
-        //     return prevColumns.map(column => {
-        //         if (column.key === columnKey) {
-        //             // reorderTasks(columnKey, newData);
-        //             return { ...column, data: newData };
-        //         }
-        //         return column;
-        //     });
-        // });
+        setColumns(prevColumns => {
+            return prevColumns.map(column => {
+                if (column.key === columnKey) {
+                    // reorderTasks(columnKey, newData);
+                    return { ...column, data: newData };
+                }
+                return column;
+            });
+        });
+
+        let tasksInColumn = [];
+        if (grouping === 'project') {
+            tasksInColumn = newData.filter(
+                (t) => t.projectId === columnKey || (columnKey === 'No Project' && !t.projectId)
+            );
+        } else {
+            tasksInColumn = newData.filter((t) => t.priority === columnKey);
+        }
 
         try {
     //         // Fetch all tasks in the column after reordering
@@ -156,15 +165,15 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     //     }
     // }, [userId]);
 
-        // Update the column's data locally
-        setColumns(prevColumns => {
-            return prevColumns.map(column => {
-                if (column.key === columnKey) {
-                    return { ...column, data: newData };
-                }
-                return column;
-            });
-        });
+        // // Update the column's data locally
+        // setColumns(prevColumns => {
+        //     return prevColumns.map(column => {
+        //         if (column.key === columnKey) {
+        //             return { ...column, data: newData };
+        //         }
+        //         return column;
+        //     });
+        // });
 
         // Identify tasksInColumn after user reorder
         // const tasksInColumn = [...newData];
@@ -212,12 +221,14 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
             //     await reorderTasks(userId, newData, columnKey);
             //     Alert.alert('Success', `Tasks reordered in project ${getProjectName(columnKey)}.`);
             // }
-            await reorderTasks(userId, newData, columnKey === 'No Project' ? null : columnKey, undefined);
+            // await reorderTasks(userId, newData, columnKey === 'No Project' ? null : columnKey, undefined);
+            await updateTasksProject(userId, tasksInColumn, columnKey === 'No Project' ? null : columnKey);
             Alert.alert('Success', `Tasks reordered in project ${getProjectName(columnKey)}.`);
         } else if (grouping === 'priority') {
             // Reorder within the same priority
             // await reorderTasks(userId, newData, null, columnKey);
-            await reorderTasks(userId, newData, undefined, columnKey);
+            // await reorderTasks(userId, newData, undefined, columnKey);
+            await updateTasksPriority(userId, tasksInColumn, columnKey);
             Alert.alert('Success', `Tasks reordered in ${columnKey} priority.`);
         }
 
@@ -457,7 +468,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     }, [grouping]);
 
     const renderTask = useCallback(({ item, drag, isActive }) => {
-        if (!item.id) return null;
+        // if (!item.id) return null;
 
         const projectName = getProjectName(item.projectId);
 

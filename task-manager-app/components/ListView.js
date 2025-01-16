@@ -4,7 +4,7 @@ import DraggableFlatList from 'react-native-draggable-flatlist';
 import TodoCard from "./TodoCard";
 import { groupTasksByProject, buildListData, groupTasksByPriority, buildListDataByPriority } from '../helpers/projects';
 import { PRIORITIES } from "../helpers/priority";
-import { updateTasksPriority, updateTasksProject, reorderTasksWithinProject } from "../helpers/firestoreHelpers";
+import { updateTasksPriority, updateTasksProject, reorderTasksWithinProject, reorderTasks } from "../helpers/firestoreHelpers";
 
 const ListView = ({
     userId,
@@ -307,7 +307,7 @@ const ListView = ({
                         const tasksInSameProject = newData.filter(
                             (it) => it.type === 'task' && it.projectId === originalProjectId
                         );
-                        await reorderTasksWithinProject(userId, tasksInSameProject, originalProjectId);
+                        await reorderTasks(userId, tasksInSameProject, originalProjectId);
                         Alert.alert('Success', 'Tasks reordered successfully.');
                     }
                 } else if (grouping === 'priority') {
@@ -322,7 +322,7 @@ const ListView = ({
                             (it) => it.type === 'task' && it.priority === originalPriority
                         );
                         // Reorder in Firestore
-                        await reorderTasksWithinProject(userId, tasksInSamePriority, null);
+                        await reorderTasks(userId, tasksInSamePriority, null);
                         Alert.alert('Success', 'Tasks reordered successfully (same priority).');
                     }
                 }
