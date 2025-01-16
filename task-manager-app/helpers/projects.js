@@ -58,3 +58,38 @@ export function buildListData(noProject, byProject, projects, sortOption = null)
     }
     return data;
 }
+
+// Group tasks by priority
+export function groupTasksByPriority(tasks, priorities) {
+    const byPriority = {};
+
+    priorities.forEach(priority => {
+        byPriority[priority] = [];
+    });
+
+    tasks.forEach(task => {
+        if (byPriority[task.priority]) {
+            byPriority[task.priority].push(task);
+        } else {
+            byPriority[task.priority] = [task]; // Handle unexpected priorities
+        }
+    });
+
+    return byPriority;
+}
+
+// Create a flat data structure for DraggableFlatList when grouping by priority
+export function buildListDataByPriority(byPriority, sortOption = null) {
+    let data = [];
+
+    for (let priority in byPriority) {
+        data.push({ type: 'priorityHeader', priority });
+
+        // Sort tasks within the priority
+        byPriority[priority].sort((a, b) => applySortOption(a, b, sortOption));
+
+        byPriority[priority].forEach(task => data.push({ type: 'task', ...task }));
+    }
+
+    return data;
+}

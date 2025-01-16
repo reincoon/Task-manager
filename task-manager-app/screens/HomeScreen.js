@@ -16,7 +16,7 @@ import AddProjectButton from '../components/AddProjectButton';
 import MoveToModal from '../components/MoveToModal';
 // import TodoCard from '../components/TodoCard';
 import { deleteTask as deleteTaskHelper } from '../helpers/taskActions';
-import { COLOURS } from '../helpers/constants';
+import { COLOURS, PRIORITY_ORDER } from '../helpers/constants';
 
 const HomeScreen = ({ navigation }) => {
     const [rawTasks, setRawTasks] = useState([]);
@@ -55,13 +55,14 @@ const HomeScreen = ({ navigation }) => {
             setGrouping('priority');
         } else if (option === 'Sort by Project') {
             setGrouping('project');
+            setSortOption(null);
         } else if (option === 'Sort by Date') {
             setSortOption('date');
         } else if (option === 'Sort Alphabetically') {
             setSortOption('alphabetical');
         } else if (option === 'Sort by Colour') {
             setSortOption('colour');
-            setGrouping('project');
+            // setGrouping('project');
         } else if (option === 'Kanban View') {
             // Switch to Kanban view
             setViewMode('kanban');
@@ -98,8 +99,13 @@ const HomeScreen = ({ navigation }) => {
                 ...doc.data(),
                 priority: doc.data().priority || 'Low',
             }));
+
+            // Sort tasks by the `order` field
+            const sortedTasks = [...fetchedTasks].sort((a, b) => (a.order || 0) - (b.order || 0));
+
             console.log('Fetched tasks:', fetchedTasks);
-            setRawTasks(fetchedTasks);
+            // setRawTasks(fetchedTasks);
+            setRawTasks(sortedTasks);
             setLoading(false);
         }, (error) => {
             console.error("Snapshot listener error:", error);
@@ -134,8 +140,36 @@ const HomeScreen = ({ navigation }) => {
 
     // Sort tasks whenever rawTasks or sortOption changes
     useEffect(() => {
-        setTasks([...rawTasks]);
-    }, [rawTasks, sortOption]);
+        if (!sortOption) {
+            setTasks([...rawTasks]);
+        } else {
+            // Apply the chosen sort
+            const temp = [...rawTasks];
+            if (sortOption === 'date') {
+                temp.sort((a, b) => {
+                    const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+                    const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+                    return dateA - dateB;
+                });
+            } else if (sortOption === 'alphabetical') {
+                temp.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+            } else if (sortOption === 'colour') {
+                temp.sort((a, b) => ((a.colour || '').localeCompare(b.colour || '')));
+            } else if (sortOption === 'priority') {
+                temp.sort((a, b) => (PRIORITY_ORDER[a.priority] || 999) - (PRIORITY_ORDER[b.priority] || 999))
+            }
+            setTasks(temp)
+        }
+    }, [sortOption, rawTasks]);
+
+    // Trigger ProjectModal when one todo list is hovered over another
+    useEffect(() => {
+        if (draggingTask && hoveredTask) {
+            setShowProjectModal(true);
+        }
+    }, [draggingTask, hoveredTask]);
+
+    
 
     // useEffect(() => {
     //     if (viewMode === 'list') {
@@ -146,7 +180,15 @@ const HomeScreen = ({ navigation }) => {
     // }, [tasks, viewMode, projects, sortOption]);
 
     const renderKanbanView = () => {
-        return <KanbanBoard userId={userId} rawTasks={tasks} projects={projects} navigation={navigation} grouping={grouping} />;
+        return <KanbanBoard 
+                    userId={userId} 
+                    rawTasks={tasks} 
+                    projects={projects} 
+                    navigation={navigation} 
+                    grouping={grouping}
+                    setDraggingTask={setDraggingTask}
+                    setHoveredTask={setHoveredTask}
+                />;
     };
 
     const handleCreateProject = async (projectName, selectedTasks) => {
@@ -219,12 +261,12 @@ const HomeScreen = ({ navigation }) => {
     //     );
     // }, [grouping, projects, navigation]);
 
-    // Helper to get project name
-    const getProjectName = (projectId) => {
-        if (!projectId) return 'Unassigned';
-        const found = projects.find((p) => p.id === projectId);
-        return found ? found.name : 'Unassigned';
-    };
+    // // Helper to get project name
+    // const getProjectName = (projectId) => {
+    //     if (!projectId) return 'Unassigned';
+    //     const found = projects.find((p) => p.id === projectId);
+    //     return found ? found.name : 'Unassigned';
+    // };
 
     if (loading) {
         return (
@@ -261,6 +303,9 @@ const HomeScreen = ({ navigation }) => {
                     await reorderTasksWithinProject(userId, tasksArr, projectId);
                 }}
                 deleteTask={handleDeleteTask}
+                setDraggingTask={setDraggingTask}
+                setHoveredTask={setHoveredTask}
+                grouping={grouping}
             />
         );
     }

@@ -23,7 +23,11 @@ export async function updateTasksProject(userId, tasks, projectId = null) {
     
     tasks.forEach(task => {
         const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-        const updateData = projectId ? { projectId, order: nextOrder++ } : { projectId: null, order: nextOrder++ };
+        // const updateData = projectId ? { projectId, order: nextOrder++ } : { projectId: null, order: nextOrder++ };
+        const updateData = {
+            projectId: projectId || null,
+            order: nextOrder++
+        };
         batch.update(taskRef, updateData);
     });
     await batch.commit();
@@ -37,9 +41,9 @@ export async function updateTasksPriority(userId, tasks, newPriority) {
 
     const batch = writeBatch(db);
 
-    tasks.forEach(task => {
+    tasks.forEach((task, index) => {
         const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-        batch.update(taskRef, { priority: newPriority });
+        batch.update(taskRef, { priority: newPriority, order: index });
     });
 
     await batch.commit();
@@ -59,19 +63,49 @@ export async function createProject(userId, projectName) {
     return projectDoc.id;
 }
 
-// Reorder to-do lists within the same project
-export async function reorderTasksWithinProject(userId, tasks, projectId = null) {
+// // Reorder to-do lists within the same project
+// export async function reorderTasksWithinProject(userId, tasks, projectId = null) {
+//     if (!userId || !tasks) {
+//         throw new Error("User ID and Tasks are required.");
+//     }
+
+//     const batch = writeBatch(db);
+//     // Sort tasks by their current order or fallback 0
+//     const sorted = [...tasks].sort((a,b) => (a.order || 0) - (b.order || 0));
+//     // Reassign a new order
+//     sorted.forEach((task, index) => {
+//         const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
+//         batch.update(taskRef, { order: index });
+//     });
+//     await batch.commit();
+// }
+
+// Reorder to-do lists within the same project or priority
+export async function reorderTasks(userId, tasks, projectId = null, priority = null) {
     if (!userId || !tasks) {
         throw new Error("User ID and Tasks are required.");
     }
 
     const batch = writeBatch(db);
+
     // Sort tasks by their current order or fallback 0
-    const sorted = [...tasks].sort((a,b) => (a.order || 0) - (b.order || 0));
+    const sorted = [...tasks].sort((a, b) => (a.order || 0) - (b.order || 0));
+
     // Reassign a new order
     sorted.forEach((task, index) => {
         const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-        batch.update(taskRef, { order: index });
+        const updateData = { order: index };
+
+        if (projectId !== undefined) {
+            updateData.projectId = projectId;
+        }
+
+        if (priority !== undefined) {
+            updateData.priority = priority;
+        }
+
+        batch.update(taskRef, updateData);
     });
+
     await batch.commit();
 }
