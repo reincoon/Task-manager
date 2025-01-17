@@ -6,7 +6,7 @@ import { db, auth } from '../firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { PRIORITIES } from '../helpers/priority';
 import ProjectModal from '../components/ProjectModal';
-import { updateTasksProject, createProject, reorderTasksWithinProject } from '../helpers/firestoreHelpers';
+import { updateTasksProject, createProject } from '../helpers/firestoreHelpers';
 import KanbanBoard from '../components/KanbanBoard';
 import ListView from '../components/ListView';
 import AddProjectButton from '../components/AddProjectButton';
