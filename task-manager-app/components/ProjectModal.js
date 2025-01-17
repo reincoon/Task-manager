@@ -1,7 +1,7 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
 
-const ProjectModal = ({ visible, onCancel, onCreate, selectedTasks }) => {
+const ProjectModal = ({ visible, onCancel, onCreate }) => {
     const [projectName, setProjectName] = useState('');
 
     useEffect(() => {
@@ -15,11 +15,11 @@ const ProjectModal = ({ visible, onCancel, onCreate, selectedTasks }) => {
             Alert.alert('Error', 'Project name is required');
             return;
         }
-        if (selectedTasks && selectedTasks.length > 0 && selectedTasks.length !== 2) {
-            Alert.alert('Error', 'Please select exactly two tasks to create a project.');
-            return;
-        }
-        onCreate(projectName.trim(), selectedTasks);
+        // if (selectedTasks && selectedTasks.length > 0 && selectedTasks.length !== 2) {
+        //     Alert.alert('Error', 'Please select exactly two tasks to create a project.');
+        //     return;
+        // }
+        onCreate(projectName.trim());
         // setProjectName('');
     };
 
@@ -39,16 +39,16 @@ const ProjectModal = ({ visible, onCancel, onCreate, selectedTasks }) => {
                         onChangeText={setProjectName}
                         placeholder='Project Name'
                     />
-                    {selectedTasks && selectedTasks.length > 0 && (
-                        <View style={styles.selectedTasksContainer}>
+                    {/* {selectedTasks && selectedTasks.length > 0 && ( */}
+                        {/* <View style={styles.selectedTasksContainer}>
                             <Text style={styles.modalTitle}>Selected Tasks:</Text>
                             {selectedTasks.map(task => (
                                 <Text key={task.id} style={styles.selectedTaskText}>
                                     - {task.title}
                                 </Text>
                             ))}
-                        </View>
-                    )}
+                        </View> */}
+                    {/* )} */}
                     <View style={{flexDirection:'row', justifyContent:'space-around', marginTop:20}}>
                         <TouchableOpacity style={styles.modalButton} onPress={handleCreate}>
                             <Text style={styles.modalButtonText}>Create</Text>

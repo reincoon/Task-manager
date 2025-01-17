@@ -21,7 +21,7 @@ const ListView = ({
     grouping,
 }) => {
     const [data, setData] = useState([]);
-    const [originalData, setOriginalData] = useState([]);
+    // const [originalData, setOriginalData] = useState([]);
     // const [sourceColumnKey, setSourceColumnKey] = useState(null);
 
     // useEffect(() => {
@@ -81,11 +81,6 @@ const ListView = ({
                     projectName={projectName}
                     onLongPress={() => {
                         setDraggingTask(item);
-                        // setSourceColumnKey(
-                        //     grouping === 'project'
-                        //         ? item.projectId || 'No Project'
-                        //         : item.priority
-                        // );
                         drag();
                     }}
                     onPress={() =>
@@ -131,27 +126,6 @@ const ListView = ({
         return item.id;
     };
 
-    // Overlap check
-    const checkOverlapForUnassigned = (newData, draggedIndex) => {
-        if (draggedIndex < 0) return null;
-    
-        // Check item above
-        if (draggedIndex > 0) {
-            const above = newData[draggedIndex - 1];
-            if (above?.type === 'task' && !above.projectId) {
-                return above;
-            }
-        }
-        // Check item below
-        if (draggedIndex < newData.length - 1) {
-            const below = newData[draggedIndex + 1];
-            if (below?.type === 'task' && !below.projectId) {
-                return below;
-            }
-        }
-        return null;
-    };
-
     const onDragEnd = async ({ data: newData, from, to }) => {
         if (from === to) return;
 
@@ -163,33 +137,7 @@ const ListView = ({
             setData(newData);
             return;
         }
-        const oldData = data;
-
-        // // Determine the adjacent task to check for overlap
-        // if (to > 0 && newData[to - 1].type === 'task' && newData[to - 1].projectId === null) {
-        //     targetItem = newData[to - 1];
-        // }
-        // else if (to < newData.length - 1 && newData[to + 1].type === 'task' && newData[to + 1].projectId === null) {
-        //     targetItem = newData[to + 1];
-        // }
-
-        if (grouping === 'project' && !draggedItem.projectId) {
-            
-            const overlapTask = checkOverlapForUnassigned(newData, to);
-            if (overlapTask && !overlapTask.projectId) {
-                // Both tasks are unassigned, open project modal
-                setDraggingTask(draggedItem);
-                setHoveredTask(overlapTask);
-                // Revert list to avoid partial reorder
-                setData(oldData);
-                // Alert.alert(
-                //     'Create New Project',
-                //     'Two unassigned tasks detected. Creating a new project with these tasks.',
-                //     [{ text: 'OK' }]
-                // );
-                return;
-            }
-        }
+        const oldData = data;            
 
         // Figure out the new group after reordering
         let finalProjectId = null;
@@ -240,9 +188,6 @@ const ListView = ({
             } else {
                 // Grouping by priority
 
-                // const originalPriority = draggedItem.priority || 'Low';
-                // const finalPriority = draggedItem.priority || 'Low'; 
-
                 if (finalPriority && finalPriority !== originalPriority) {
                     // Change the priority
                     draggedItem.priority = finalPriority;
@@ -281,7 +226,6 @@ const ListView = ({
     return (
         <View style={{ flex: 1 }}>
             <Text style={styles.instructionsText}>
-                - Long press and drag one unassigned to-do list over another unassigned to create a project.
                 {'\n'}- Drag a to-do list to a project header or a task in that project to move it into the project.
                 {'\n'}- Drag a task to the 'no project' section to remove it from a project.
             </Text>
@@ -293,6 +237,7 @@ const ListView = ({
                 activationDistance={5}
                 containerStyle={{ paddingBottom: 100 }}
             />
+            
         </View>
     );
 };

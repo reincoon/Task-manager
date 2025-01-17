@@ -4,17 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
 import { db, auth } from '../firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
-// import { PRIORITY_ORDER } from '../helpers/constants';
 import { PRIORITIES } from '../helpers/priority';
-// import DraggableFlatList from 'react-native-draggable-flatlist';
 import ProjectModal from '../components/ProjectModal';
 import { updateTasksProject, createProject, reorderTasksWithinProject } from '../helpers/firestoreHelpers';
-// import { groupTasksByProject, buildListData } from '../helpers/projects';
 import KanbanBoard from '../components/KanbanBoard';
 import ListView from '../components/ListView';
 import AddProjectButton from '../components/AddProjectButton';
 import MoveToModal from '../components/MoveToModal';
-// import TodoCard from '../components/TodoCard';
 import { deleteTask as deleteTaskHelper } from '../helpers/taskActions';
 import { COLOURS, PRIORITY_ORDER } from '../helpers/constants';
 
@@ -25,12 +21,11 @@ const HomeScreen = ({ navigation }) => {
     const [sortOption, setSortOption] = useState(null);
     const [viewMode, setViewMode] = useState('list');
     const [showProjectModal, setShowProjectModal] = useState(false);
-    // const [emptyProjectName, setEmptyProjectName] = useState('');
     const [userId, setUserId] = useState(null);
     const [draggingTask, setDraggingTask] = useState(null);
     const [hoveredTask, setHoveredTask] = useState(null);
-    const [data, setData] = useState([]);
-    const [originalData, setOriginalData] = useState([]);
+    // const [data, setData] = useState([]);
+    // const [originalData, setOriginalData] = useState([]);
     const [grouping, setGrouping] = useState('priority');
     const [projects, setProjects] = useState([]);
     const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
@@ -103,7 +98,7 @@ const HomeScreen = ({ navigation }) => {
             // Sort tasks by the `order` field
             const sortedTasks = [...fetchedTasks].sort((a, b) => (a.order || 0) - (b.order || 0));
 
-            console.log('Fetched tasks:', fetchedTasks);
+            // console.log('Fetched tasks:', fetchedTasks);
             // setRawTasks(fetchedTasks);
             setRawTasks(sortedTasks);
             setLoading(false);
@@ -162,12 +157,12 @@ const HomeScreen = ({ navigation }) => {
         }
     }, [sortOption, rawTasks]);
 
-    // Trigger ProjectModal when one todo list is hovered over another
-    useEffect(() => {
-        if (draggingTask && hoveredTask) {
-            setShowProjectModal(true);
-        }
-    }, [draggingTask, hoveredTask]);
+    // // Trigger ProjectModal when one todo list is hovered over another
+    // useEffect(() => {
+    //     if (draggingTask && hoveredTask) {
+    //         setShowProjectModal(true);
+    //     }
+    // }, [draggingTask, hoveredTask]);
 
     
 
@@ -211,12 +206,12 @@ const HomeScreen = ({ navigation }) => {
             //     Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
             // }
             // Assign selected tasks to the new project
-            if (draggingTask && hoveredTask) {
-                await updateTasksProject(userId, [draggingTask, hoveredTask], projectId);
-                Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
-            } else {
+            // if (draggingTask && hoveredTask) {
+            //     await updateTasksProject(userId, [draggingTask, hoveredTask], projectId);
+            //     Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
+            // } else {
                 Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
-            }
+            // }
 
             // Reset states
             setShowProjectModal(false);
@@ -517,9 +512,9 @@ const HomeScreen = ({ navigation }) => {
                 >
                     <MenuItem onPress={() => handleMenuOption('List View')}>List View</MenuItem>
                     <MenuItem onPress={() => handleMenuOption('Kanban View')}>Kanban View</MenuItem>
-                    <MenuItem onPress={() => handleMenuOption('Sort by Project')}>Sort by Project</MenuItem>
+                    <MenuItem onPress={() => handleMenuOption('Sort by Project')}>Group by Project</MenuItem>
+                    <MenuItem onPress={() => handleMenuOption('Sort by Priority')}>Group by Priority</MenuItem>
                     <MenuItem onPress={() => handleMenuOption('Sort by Date')}>Sort by Date</MenuItem>
-                    <MenuItem onPress={() => handleMenuOption('Sort by Priority')}>Sort by Priority</MenuItem>
                     <MenuItem onPress={() => handleMenuOption('Sort Alphabetically')}>Sort Alphabetically</MenuItem>
                     <MenuItem onPress={() => handleMenuOption('Sort by Colour')}>Sort by Colour</MenuItem>
                 </Menu>
@@ -557,7 +552,7 @@ const HomeScreen = ({ navigation }) => {
                 }}
                 onCreate={handleCreateProject}
                 // onCreate={(projectName) => handleCreateProject(projectName, [])}
-                selectedTasks={draggingTask && hoveredTask ? [draggingTask, hoveredTask] : []}
+                // selectedTasks={draggingTask && hoveredTask ? [draggingTask, hoveredTask] : []}
             />
         </SafeAreaView>
     )

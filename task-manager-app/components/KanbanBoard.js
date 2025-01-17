@@ -584,14 +584,14 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                     currentColumnKey={grouping === 'project' ? draggingItem?.projectId || 'No Project' : draggingItem?.priority}
                 />
                 <ProjectModal
-                visible={isProjectModalVisible}
-                onCancel={() => {
-                    setIsProjectModalVisible(false); 
-                    setProjectModalTasks([]);
-                }}
-                onCreate={handleCreateProject}
-                selectedTasks={projectModalTasks}
-            />
+                    visible={isProjectModalVisible}
+                    onCancel={() => {
+                        setIsProjectModalVisible(false); 
+                        setProjectModalTasks([]);
+                    }}
+                    onCreate={handleCreateProject}
+                    selectedTasks={projectModalTasks}
+                />
             </View>
         // </DraxProvider>
     );
