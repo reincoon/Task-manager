@@ -22,8 +22,6 @@ const COLUMN_MARGIN = 10;
 
 const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDraggingTask, setHoveredTask }) => {
     const [columns, setColumns] = useState([]);
-    // State to manage loading indicator
-    const [isLoading, setIsLoading] = useState(true);
     // States for dragging functionality
     const [draggingItem, setDraggingItem] = useState(null);
     const [sourceColumnKey, setSourceColumnKey] = useState(null);
@@ -87,7 +85,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 }
             }
             setColumns(updatedColumns);
-            setIsLoading(false);
         };
 
         initializeColumns();
@@ -369,7 +366,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                     setProjectModalTasks([]);
                 }}
                 onCreate={handleCreateProject}
-                selectedTasks={projectModalTasks}
+                // selectedTasks={projectModalTasks}
             />
         </View>
     );

@@ -24,8 +24,6 @@ const HomeScreen = ({ navigation }) => {
     const [userId, setUserId] = useState(null);
     const [draggingTask, setDraggingTask] = useState(null);
     const [hoveredTask, setHoveredTask] = useState(null);
-    // const [data, setData] = useState([]);
-    // const [originalData, setOriginalData] = useState([]);
     const [grouping, setGrouping] = useState('priority');
     const [projects, setProjects] = useState([]);
     const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
@@ -57,7 +55,6 @@ const HomeScreen = ({ navigation }) => {
             setSortOption('alphabetical');
         } else if (option === 'Sort by Colour') {
             setSortOption('colour');
-            // setGrouping('project');
         } else if (option === 'Kanban View') {
             // Switch to Kanban view
             setViewMode('kanban');
@@ -95,11 +92,8 @@ const HomeScreen = ({ navigation }) => {
                 priority: doc.data().priority || 'Low',
             }));
 
-            // Sort tasks by the `order` field
+            // Sort tasks by the order field
             const sortedTasks = [...fetchedTasks].sort((a, b) => (a.order || 0) - (b.order || 0));
-
-            // console.log('Fetched tasks:', fetchedTasks);
-            // setRawTasks(fetchedTasks);
             setRawTasks(sortedTasks);
             setLoading(false);
         }, (error) => {
@@ -157,23 +151,6 @@ const HomeScreen = ({ navigation }) => {
         }
     }, [sortOption, rawTasks]);
 
-    // // Trigger ProjectModal when one todo list is hovered over another
-    // useEffect(() => {
-    //     if (draggingTask && hoveredTask) {
-    //         setShowProjectModal(true);
-    //     }
-    // }, [draggingTask, hoveredTask]);
-
-    
-
-    // useEffect(() => {
-    //     if (viewMode === 'list') {
-    //         const { noProject, byProject } = groupTasksByProject(tasks, projects);
-    //         const newData = buildListData(noProject, byProject, projects, sortOption);
-    //         setData(newData);
-    //     }
-    // }, [tasks, viewMode, projects, sortOption]);
-
     const renderKanbanView = () => {
         return <KanbanBoard 
                     userId={userId} 
@@ -196,22 +173,7 @@ const HomeScreen = ({ navigation }) => {
         try {
             // Create a new project in Firebase
             const projectId = await createProject(userId, projectName);
-
-            // if (selectedTasks && selectedTasks.length === 2) {
-            //     // Assign selected tasks to the new project
-            //     await updateTasksProject(userId, selectedTasks, projectId);
-            //     Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
-            // } else {
-            //     // Create an empty project
-            //     Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
-            // }
-            // Assign selected tasks to the new project
-            // if (draggingTask && hoveredTask) {
-            //     await updateTasksProject(userId, [draggingTask, hoveredTask], projectId);
-            //     Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
-            // } else {
-                Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
-            // }
+            Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
 
             // Reset states
             setShowProjectModal(false);
@@ -220,10 +182,8 @@ const HomeScreen = ({ navigation }) => {
         } catch (err) {
             console.error(err);
             Alert.alert('Error', err.message);
-            // Revert data if needed
+            // Revert data
             setShowProjectModal(false);
-            // setData(originalData);
-            // setOriginalData([]);
             setDraggingTask(null);
             setHoveredTask(null);
         }
@@ -233,42 +193,6 @@ const HomeScreen = ({ navigation }) => {
     const handleAddProjectFromList = () => {
         setShowProjectModal(true);
     };
-
-    // // Open Project Modal via Add Project button in Kanban View
-    // const handleAddProjectFromKanban = () => {
-    //     setShowProjectModal(true);
-    // };
-
-    // Render Task Item
-    // const renderTask = useCallback(({ item, drag, isActive }) => {
-    //     return (
-    //         <TouchableOpacity 
-    //             style={[styles.taskItem, isActive && { opacity: 0.7 }]}
-    //             onLongPress={() => {
-    //                 setDraggingTask(item);
-    //                 const sourceColumn = grouping === 'priority' 
-    //                     ? PRIORITIES.find(col => col === item.priority)
-    //                     : projects.find(p => p.id === item.projectId);
-    //                 setSourceColumnKey(sourceColumn ? sourceColumn.id : null);
-    //                 drag();
-    //             }}
-    //             onPress={() => {
-    //                 navigation.navigate('TaskDetailsScreen', { taskId: item.id });
-    //             }}
-    //         >
-    //             <Text style={styles.taskTitle}>{item.title}</Text>
-    //             <Text style={styles.taskDetails}>Due: {new Date(item.dueDate).toLocaleString()}</Text>
-    //             <Text style={styles.taskDetails}>Priority: {item.priority}</Text>
-    //         </TouchableOpacity>
-    //     );
-    // }, [grouping, projects, navigation]);
-
-    // // Helper to get project name
-    // const getProjectName = (projectId) => {
-    //     if (!projectId) return 'Unassigned';
-    //     const found = projects.find((p) => p.id === projectId);
-    //     return found ? found.name : 'Unassigned';
-    // };
 
     if (loading) {
         return (
@@ -298,12 +222,6 @@ const HomeScreen = ({ navigation }) => {
                 sortOption={sortOption}
                 setSortOption={setSortOption}
                 navigation={navigation}
-                // updateTasksProject={async (tasksArray, finalProjectId) => {
-                //     await updateTasksProject(userId, tasksArray, finalProjectId);
-                // }}
-                // reorderTasksWithinProject={async (projectId, tasksArr) => {
-                //     await reorderTasksWithinProject(userId, tasksArr, projectId);
-                // }}
                 deleteTask={handleDeleteTask}
                 setDraggingTask={setDraggingTask}
                 setHoveredTask={setHoveredTask}
@@ -311,150 +229,6 @@ const HomeScreen = ({ navigation }) => {
             />
         );
     }
-    // const renderListView = () => {
-    //     if (data.length === 0) {
-    //         return (
-    //             <Text style={styles.noTasksText}>
-    //                 No tasks available. Create a new to-do list!
-    //             </Text>
-    //         );
-    //     }
-
-    //     const renderItem = ({ item, drag, isActive }) => {
-    //         if (item.type === 'projectHeader') {
-    //             return (
-    //                 <View style={styles.projectHeader}>
-    //                     <Text style={[styles.projectHeaderText, {color: '#333'}]}>
-    //                         {item.projectName}
-    //                     </Text>
-    //                 </View>
-    //             );
-    //         }
-    //         if (item.type === 'noProjectHeader') {
-    //             return (
-    //                 <View style={[styles.projectHeader, {backgroundColor:'#ccc'}]}>
-    //                     <Text style={styles.projectHeaderText}>Unassigned To-Do Lists</Text>
-    //                 </View>
-    //             );
-    //         }
-    //         if (item.type === 'task') {
-    //             const projectName = getProjectName(item.projectId);
-    //             return (
-    //                 <TodoCard
-    //                     task={item}
-    //                     projectName={projectName}
-    //                     onLongPress={drag}
-    //                     onPress={() => navigation.navigate('TaskDetailsScreen', { taskId: item.id })}
-    //                     onDeleteTask={() => {
-    //                         // handle a delete confirm
-    //                         Alert.alert('Confirm', 'Delete this to-do list?', [
-    //                             { text: 'Cancel', style: 'cancel' },
-    //                             {
-    //                                 text: 'Delete',
-    //                                 style: 'destructive',
-    //                                 onPress: async () => {
-    //                                     try {
-    //                                         await deleteTask(userId, item, navigation, false);
-    //                                         Alert.alert('Deleted', 'Task deleted successfully');
-    //                                     } catch (err) {
-    //                                         console.error('Error deleting task:', err);
-    //                                         Alert.alert('Error', 'Could not delete task');
-    //                                     }
-    //                                 },
-    //                             },
-    //                         ]);
-    //                     }}
-    //                     showMoveButton={false}
-    //                 />
-    //             );
-    //         }
-
-    //         return null;
-    //     };
-
-    //     const keyExtractor = (item, index) => {
-    //         if (item.type === 'projectHeader') {
-    //             return `projectHeader-${item.projectName}-${index}`;
-    //         }
-    //         if (item.type === 'noProjectHeader') {
-    //             return `noProjectHeader-${index}`;
-    //         }
-    //         return item.id;
-    //     };
-
-    //     const onDragEnd = async ({ data: newData, from, to }) => {
-    //         if (from === to) return;
-
-    //         const draggedItem = newData[to];
-    //         // const droppedItem = newData[from];
-
-    //         // Save original data in case it's needed to revert
-    //         const oldData = data;
-    //         setOriginalData(oldData);
-
-    //         try {
-    //             // Determine the project/group based on the new position
-    //             let finalProjectId = null;
-    //             for (let i = to; i >= 0; i--) {
-    //                 if (newData[i].type === 'projectHeader') {
-    //                     finalProjectId = newData[i].pName;
-    //                     break;
-    //                 }
-    //                 if (newData[i].type === 'noProjectHeader') {
-    //                     finalProjectId = null;
-    //                     break;
-    //                 }
-    //             }
-
-    //             // If the dragged item is a task
-    //             if (draggedItem.type === 'task') {
-    //                 const originalProjectId = draggedItem.projectId || null;
-
-    //                 if (finalProjectId !== originalProjectId) {
-    //                     // Moving to a different project or unassigned
-    //                     await updateTasksProject(userId, [draggedItem], finalProjectId);
-    //                     Alert.alert('Success', `Task moved to ${finalProjectId ? 'the selected project' : 'Unassigned Projects list'}.`);
-    //                 } else {
-    //                     // Reordering within the same project or unassigned
-    //                     const tasksInSameProject = newData
-    //                         .filter(item => item.type === 'task' && item.projectId === originalProjectId)
-    //                         // .sort((a, b) => (a.order || 0) - (b.order || 0));
-
-    //                     await reorderTasksWithinProject(userId, tasksInSameProject, originalProjectId);
-    //                     Alert.alert('Success', 'Tasks reordered successfully.');
-    //                 }
-    //             }
-    //             // Revert to custom order mode
-    //             setSortOption(null);
-    //         } catch (error) {
-    //             console.error('Error in onDragEnd:', error);
-    //             Alert.alert('Error', 'Failed to update tasks after drag-and-drop.');
-    //             // Revert to original data
-    //             setData(oldData);
-    //             return;
-    //         }
-    //         // If just reordering within the same section with no project change, the new order is stored locally
-    //         setData(newData);
-    //     };
-
-    //     return (
-    //         <View style={{flex:1}}>
-    //             <Text style={{textAlign:'center', margin:10, fontSize:14, color:'#666'}}>
-    //             -    Long press and drag one unassigned to-do list over another unassigned to create a project.
-    //                 {"\n"}- Drag a to-do list to a project header or a task in that project to move it into the project.
-    //                 {"\n"}- Drag a task to the 'no project' section to remove it from a project.
-    //             </Text>
-    //             <DraggableFlatList
-    //                 data={data}
-    //                 keyExtractor={keyExtractor}
-    //                 renderItem={renderItem}
-    //                 onDragEnd={onDragEnd}
-    //                 activationDistance={20}
-    //                 containerStyle={{paddingBottom:100}}
-    //             />
-    //         </View>
-    //     );
-    // };
 
     // Handle moving a task via modal
     const handleMove = async (targetProjectId) => {
@@ -490,7 +264,7 @@ const HomeScreen = ({ navigation }) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* {loading ? <ActivityIndicator style={{marginTop:20}}/> : null} */}
+            {loading ? <ActivityIndicator style={{marginTop:20}}/> : null}
             {/* Header section */}
             <View style={styles.header}>
                 <Text style={styles.title}>Home</Text>
@@ -501,7 +275,6 @@ const HomeScreen = ({ navigation }) => {
                     />
                 )}
                 <Menu 
-                    // visible={visible}
                     ref={menuRef} 
                     anchor={
                         <TouchableOpacity onPress={showMenu}>
