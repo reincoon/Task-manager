@@ -1,4 +1,4 @@
-import { doc, updateDoc, collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
+import { doc, deleteDoc, updateDoc, collection, addDoc, writeBatch, getDocs, query, where, getFirestore } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 // Add or update eventId for a To-Do list
@@ -61,6 +61,35 @@ export async function createProject(userId, projectName) {
         createdAt: new Date(),
     });
     return projectDoc.id;
+}
+
+// Delete a project by its ID
+export async function deleteProject(userId, projectId) {
+    const db = getFirestore();
+    const projectRef = doc(db, 'projects', userId, 'userProjects', projectId);
+    
+    // Delete associated tasks
+    const tasksRef = collection(db, 'tasks', userId, 'taskList');
+    const q = query(tasksRef, where('projectId', '==', projectId));
+    const taskSnapshot = await getDocs(q);
+
+    taskSnapshot.forEach(async (taskDoc) => {
+        await deleteDoc(doc(db, 'tasks', userId, 'taskList', taskDoc.id));
+    });
+
+    // Delete the project
+    await deleteDoc(projectRef);
+}
+
+// Update a project's name
+export async function updateProjectName(userId, projectId, newProjectName) {
+    if (!userId || !projectId || !newProjectName) {
+        throw new Error("User ID, Project ID, and the new project name are required.");
+    }
+
+    // const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
+    const projectRef = doc(getFirestore(), 'projects', userId, 'userProjects', projectId);
+    await updateDoc(projectRef, { name: newProjectName });
 }
 
 // // Reorder to-do lists within the same project

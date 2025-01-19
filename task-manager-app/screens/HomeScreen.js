@@ -28,6 +28,7 @@ const HomeScreen = ({ navigation }) => {
     const [projects, setProjects] = useState([]);
     const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
     const [sourceColumnKey, setSourceColumnKey] = useState(null);
+    const [editingProjectIds, setEditingProjectIds] = useState({});
 
     const menuRef = useRef();
 
@@ -190,6 +191,21 @@ const HomeScreen = ({ navigation }) => {
         
     };
 
+    const handleEditProject = (projectId) => {
+        setEditingProjectIds((prev) => ({
+            ...prev,
+            [projectId]: true
+        }));
+    };
+
+    const handleCancelEditing = (projectId) => {
+        setEditingProjectIds((prev) => {
+            const updated = { ...prev };
+            delete updated[projectId];
+            return updated;
+        });
+    };
+
     const handleAddProjectFromList = () => {
         setShowProjectModal(true);
     };
@@ -212,6 +228,36 @@ const HomeScreen = ({ navigation }) => {
             Alert.alert('Error', 'Could not delete task');
         }
     };
+    const handleRenameProject = async (projectId, newName) => {
+        if (!newName.trim()) {
+            Alert.alert("Invalid Name", "Project name cannot be empty.");
+            return;
+        }
+
+        if (!userId || !projectId || !newName) {
+            Alert.alert("Error", "User ID, Project ID, and the new project name are required.");
+            return;
+        }
+    
+        console.log("projectId:", projectId);
+        setNewProjectNames((prevNames) => ({
+                    ...prevNames,
+                    [projectId]: newName,
+                }));
+                // setEditingProjectId(null);
+                try {
+                    await updateProjectName(userId, projectId, newName);
+                    Alert.alert("Success", "Project renamed successfully.");
+                    setNewProjectNames(prev => {
+                        const updated = { ...prev };
+                        delete updated[projectId]; // Remove the edited project from the state
+                        return updated;
+                    });
+                } catch (error) {
+                    console.error("Error renaming project:", error);
+                    Alert.alert("Error", "Could not rename project.");
+                }
+    }
 
     const renderListView = () => {
         return (
@@ -226,6 +272,10 @@ const HomeScreen = ({ navigation }) => {
                 setDraggingTask={setDraggingTask}
                 setHoveredTask={setHoveredTask}
                 grouping={grouping}
+                onEditProject={handleEditProject}
+                editingProjectIds={editingProjectIds}
+                onCancelEditing={handleCancelEditing}
+                onRenameProject={handleRenameProject}
             />
         );
     }
