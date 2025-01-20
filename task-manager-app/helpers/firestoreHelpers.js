@@ -1,4 +1,4 @@
-import { doc, updateDoc, collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, deleteField, collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 // Add or update eventId for a To-Do list
@@ -120,4 +120,27 @@ export async function updateProjectName(userId, projectId, newName) {
     await updateDoc(projectRef, {
         name: newName,
     });
+}
+
+// Delete a project and its associated tasks
+export async function deleteProject(userId, projectId) {
+    if (!userId || !projectId) {
+        throw new Error("User ID and Project ID are required.");
+    }
+
+    try {
+        // Delete all tasks associated with the project
+        const tasksRef = collection(db, `projects/${userId}/userProjects/${projectId}/tasks`);
+        const tasksSnapshot = await getDocs(tasksRef);
+        tasksSnapshot.forEach(async (taskDoc) => {
+            // Delete each task
+            await deleteDoc(taskDoc.ref); 
+        });
+
+        // Delete the project itself
+        const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
+        await deleteDoc(projectRef);
+    } catch (error) {
+        throw new Error('Error deleting project: ' + error.message);
+    }
 }

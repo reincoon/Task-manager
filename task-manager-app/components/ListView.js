@@ -4,7 +4,8 @@ import DraggableFlatList from 'react-native-draggable-flatlist';
 import TodoCard from "./TodoCard";
 import { groupTasksByProject, buildListData, groupTasksByPriority, buildListDataByPriority } from '../helpers/projects';
 import { PRIORITIES } from "../helpers/priority";
-import { updateTasksPriority, updateTasksProject, reorderTasksWithinProject, reorderTasks, updateProjectName } from "../helpers/firestoreHelpers";
+import { updateTasksPriority, updateTasksProject, reorderTasksWithinProject, reorderTasks, updateProjectName, deleteProject } from "../helpers/firestoreHelpers";
+import { Ionicons } from '@expo/vector-icons';
 
 const ListView = ({
     userId,
@@ -81,6 +82,29 @@ const ListView = ({
                         }}
                     >
                         <Text>Edit</Text>
+                    </TouchableOpacity>
+                    {/* Delete Button */}
+                    <TouchableOpacity
+                        onPress={() => {
+                            Alert.alert('Confirm', 'Are you sure you want to delete this project?', [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                    text: 'Delete',
+                                    style: 'destructive',
+                                    onPress: async () => {
+                                        try {
+                                            await deleteProject(userId, item.pName); // Delete the project and its tasks
+                                            Alert.alert('Deleted', 'Project and associated tasks deleted.');
+                                        } catch (error) {
+                                            console.error('Error deleting project:', error);
+                                            Alert.alert('Error', 'Could not delete project.');
+                                        }
+                                    }
+                                }
+                            ]);
+                        }}
+                    >
+                        <Ionicons name="trash-outline" size={24} color="red" />
                     </TouchableOpacity>
                 </View>
             );
