@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Modal, TextInput, Button } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { PRIORITIES } from '../helpers/priority';
 import MoveToModal from '../components/MoveToModal';
 import ProjectModal from '../components/ProjectModal';
 import { groupTasksByProject } from '../helpers/projects';
-import { updateTasksProject, createProject, updateTasksPriority, reorderTasksWithinProject, reorderTasks  } from '../helpers/firestoreHelpers';
+import { updateTasksProject, createProject, updateTasksPriority, deleteProject, updateProjectName, reorderTasks  } from '../helpers/firestoreHelpers';
 import AddProjectButton from './AddProjectButton';
 import { deleteTask } from '../helpers/taskActions';
 import TodoCard from '../components/TodoCard';
@@ -31,7 +31,10 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     // Project creation modal
     const [isProjectModalVisible, setIsProjectModalVisible] = useState(false);
     const [projectModalTasks, setProjectModalTasks] = useState([]);
-    
+    const [isEditingProject, setIsEditingProject] = useState(false);
+    const [editingProjectId, setEditingProjectId] = useState(null);
+    const [newProjectName, setNewProjectName] = useState('');
+
     // Initialize columns based on grouping
     useEffect(() => {
         const initializeColumns = () => {
@@ -254,6 +257,85 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         setIsMoveModalVisible(true);
     }, [grouping]);
 
+    const openEditProjectModal = (projectId, currentName) => {
+        if (editingProjectId !== projectId) {
+            setEditingProjectId(projectId);
+            const project = projects.find(p => p.id === projectId);
+            // setNewProjectName(project ? project.name : '');
+            setNewProjectName(currentName);
+        }
+    };
+
+    const handleEditProject = async (projectId, currentName) => {
+        if (newProjectName.trim() === '') {
+            Alert.alert('Error', 'Project name cannot be empty');
+            return;
+        }
+    
+        try {
+            // setNewProjectName('');
+            // Update the project name in Firebase
+            await updateProjectName(userId, editingProjectId, newProjectName);
+            Alert.alert('Success', 'Project name updated');
+            // setEditingProjectId(null);
+            // setNewProjectName('');
+        } catch (error) {
+            Alert.alert('Error', 'Failed to update project name');
+            console.error(error);
+        } finally {
+            // Close modal after saving
+            setEditingProjectId(null);
+            setNewProjectName('');
+        }
+    };
+
+    const handleSaveProjectName = async () => {
+        try {
+            await updateProjectName(userId, editingProjectId, newProjectName);
+            Alert.alert('Success', 'Project name updated');
+        } catch (err) {
+            Alert.alert('Error', 'Failed to update project name');
+            console.error(err);
+        } finally {
+            setIsEditingProject(false);
+            setEditingProjectId(null);
+            setNewProjectName('');
+        }
+    };
+
+    const handleDeleteProject = async (projectId) => {
+        Alert.alert('Delete Project', 'Are you sure you want to delete this project?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', style: 'destructive', onPress: async () => {
+                try {
+                    await deleteProject(userId, projectId, navigation);
+                    Alert.alert('Success', 'Project and its tasks deleted');
+                } catch (err) {
+                    console.error('Error deleting project:', err);
+                    Alert.alert('Error', 'Failed to delete project');
+                }
+            }},
+        ]);
+    };
+
+    const EditProjectModal = ({ visible, onClose, onSave, projectName, setProjectName }) => (
+        <Modal visible={visible} animationType="slide" transparent={true}>
+            <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                    <Text>Edit Project Name</Text>
+                    <TextInput
+                        value={projectName}
+                        onChangeText={setProjectName}
+                        style={styles.input}
+                        placeholder="Enter new project name"
+                    />
+                    <Button title="Save" onPress={onSave} />
+                    <Button title="Cancel" onPress={onClose} />
+                </View>
+            </View>
+        </Modal>
+    );
+
     const renderTask = useCallback(({ item, drag, isActive }) => {
         const projectName = getProjectName(item.projectId);
 
@@ -308,6 +390,24 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         <View key={column.key} style={styles.column}>
             <View style={styles.columnHeader}>
                 <Text style={styles.columnTitle}>{column.title}</Text>
+                {grouping === 'project'?(
+                    <>
+                        <TouchableOpacity
+                            style={styles.editButton}
+                            onPress={() => openEditProjectModal(column.key)} // Open edit modal when clicked
+                        >
+                            <Text style={styles.editButtonText}>Edit</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.deleteButton}
+                            onPress={() => handleDeleteProject(column.key)} // Delete project when clicked
+                        >
+                            <Text style={styles.deleteButtonText}>Delete</Text>
+                        </TouchableOpacity>
+                    </>
+                ) : (null) }
+                
+                
                 <TouchableOpacity
                     style={[
                         styles.filterButton,
@@ -368,6 +468,17 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 onCreate={handleCreateProject}
                 // selectedTasks={projectModalTasks}
             />
+            {editingProjectId && (
+                <EditProjectModal
+                    visible={Boolean(editingProjectId)}
+                    onClose={() => {setEditingProjectId(null)
+                        setNewProjectName('');
+                    }}
+                    onSave={handleEditProject}
+                    projectName={newProjectName}
+                    setProjectName={setNewProjectName}
+                />
+            )}
         </View>
     );
 };
@@ -492,6 +603,50 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
         fontWeight: 'bold',
+    },
+    columnActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    editButton: {
+        backgroundColor: '#4CAF50',
+        padding: 5,
+        borderRadius: 5,
+        marginRight: 10,
+    },
+    deleteButton: {
+        backgroundColor: '#f44336',
+        padding: 5,
+        borderRadius: 5,
+        marginRight: 10,
+    },
+    editButtonText: {
+        color: 'white',
+        fontSize: 14,
+    },
+    deleteButtonText: {
+        color: 'white',
+        fontSize: 14,
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalContent: {
+        width: 300,
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+    },
+    input: {
+        height: 40,
+        borderColor: 'gray',
+        borderWidth: 1,
+        marginBottom: 10,
+        paddingLeft: 10,
     },
 });
 
