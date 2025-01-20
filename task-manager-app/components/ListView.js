@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import TodoCard from "./TodoCard";
 import { groupTasksByProject, buildListData, groupTasksByPriority, buildListDataByPriority } from '../helpers/projects';
 import { PRIORITIES } from "../helpers/priority";
-import { updateTasksPriority, updateTasksProject, reorderTasksWithinProject, reorderTasks } from "../helpers/firestoreHelpers";
+import { updateTasksPriority, updateTasksProject, reorderTasksWithinProject, reorderTasks, updateProjectName } from "../helpers/firestoreHelpers";
 
 const ListView = ({
     userId,
@@ -54,6 +54,34 @@ const ListView = ({
                     <Text style={[styles.projectHeaderText, { color: '#333' }]}>
                         {item.projectName}
                     </Text>
+                    <TouchableOpacity
+                        onPress={() => {
+                            Alert.prompt(
+                                'Edit Project Name',
+                                'Enter a new name for this project:',
+                                [
+                                    { text: 'Cancel', style: 'cancel' },
+                                    {
+                                        text: 'OK',
+                                        onPress: async (newName) => {
+                                            if (newName) {
+                                                try {
+                                                    await updateProjectName(userId, item.pName, newName);
+                                                    Alert.alert('Success', 'Project name updated.');
+                                                } catch (error) {
+                                                    Alert.alert('Error', 'Could not update project name.');
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                'plain-text',
+                                item.projectName
+                            );
+                        }}
+                    >
+                        <Text>Edit</Text>
+                    </TouchableOpacity>
                 </View>
             );
         }

@@ -109,3 +109,15 @@ export async function reorderTasks(userId, tasks, projectId = null, priority = n
 
     await batch.commit();
 }
+
+// Update an existing project's name
+export async function updateProjectName(userId, projectId, newName) {
+    if (!userId || !projectId || !newName) {
+        throw new Error("User ID, Project ID, and New Name are required.");
+    }
+
+    const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
+    await updateDoc(projectRef, {
+        name: newName,
+    });
+}
