@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
-import { View, Text, StyleSheet, Alert, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import TodoCard from "./TodoCard";
 import { groupTasksByProject, buildListData, groupTasksByPriority, buildListDataByPriority } from '../helpers/projects';
 import { PRIORITIES } from "../helpers/priority";
 import { updateTasksPriority, updateTasksProject, reorderTasksWithinProject, reorderTasks, updateProjectName, deleteProject } from "../helpers/firestoreHelpers";
+import { Ionicons } from '@expo/vector-icons';
 
 const ListView = ({
     userId,
@@ -19,16 +20,8 @@ const ListView = ({
     setDraggingTask,
     setHoveredTask,
     grouping,
-    onEditProject,
-    editingProjectIds,
-    onCancelEditing,
-    onRenameProject
 }) => {
     const [data, setData] = useState([]);
-    const [editingProjectId, setEditingProjectId] = useState(null);
-    // const [newProjectName, setNewProjectName] = useState("");
-    const [newProjectNames, setNewProjectNames] = useState({});
-    
     // const [originalData, setOriginalData] = useState([]);
     // const [sourceColumnKey, setSourceColumnKey] = useState(null);
 
@@ -55,176 +48,64 @@ const ListView = ({
         return found ? found.name : 'Unassigned';
     };
 
-    const handleStartEditingProject = (projectId, currentName) => {
-        console.log("Starting edit for project:", projectId);
-        setEditingProjectId(projectId);
-        setNewProjectNames(prev => ({
-            ...prev,
-            [projectId]: currentName, // Set initial project name
-        }));
-    };
-    
-    const handleCancelEditingProject = (projectId) => {
-        setEditingProjectId(null);
-        setNewProjectNames(prev => {
-            // Remove project’s draft name from state
-            const updated = { ...prev };
-            delete updated[projectId];
-            return updated;
-        });
-    };
-
-    const handleRenameProject = async (projectId, newName) => {
-        if (!newName.trim()) {
-            Alert.alert("Invalid Name", "Project name cannot be empty.");
-            return;
-        }
-
-        if (!userId || !projectId || !newName) {
-            Alert.alert("Error", "User ID, Project ID, and the new project name are required.");
-            return;
-        }
-    
-        console.log("projectId:", projectId); 
-        // try {
-        //     await updateProjectName(userId, projectId, newName);
-        //     Alert.alert("Success", "Project renamed successfully.");
-        //     setEditingProjectId(null);
-        //     setNewProjectNames(prev => {
-        //         const updated = { ...prev };
-        //         delete updated[projectId]; // Remove the edited project from the state
-        //         return updated;
-        //     });
-        // } catch (error) {
-        //     console.error("Error renaming project:", error);
-        //     Alert.alert("Error", "Could not rename project.");
-        // } 
-        // Update project name in Firestore outside of render cycle
-        setNewProjectNames((prevNames) => ({
-            ...prevNames,
-            [projectId]: newName,
-        }));
-        // setEditingProjectId(null);
-        try {
-            await updateProjectName(userId, projectId, newName);
-            Alert.alert("Success", "Project renamed successfully.");
-            setEditingProjectId(null);
-            setNewProjectNames(prev => {
-                const updated = { ...prev };
-                delete updated[projectId]; // Remove the edited project from the state
-                return updated;
-            });
-        } catch (error) {
-            console.error("Error renaming project:", error);
-            Alert.alert("Error", "Could not rename project.");
-        }
-    };
-
-    useEffect(() => {
-        if (Object.keys(newProjectNames).length === 0) return;
-
-        const projectIdsToUpdate = Object.keys(newProjectNames);
-        const updateProjectNames = async () => {
-            try {
-                for (let projectId of projectIdsToUpdate) {
-                    const newName = newProjectNames[projectId];
-                    await updateProjectName(userId, projectId, newName);
-                    Alert.alert("Success", "Project renamed successfully.");
-                }
-            } catch (error) {
-                console.error("Error renaming project:", error);
-                Alert.alert("Error", "Could not rename project.");
-            }
-        };
-
-        updateProjectNames();
-    }, [newProjectNames, userId]);
-
-    
-    const handleDeleteProject = (projectId, projectName) => {
-        Alert.alert(
-            "Confirm Delete",
-            `Are you sure you want to delete the project "${projectName}" and all its tasks?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            await deleteProject(userId, projectId);
-                            Alert.alert("Deleted", "Project and its tasks deleted successfully.");
-                        } catch (error) {
-                            console.error("Error deleting project:", error);
-                            Alert.alert("Error", "Could not delete project.");
-                        }
-                    },
-                },
-            ]
-        );
-    };
-    
-
-    const renderItem = useCallback(({ item, drag }) => {
+    const renderItem = useCallback(({ item, drag, isActive }) => {
         if (item.type === 'projectHeader') {
-            const projectId = item.projectId;
-            const projectName = item.projectName;
-
-            // Check if this header is in edit mode
-            const isEditing = editingProjectIds[projectId];
-            const currentProjectName = newProjectNames[projectId] || projectName;
-
             return (
-                // <View style={styles.projectHeader}>
-                //     <Text style={[styles.projectHeaderText, { color: '#333' }]}>
-                //         {item.projectName}
-                //     </Text>
-                // </View>
                 <View style={styles.projectHeader}>
-                    {isEditing ? (
-                        <View style={styles.editProjectName}>
-                            <TextInput
-                                style={styles.projectInput}
-                                value={newProjectNames[projectId] || projectName}
-                                onChangeText={(text) => {
-                                    setNewProjectNames((prev) => ({
-                                        ...prev,
-                                        [projectId]: text
-                                    }));
-                                }}
-                                placeholder="Enter new project name"
-                            />
-                            <TouchableOpacity
-                                onPress={() => onRenameProject(projectId, newProjectNames[projectId])}
-                                style={styles.saveButton}
-                            >
-                                <Text style={{ color: 'blue', marginRight: 10 }}>Save</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={() => onCancelEditing(projectId)}
-                                style={styles.cancelButton}
-                            >
-                                <Text>Cancel</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <View style={styles.projectHeaderTextContainer}>
-                            <Text style={styles.projectHeaderText}>{projectName}</Text>
-                            <TouchableOpacity
-                                // onPress={() => handleStartEditingProject(projectId, projectName)}
-                                onPress={() => onEditProject(projectId)}
-                                style={styles.iconButton}
-                            >
-                                <Text style={{ color: 'blue' }}>Edit</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={() => handleDeleteProject(projectId, projectName)}
-                                style={styles.iconButton}
-                            >
-                                <Text style={{ color: 'red' }}>Delete</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
+                    <Text style={[styles.projectHeaderText, { color: '#333' }]}>
+                        {item.projectName}
+                    </Text>
+                    <TouchableOpacity
+                        onPress={() => {
+                            Alert.prompt(
+                                'Edit Project Name',
+                                'Enter a new name for this project:',
+                                [
+                                    { text: 'Cancel', style: 'cancel' },
+                                    {
+                                        text: 'OK',
+                                        onPress: async (newName) => {
+                                            if (newName) {
+                                                try {
+                                                    await updateProjectName(userId, item.pName, newName);
+                                                    Alert.alert('Success', 'Project name updated.');
+                                                } catch (error) {
+                                                    Alert.alert('Error', 'Could not update project name.');
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                'plain-text',
+                                item.projectName
+                            );
+                        }}
+                    >
+                        <Text>Edit</Text>
+                    </TouchableOpacity>
+                    {/* Delete Button */}
+                    <TouchableOpacity
+                        onPress={() => {
+                            Alert.alert('Confirm', 'Are you sure you want to delete this project?', [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                    text: 'Delete',
+                                    style: 'destructive',
+                                    onPress: async () => {
+                                        try {
+                                            await deleteProject(userId, item.pName); // Delete the project and its tasks
+                                            Alert.alert('Deleted', 'Project and associated tasks deleted.');
+                                        } catch (error) {
+                                            console.error('Error deleting project:', error);
+                                            Alert.alert('Error', 'Could not delete project.');
+                                        }
+                                    }
+                                }
+                            ]);
+                        }}
+                    >
+                        <Ionicons name="trash-outline" size={24} color="red" />
+                    </TouchableOpacity>
                 </View>
             );
         }
@@ -282,12 +163,11 @@ const ListView = ({
         }
 
         return null;
-    }, [grouping, projects, navigation, setDraggingTask, deleteTask, editingProjectId, newProjectNames, onEditProject]);
+    }, [grouping, projects, navigation, setDraggingTask, deleteTask]);
 
     const keyExtractor = (item, index) => {
         if (item.type === 'projectHeader') {
-            return `projectHeader-${item.projectId}-${index}`;
-            // return `projectHeader-${item.projectId}`;
+            return `projectHeader-${item.projectName}-${index}`;
         }
         if (item.type === 'priorityHeader') {
             return `priorityHeader-${item.priority}-${index}`;
@@ -317,17 +197,17 @@ const ListView = ({
 
         // Scan upward from the `to` index to find the nearest header
         for (let i = to; i >= 0; i--) {
-            const checkItem = newData[i];
-            if (checkItem.type === 'projectHeader') {
-                finalProjectId = checkItem.pName;
-                break;
-            } else if (checkItem.type === 'priorityHeader') {
-                finalPriority = checkItem.priority;
-                break;
-            } else if (checkItem.type === 'noProjectHeader') {
-                finalProjectId = null;
-                break;
-            }
+        const checkItem = newData[i];
+        if (checkItem.type === 'projectHeader') {
+            finalProjectId = checkItem.pName; // stored in .pName by buildListData
+            break;
+        } else if (checkItem.type === 'priorityHeader') {
+            finalPriority = checkItem.priority;
+            break;
+        } else if (checkItem.type === 'noProjectHeader') {
+            finalProjectId = null;
+            break;
+        }
         }
 
         // Distinguish whether it's a reorder or a group change
@@ -363,7 +243,7 @@ const ListView = ({
                 if (finalPriority && finalPriority !== originalPriority) {
                     // Change the priority
                     draggedItem.priority = finalPriority;
-
+          
                     await updateTasksPriority(userId, [draggedItem], finalPriority);
                     Alert.alert('Success', `Task priority set to "${finalPriority}".`);
                 } else {
@@ -408,7 +288,6 @@ const ListView = ({
                 onDragEnd={onDragEnd}
                 activationDistance={5}
                 containerStyle={{ paddingBottom: 100 }}
-                scrollEnabled
             />
             
         </View>
@@ -453,30 +332,6 @@ const styles = StyleSheet.create({
         margin: 10,
         fontSize: 14,
         color: '#666',
-    },
-    editProjectName: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    projectInput: {
-        width: 200,
-        borderColor: '#ccc',
-        borderWidth: 1,
-        padding: 5,
-        marginRight: 10,
-    },
-    iconButton: {
-        marginLeft: 10,
-        padding: 5,
-    },
-    saveButton: {
-        backgroundColor: '#4CAF50',
-        padding: 8,
-        marginRight: 10,
-    },
-    cancelButton: {
-        backgroundColor: '#F44336',
-        padding: 8,
     },
 });
 

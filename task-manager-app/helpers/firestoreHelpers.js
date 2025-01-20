@@ -1,5 +1,6 @@
-import { doc, deleteDoc, updateDoc, collection, addDoc, writeBatch, getDocs, query, where, getFirestore } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, deleteField, collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+import { deleteTask } from './taskActions';
 
 // Add or update eventId for a To-Do list
 export async function updateTaskEventId(userId, taskId, eventId) {
@@ -63,52 +64,6 @@ export async function createProject(userId, projectName) {
     return projectDoc.id;
 }
 
-// Delete a project by its ID
-export async function deleteProject(userId, projectId) {
-    const db = getFirestore();
-    const projectRef = doc(db, 'projects', userId, 'userProjects', projectId);
-    
-    // Delete associated tasks
-    const tasksRef = collection(db, 'tasks', userId, 'taskList');
-    const q = query(tasksRef, where('projectId', '==', projectId));
-    const taskSnapshot = await getDocs(q);
-
-    taskSnapshot.forEach(async (taskDoc) => {
-        await deleteDoc(doc(db, 'tasks', userId, 'taskList', taskDoc.id));
-    });
-
-    // Delete the project
-    await deleteDoc(projectRef);
-}
-
-// Update a project's name
-export async function updateProjectName(userId, projectId, newProjectName) {
-    if (!userId || !projectId || !newProjectName) {
-        throw new Error("User ID, Project ID, and the new project name are required.");
-    }
-
-    // const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
-    const projectRef = doc(getFirestore(), 'projects', userId, 'userProjects', projectId);
-    await updateDoc(projectRef, { name: newProjectName });
-}
-
-// // Reorder to-do lists within the same project
-// export async function reorderTasksWithinProject(userId, tasks, projectId = null) {
-//     if (!userId || !tasks) {
-//         throw new Error("User ID and Tasks are required.");
-//     }
-
-//     const batch = writeBatch(db);
-//     // Sort tasks by their current order or fallback 0
-//     const sorted = [...tasks].sort((a,b) => (a.order || 0) - (b.order || 0));
-//     // Reassign a new order
-//     sorted.forEach((task, index) => {
-//         const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-//         batch.update(taskRef, { order: index });
-//     });
-//     await batch.commit();
-// }
-
 // Reorder to-do lists within the same project or priority
 export async function reorderTasks(userId, tasks, projectId = null, priority = null) {
     if (!userId || !tasks) {
@@ -137,4 +92,43 @@ export async function reorderTasks(userId, tasks, projectId = null, priority = n
     });
 
     await batch.commit();
+}
+
+// Update an existing project's name
+export async function updateProjectName(userId, projectId, newName) {
+    if (!userId || !projectId || !newName) {
+        throw new Error("User ID, Project ID, and New Name are required.");
+    }
+
+    const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
+    await updateDoc(projectRef, {
+        name: newName,
+    });
+}
+
+// Delete a project and its associated tasks
+export async function deleteProject(userId, projectId, navigation) {
+    if (!userId || !projectId) {
+        throw new Error("User ID and Project ID are required.");
+    }
+
+    const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
+    const todoListsQuery = query(collection(db, `tasks/${userId}/taskList`), where('projectId', '==', projectId));
+
+    try {
+        const todoListsSnapshot = await getDocs(todoListsQuery);
+        // Delete each todo list using deleteTask function
+        const deleteTodoListPromises = [];
+        todoListsSnapshot.forEach(doc => {
+            const task = doc.data();
+            task.id = doc.id; // Ensure the task ID is set
+            deleteTodoListPromises.push(deleteTask(userId, task, navigation, false));
+        });
+        await Promise.all(deleteTodoListPromises);
+
+        // Delete the project itself
+        await deleteDoc(projectRef);
+    } catch (error) {
+        throw new Error('Error deleting project: ' + error.message);
+    }
 }
