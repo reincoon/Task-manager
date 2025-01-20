@@ -112,27 +112,50 @@ export async function deleteProject(userId, projectId, navigation) {
         throw new Error("User ID and Project ID are required.");
     }
 
+    // try {
+    //     // Delete all tasks associated with the project
+    //     const tasksRef = collection(db, `projects/${userId}/userProjects/${projectId}/tasks`);
+    //     const tasksSnapshot = await getDocs(tasksRef);
+    //     // tasksSnapshot.forEach(async (taskDoc) => {
+    //     //     // Delete each task
+    //     //     // await deleteDoc(taskDoc.ref);
+    //     //     const task = taskDoc.data()
+    //     //     await deleteTask(userId, task, navigation, false); 
+    //     // });
+    //     // Delete each task using deleteTask function
+    //     for (const taskDoc of tasksSnapshot.docs) {
+    //         const task = taskDoc.data();
+    //         task.id = taskDoc.id;
+    //         // Handle the task deletion along with its data
+    //         await deleteTask(userId, task, navigation, false);
+    //     }
+
+    //     // Delete the project itself
+    //     const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
+    //     await deleteDoc(projectRef);
+    // } catch (error) {
+    //     throw new Error('Error deleting project: ' + error.message);
+    // }
+    // const projectRef = db.collection('projects').doc(projectId);
+    // const todoListsRef = db.collection('todoLists').where('projectId', '==', projectId);
+    const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
+    const todoListsQuery = query(collection(db, `tasks/${userId}/taskList`), where('projectId', '==', projectId));
+
     try {
-        // Delete all tasks associated with the project
-        const tasksRef = collection(db, `projects/${userId}/userProjects/${projectId}/tasks`);
-        const tasksSnapshot = await getDocs(tasksRef);
-        // tasksSnapshot.forEach(async (taskDoc) => {
-        //     // Delete each task
-        //     // await deleteDoc(taskDoc.ref);
-        //     const task = taskDoc.data()
-        //     await deleteTask(userId, task, navigation, false); 
-        // });
-        // Delete each task using deleteTask function
-        for (const taskDoc of tasksSnapshot.docs) {
-            const task = taskDoc.data();
-            task.id = taskDoc.id;
-            // Handle the task deletion along with its data
-            await deleteTask(userId, task, navigation, false);
-        }
+        const todoListsSnapshot = await getDocs(todoListsQuery);
+        // Delete each todo list using deleteTask function
+        const deleteTodoListPromises = [];
+        todoListsSnapshot.forEach(doc => {
+            const task = doc.data();
+            task.id = doc.id; // Ensure the task ID is set
+            deleteTodoListPromises.push(deleteTask(userId, task, navigation, false));
+        });
+        await Promise.all(deleteTodoListPromises);
 
         // Delete the project itself
-        const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
+        // await projectRef.delete();
         await deleteDoc(projectRef);
+        console.log(`Project ${projectId} and its todo lists have been deleted successfully.`);
     } catch (error) {
         throw new Error('Error deleting project: ' + error.message);
     }

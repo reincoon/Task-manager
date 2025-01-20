@@ -315,8 +315,8 @@ export async function deleteTask(userId, task, navigation, shouldNavigateBack = 
         }
 
         // Finally delete from Firestore
-        // const taskDocRef = doc(db, `tasks/${userId}/taskList`, task.id);
-        const taskDocRef = doc(db, `projects/${userId}/userProjects/${task.projectId}/tasks`, task.id);
+        const taskDocRef = doc(db, `tasks/${userId}/taskList`, task.id);
+        // const taskDocRef = doc(db, `projects/${userId}/userProjects/${task.projectId}/tasks`, task.id);
         await deleteDoc(taskDocRef);
 
         // Navigate back
