@@ -1,5 +1,6 @@
 import { doc, updateDoc, deleteDoc, deleteField, collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+import { deleteTask } from './taskActions';
 
 // Add or update eventId for a To-Do list
 export async function updateTaskEventId(userId, taskId, eventId) {
@@ -63,23 +64,6 @@ export async function createProject(userId, projectName) {
     return projectDoc.id;
 }
 
-// // Reorder to-do lists within the same project
-// export async function reorderTasksWithinProject(userId, tasks, projectId = null) {
-//     if (!userId || !tasks) {
-//         throw new Error("User ID and Tasks are required.");
-//     }
-
-//     const batch = writeBatch(db);
-//     // Sort tasks by their current order or fallback 0
-//     const sorted = [...tasks].sort((a,b) => (a.order || 0) - (b.order || 0));
-//     // Reassign a new order
-//     sorted.forEach((task, index) => {
-//         const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-//         batch.update(taskRef, { order: index });
-//     });
-//     await batch.commit();
-// }
-
 // Reorder to-do lists within the same project or priority
 export async function reorderTasks(userId, tasks, projectId = null, priority = null) {
     if (!userId || !tasks) {
@@ -123,7 +107,7 @@ export async function updateProjectName(userId, projectId, newName) {
 }
 
 // Delete a project and its associated tasks
-export async function deleteProject(userId, projectId) {
+export async function deleteProject(userId, projectId, navigation) {
     if (!userId || !projectId) {
         throw new Error("User ID and Project ID are required.");
     }
@@ -132,10 +116,19 @@ export async function deleteProject(userId, projectId) {
         // Delete all tasks associated with the project
         const tasksRef = collection(db, `projects/${userId}/userProjects/${projectId}/tasks`);
         const tasksSnapshot = await getDocs(tasksRef);
-        tasksSnapshot.forEach(async (taskDoc) => {
-            // Delete each task
-            await deleteDoc(taskDoc.ref); 
-        });
+        // tasksSnapshot.forEach(async (taskDoc) => {
+        //     // Delete each task
+        //     // await deleteDoc(taskDoc.ref);
+        //     const task = taskDoc.data()
+        //     await deleteTask(userId, task, navigation, false); 
+        // });
+        // Delete each task using deleteTask function
+        for (const taskDoc of tasksSnapshot.docs) {
+            const task = taskDoc.data();
+            task.id = taskDoc.id;
+            // Handle the task deletion along with its data
+            await deleteTask(userId, task, navigation, false);
+        }
 
         // Delete the project itself
         const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
