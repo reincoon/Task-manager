@@ -31,8 +31,9 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     // Project creation modal
     const [isProjectModalVisible, setIsProjectModalVisible] = useState(false);
     const [projectModalTasks, setProjectModalTasks] = useState([]);
-    const [isEditingProject, setIsEditingProject] = useState(false);
-    const [editingProjectId, setEditingProjectId] = useState(null);
+    // State for editing project name
+    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const [editingProjId, setEditingProjId] = useState(null);
     const [newProjectName, setNewProjectName] = useState('');
 
     // Initialize columns based on grouping
@@ -213,8 +214,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
 
         try {
             // Create a new project in Firebase
-            const projectId = await createProject(userId, projectName);
-
+            await createProject(userId, projectName);
             // // Assign selected tasks to the new project
             // if (projectModalTasks.length === 2) {
             //     await updateTasksProject(userId, projectModalTasks, projectId);
@@ -257,16 +257,18 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         setIsMoveModalVisible(true);
     }, [grouping]);
 
-    const openEditProjectModal = (projectId, currentName) => {
-        if (editingProjectId !== projectId) {
-            setEditingProjectId(projectId);
-            const project = projects.find(p => p.id === projectId);
-            // setNewProjectName(project ? project.name : '');
-            setNewProjectName(currentName);
-        }
+    // Open modal, store projectId, load name
+    const openEditProjectModal = (projectId) => {
+        // Set ID
+        setEditingProjId(projectId);
+        // Set name from the project data
+        setNewProjectName(getProjectName(projectId));
+        // Show modal
+        setIsEditModalVisible(true);
     };
 
-    const handleEditProject = async (projectId, currentName) => {
+    const handleEditProject = async () => {
+        if (!editingProjId) return;
         if (newProjectName.trim() === '') {
             Alert.alert('Error', 'Project name cannot be empty');
             return;
@@ -275,30 +277,16 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         try {
             // setNewProjectName('');
             // Update the project name in Firebase
-            await updateProjectName(userId, editingProjectId, newProjectName);
+            await updateProjectName(userId, editingProjId, newProjectName);
             Alert.alert('Success', 'Project name updated');
             // setEditingProjectId(null);
             // setNewProjectName('');
         } catch (error) {
             Alert.alert('Error', 'Failed to update project name');
-            console.error(error);
         } finally {
             // Close modal after saving
-            setEditingProjectId(null);
-            setNewProjectName('');
-        }
-    };
-
-    const handleSaveProjectName = async () => {
-        try {
-            await updateProjectName(userId, editingProjectId, newProjectName);
-            Alert.alert('Success', 'Project name updated');
-        } catch (err) {
-            Alert.alert('Error', 'Failed to update project name');
-            console.error(err);
-        } finally {
-            setIsEditingProject(false);
-            setEditingProjectId(null);
+            setIsEditModalVisible(false);
+            setEditingProjId(null);
             setNewProjectName('');
         }
     };
@@ -318,14 +306,14 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         ]);
     };
 
-    const EditProjectModal = ({ visible, onClose, onSave, projectName, setProjectName }) => (
-        <Modal visible={visible} animationType="slide" transparent={true}>
+    const EditProjectModal = ({ visible, onClose, onSave, projectName, onProjectNameChange }) => (
+        <Modal visible={visible} animationType="slide" transparent>
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
-                    <Text>Edit Project Name</Text>
+                    <Text style={{ marginBottom: 10, fontWeight: '600' }}>Edit Project Name</Text>
                     <TextInput
                         value={projectName}
-                        onChangeText={setProjectName}
+                        onChangeText={onProjectNameChange}
                         style={styles.input}
                         placeholder="Enter new project name"
                     />
@@ -390,7 +378,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         <View key={column.key} style={styles.column}>
             <View style={styles.columnHeader}>
                 <Text style={styles.columnTitle}>{column.title}</Text>
-                {grouping === 'project'?(
+                {grouping === 'project' && column.key !== 'No Project' && (
                     <>
                         <TouchableOpacity
                             style={styles.editButton}
@@ -405,7 +393,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                             <Text style={styles.deleteButtonText}>Delete</Text>
                         </TouchableOpacity>
                     </>
-                ) : (null) }
+                )}
                 
                 
                 <TouchableOpacity
@@ -468,17 +456,17 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 onCreate={handleCreateProject}
                 // selectedTasks={projectModalTasks}
             />
-            {editingProjectId && (
-                <EditProjectModal
-                    visible={Boolean(editingProjectId)}
-                    onClose={() => {setEditingProjectId(null)
-                        setNewProjectName('');
-                    }}
-                    onSave={handleEditProject}
-                    projectName={newProjectName}
-                    setProjectName={setNewProjectName}
-                />
-            )}
+            <EditProjectModal
+                visible={isEditModalVisible}
+                onClose={() => {
+                    setIsEditModalVisible(false);
+                    setEditingProjId(null);
+                    setNewProjectName('');
+                }}
+                onSave={handleEditProject}
+                projectName={newProjectName}
+                setProjectName={setNewProjectName}
+            />
         </View>
     );
 };
@@ -491,6 +479,7 @@ const styles = StyleSheet.create({
     },
     columnsContainer: {
         // flexDirection: 'row',
+        flexGrow: 1,
         alignItems: 'flex-start',
         justifyContent: 'flex-start',
     },
@@ -582,6 +571,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 10,
+        paddingTop: 10,
         marginBottom: 10,
     },
     kanbanTitle: {
@@ -611,13 +601,15 @@ const styles = StyleSheet.create({
     },
     editButton: {
         backgroundColor: '#4CAF50',
-        padding: 5,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
         borderRadius: 5,
         marginRight: 10,
     },
     deleteButton: {
         backgroundColor: '#f44336',
-        padding: 5,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
         borderRadius: 5,
         marginRight: 10,
     },
@@ -636,7 +628,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.5)',
     },
     modalContent: {
-        width: 300,
+        width: '80%',
         backgroundColor: 'white',
         padding: 20,
         borderRadius: 10,
@@ -646,7 +638,9 @@ const styles = StyleSheet.create({
         borderColor: 'gray',
         borderWidth: 1,
         marginBottom: 10,
-        paddingLeft: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 4,
     },
 });
 
