@@ -43,11 +43,10 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     input: {
-        width: '80%',
         padding: 10,
-        marginBottom: 20,
-        backgroundColor: '#fff',
         borderColor: '#ccc',
-        borderRadius: 4,
+        borderWidth: 1,
+        marginBottom: 20,
+        borderRadius: 5,
     },
 });
