@@ -7,6 +7,7 @@ import { PRIORITIES } from "../helpers/priority";
 import { updateTasksPriority, updateTasksProject, reorderTasksWithinProject, reorderTasks, updateProjectName, deleteProject } from "../helpers/firestoreHelpers";
 import { Ionicons } from '@expo/vector-icons';
 import ProjectNameEditModal from "./ProjectNameEditModal";
+import useProjectNameEdit from "../helpers/useProjectNameEdit";
 
 const ListView = ({
     userId,
@@ -15,26 +16,25 @@ const ListView = ({
     sortOption,
     setSortOption,
     navigation,
-    // updateTasksProject,
-    // reorderTasksWithinProject,
     deleteTask,
     setDraggingTask,
     setHoveredTask,
     grouping,
 }) => {
     const [data, setData] = useState([]);
-    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-    const [editingProjId, setEditingProjId] = useState(null);
-    const [newProjectName, setNewProjectName] = useState('');
 
-    // const [originalData, setOriginalData] = useState([]);
-    // const [sourceColumnKey, setSourceColumnKey] = useState(null);
+    // Hook for handling project name updates
+    const {
+        isEditModalVisible,
+        editingProjId,
+        newProjectName,
+        setNewProjectName,
+        openEditProjectModal,
+        handleEditProject,
+        setIsEditModalVisible,
+        setEditingProjId,
+    } = useProjectNameEdit(userId);
 
-    // useEffect(() => {
-    //     const { noProject, byProject } = groupTasksByProject(tasks, projects);
-    //     const newData = buildListData(noProject, byProject, projects, sortOption);
-    //     setData(newData);
-    // }, [tasks, projects, sortOption]);
     useEffect(() => {
         let newData = [];
         if (grouping === 'project') {
@@ -53,30 +53,6 @@ const ListView = ({
         return found ? found.name : 'Unassigned';
     };
 
-    const openEditProjectModal = (projectId, projectName) => {
-        const actualName = projectName.split(' (')[0];
-        setEditingProjId(projectId);
-        setNewProjectName(actualName.trim());
-        setIsEditModalVisible(true);
-    };
-
-    const handleEditProject = async (projId, newName) => {
-        if (!newName.trim()) {
-            Alert.alert('Error', 'Project name cannot be empty.');
-            return;
-        }
-        try {
-            await updateProjectName(userId, projId, newName);
-            Alert.alert('Success', 'Project renamed.');
-        } catch (err) {
-            Alert.alert('Error', 'Failed to rename project.');
-        } finally {
-            setIsEditModalVisible(false);
-            setEditingProjId(null);
-            setNewProjectName('');
-        }
-    };
-
     const renderItem = useCallback(({ item, drag, isActive }) => {
         if (item.type === 'projectHeader') {
             return (
@@ -86,28 +62,6 @@ const ListView = ({
                     </Text>
                     <TouchableOpacity
                         onPress={() => {
-                            // Alert.prompt(
-                            //     'Edit Project Name',
-                            //     'Enter a new name for this project:',
-                            //     [
-                            //         { text: 'Cancel', style: 'cancel' },
-                            //         {
-                            //             text: 'OK',
-                            //             onPress: async (newName) => {
-                            //                 if (newName) {
-                            //                     try {
-                            //                         await updateProjectName(userId, item.pName, newName);
-                            //                         Alert.alert('Success', 'Project name updated.');
-                            //                     } catch (error) {
-                            //                         Alert.alert('Error', 'Could not update project name.');
-                            //                     }
-                            //                 }
-                            //             }
-                            //         }
-                            //     ],
-                            //     'plain-text',
-                            //     item.projectName
-                            // );
                             openEditProjectModal(item.pName, item.projectName);
                         }}
                     >
@@ -193,7 +147,7 @@ const ListView = ({
         }
 
         return null;
-    }, [grouping, projects, navigation, setDraggingTask, deleteTask]);
+    }, [grouping, projects, navigation, setDraggingTask, deleteTask, openEditProjectModal]);
 
     const keyExtractor = (item, index) => {
         if (item.type === 'projectHeader') {
@@ -213,7 +167,6 @@ const ListView = ({
 
         const draggedItem = newData[to];
         
-        // setOriginalData(oldData);
         if (draggedItem.type !== 'task') {
             // Reorder tasks
             setData(newData);
@@ -269,17 +222,15 @@ const ListView = ({
                 }
             } else {
                 // Grouping by priority
-
                 if (finalPriority && finalPriority !== originalPriority) {
                     // Change the priority
                     draggedItem.priority = finalPriority;
-          
                     await updateTasksPriority(userId, [draggedItem], finalPriority);
                     Alert.alert('Success', `Task priority set to "${finalPriority}".`);
                 } else {
                     // Reordering within the same priority
                     const tasksInSamePriority = newData.filter(
-                        (it) => it.type === 'task' && (it.priority || 'Low') === originalPriority
+                        (item) => item.type === 'task' && (item.priority || 'Low') === originalPriority
                     );
                     await reorderTasks(userId, tasksInSamePriority, null, originalPriority);
                     Alert.alert('Success', 'Tasks reordered within same priority.');
@@ -287,7 +238,6 @@ const ListView = ({
             }
         
         } catch (error) {
-            console.error('Error in onDragEnd:', error);
             Alert.alert('Error', 'Failed to update tasks after drag-and-drop.');
             setData(oldData); // Revert UI on failure
             return;
@@ -308,8 +258,8 @@ const ListView = ({
     return (
         <View style={{ flex: 1 }}>
             <Text style={styles.instructionsText}>
-                {'\n'}- Drag a to-do list to a project header or a task in that project to move it into the project.
-                {'\n'}- Drag a task to the 'no project' section to remove it from a project.
+                {'\n'}- Drag a to-do list under a project header or on a task in that project to move it into the project.
+                {'\n'}- Drag a task to the 'Unassigned to-do lists' section to remove it from a project.
             </Text>
             <DraggableFlatList
                 data={data}
@@ -320,12 +270,6 @@ const ListView = ({
                 containerStyle={{ paddingBottom: 100 }}
             />
             <ProjectNameEditModal
-                // visible={isEditModalVisible}
-                // onClose={() => setIsEditModalVisible(false)}
-                // onSave={handleEditProject}
-                // projectName={newProjectName}
-                // projectId={editingProjId}
-                // onChangeProjectName={setNewProjectName}
                 visible={isEditModalVisible}
                 onClose={() => {
                     setIsEditModalVisible(false);

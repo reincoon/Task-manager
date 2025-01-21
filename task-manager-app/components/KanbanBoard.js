@@ -10,7 +10,7 @@ import AddProjectButton from './AddProjectButton';
 import { deleteTask } from '../helpers/taskActions';
 import TodoCard from '../components/TodoCard';
 import ProjectNameEditModal from './ProjectNameEditModal';
-import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
+import useProjectNameEdit from '../helpers/useProjectNameEdit';
 
 // Helper function to check if a task is due within the next 48 hours
 const isDueSoon = (dueDate) => {
@@ -33,10 +33,18 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     // Project creation modal
     const [isProjectModalVisible, setIsProjectModalVisible] = useState(false);
     const [projectModalTasks, setProjectModalTasks] = useState([]);
-    // State for editing project name
-    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-    const [editingProjId, setEditingProjId] = useState(null);
-    const [newProjectName, setNewProjectName] = useState('');
+
+    // Hook for handling project name updates
+    const {
+        isEditModalVisible,
+        editingProjId,
+        newProjectName,
+        setNewProjectName,
+        openEditProjectModal,
+        handleEditProject,
+        setIsEditModalVisible,
+        setEditingProjId,
+    } = useProjectNameEdit(userId);
 
     // Initialize columns based on grouping
     useEffect(() => {
@@ -65,13 +73,12 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                     ? noProject.filter((task) => isDueSoon(task.dueDate))
                     : noProject;
 
-                // if (noProject.length > 0) {
-                    updatedColumns.push({
-                        key: 'No Project',
-                        title: `Unassigned (${filteredNoProject.length})`,
-                        data: filteredNoProject,
-                    });
-                // }
+                updatedColumns.push({
+                    key: 'No Project',
+                    title: `Unassigned (${filteredNoProject.length})`,
+                    data: filteredNoProject,
+                });
+
                 for (let pId in byProject) {
                     let tasksForProject = byProject[pId];
 
@@ -118,7 +125,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         initializeDueSoonFilters();
     }, [grouping, rawTasks, projects]);
 
-
     // Handle 'add' project action from Kanban view
     const handleAddProject = () => {
         setIsProjectModalVisible(true);
@@ -128,7 +134,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         setColumns(prevColumns => {
             return prevColumns.map(column => {
                 if (column.key === columnKey) {
-                    // reorderTasks(columnKey, newData);
                     return { ...column, data: newData };
                 }
                 return column;
@@ -217,28 +222,13 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         try {
             // Create a new project in Firebase
             await createProject(userId, projectName);
-            // // Assign selected tasks to the new project
-            // if (projectModalTasks.length === 2) {
-            //     await updateTasksProject(userId, projectModalTasks, projectId);
-            //     Alert.alert('Project Created', `Project "${projectName}" created with two tasks.`);
-            // } else {
-                Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
-            // }
-
-            // // Refresh columns by refetching rawTasks or ensure data is up-to-date
-            // setIsProjectModalVisible(false);
-            // setProjectModalTasks([]);
-
+            Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
         } catch (err) {
             console.error(err);
             Alert.alert('Error', err.message);
-            // Revert data
-            // setIsProjectModalVisible(false);
         } finally {
+            // Revert data
             setIsProjectModalVisible(false);
-            // setDraggingItem(null);
-            // setSourceColumnKey(null);
-            // setProjectModalTasks([]);
         }
     };
 
@@ -259,51 +249,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         setIsMoveModalVisible(true);
     }, [grouping]);
 
-    // // Open modal, store projectId, load name
-    // const openEditProjectModal = (projectId) => {
-    //     // Set ID
-    //     setEditingProjId(projectId);
-    //     // Set name from the project data
-    //     setNewProjectName(getProjectName(projectId));
-    //     // Show modal
-    //     setIsEditModalVisible(true);
-    // };
-    const openEditProjectModal = (projectId, projectName) => {
-        // Strip out the count from the column key
-        const actualProjectName = projectName.split(' (')[0];
-        // Set ID
-        setEditingProjId(projectId);
-        // Set name from the project data
-        setNewProjectName(actualProjectName.trim());
-        // Show modal
-        setIsEditModalVisible(true);
-    };
-
-    const handleEditProject = async (projectId, newProjectName) => {
-        // if (!editingProjId) return;
-        if (newProjectName.trim() === '') {
-            Alert.alert('Error', 'Project name cannot be empty');
-            return;
-        }
-    
-        try {
-            // setNewProjectName('');
-            // Update the project name in Firebase
-            // await updateProjectName(userId, editingProjId, newProjectName);
-            await updateProjectName(userId, projectId, newProjectName);
-            Alert.alert('Success', 'Project name updated');
-            // setEditingProjectId(null);
-            // setNewProjectName('');
-        } catch (error) {
-            Alert.alert('Error', 'Failed to update project name');
-        } finally {
-            // Close modal after saving
-            setIsEditModalVisible(false);
-            setEditingProjId(null);
-            setNewProjectName('');
-        }
-    };
-
     const handleDeleteProject = async (projectId) => {
         Alert.alert('Delete Project', 'Are you sure you want to delete this project?', [
             { text: 'Cancel', style: 'cancel' },
@@ -318,24 +263,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
             }},
         ]);
     };
-
-    // const EditProjectModal = ({ visible, onClose, onSave, projectName, onProjectNameChange }) => (
-    //     <Modal visible={visible} animationType="slide" transparent>
-    //         <View style={styles.modalContainer}>
-    //             <View style={styles.modalContent}>
-    //                 <Text style={{ marginBottom: 10, fontWeight: '600' }}>Edit Project Name</Text>
-    //                 <TextInput
-    //                     value={projectName}
-    //                     onChangeText={onProjectNameChange}
-    //                     style={styles.input}
-    //                     placeholder="Enter new project name"
-    //                 />
-    //                 <Button title="Save" onPress={onSave} />
-    //                 <Button title="Cancel" onPress={onClose} />
-    //             </View>
-    //         </View>
-    //     </Modal>
-    // );
 
     const renderTask = useCallback(({ item, drag, isActive }) => {
         const projectName = getProjectName(item.projectId);
@@ -408,7 +335,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                     </>
                 )}
                 
-                
                 <TouchableOpacity
                     style={[
                         styles.filterButton,
@@ -430,17 +356,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 contentContainerStyle={styles.tasksContainer}
                 canDrag={({ item }) => !!item.id}
             />
-            {/* <EditProjectModal
-                visible={isEditModalVisible}
-                onClose={() => {
-                    setIsEditModalVisible(false);
-                    setEditingProjId(null);
-                    setNewProjectName('');
-                }}
-                onSave={handleEditProject}
-                projectName={newProjectName}
-                setProjectName={setNewProjectName}
-            /> */}
         </View>
     );
 
@@ -478,7 +393,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                     setProjectModalTasks([]);
                 }}
                 onCreate={handleCreateProject}
-                // selectedTasks={projectModalTasks}
             />
 
             {isEditModalVisible && (
@@ -495,7 +409,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                     onChangeProjectName={setNewProjectName}
                 />
             )}
-            
         </View>
     );
 };
@@ -507,7 +420,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#f5f5f5',
     },
     columnsContainer: {
-        // flexDirection: 'row',
         flexGrow: 1,
         alignItems: 'flex-start',
         justifyContent: 'flex-start',
