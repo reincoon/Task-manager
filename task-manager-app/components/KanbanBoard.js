@@ -9,6 +9,8 @@ import { updateTasksProject, createProject, updateTasksPriority, deleteProject, 
 import AddProjectButton from './AddProjectButton';
 import { deleteTask } from '../helpers/taskActions';
 import TodoCard from '../components/TodoCard';
+import ProjectNameEditModal from './ProjectNameEditModal';
+import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 // Helper function to check if a task is due within the next 48 hours
 const isDueSoon = (dueDate) => {
@@ -257,18 +259,28 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         setIsMoveModalVisible(true);
     }, [grouping]);
 
-    // Open modal, store projectId, load name
-    const openEditProjectModal = (projectId) => {
+    // // Open modal, store projectId, load name
+    // const openEditProjectModal = (projectId) => {
+    //     // Set ID
+    //     setEditingProjId(projectId);
+    //     // Set name from the project data
+    //     setNewProjectName(getProjectName(projectId));
+    //     // Show modal
+    //     setIsEditModalVisible(true);
+    // };
+    const openEditProjectModal = (projectId, projectName) => {
+        // Strip out the count from the column key
+        const actualProjectName = projectName.split(' (')[0];
         // Set ID
         setEditingProjId(projectId);
         // Set name from the project data
-        setNewProjectName(getProjectName(projectId));
+        setNewProjectName(actualProjectName.trim());
         // Show modal
         setIsEditModalVisible(true);
     };
 
-    const handleEditProject = async () => {
-        if (!editingProjId) return;
+    const handleEditProject = async (projectId, newProjectName) => {
+        // if (!editingProjId) return;
         if (newProjectName.trim() === '') {
             Alert.alert('Error', 'Project name cannot be empty');
             return;
@@ -277,7 +289,8 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         try {
             // setNewProjectName('');
             // Update the project name in Firebase
-            await updateProjectName(userId, editingProjId, newProjectName);
+            // await updateProjectName(userId, editingProjId, newProjectName);
+            await updateProjectName(userId, projectId, newProjectName);
             Alert.alert('Success', 'Project name updated');
             // setEditingProjectId(null);
             // setNewProjectName('');
@@ -306,23 +319,23 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         ]);
     };
 
-    const EditProjectModal = ({ visible, onClose, onSave, projectName, onProjectNameChange }) => (
-        <Modal visible={visible} animationType="slide" transparent>
-            <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                    <Text style={{ marginBottom: 10, fontWeight: '600' }}>Edit Project Name</Text>
-                    <TextInput
-                        value={projectName}
-                        onChangeText={onProjectNameChange}
-                        style={styles.input}
-                        placeholder="Enter new project name"
-                    />
-                    <Button title="Save" onPress={onSave} />
-                    <Button title="Cancel" onPress={onClose} />
-                </View>
-            </View>
-        </Modal>
-    );
+    // const EditProjectModal = ({ visible, onClose, onSave, projectName, onProjectNameChange }) => (
+    //     <Modal visible={visible} animationType="slide" transparent>
+    //         <View style={styles.modalContainer}>
+    //             <View style={styles.modalContent}>
+    //                 <Text style={{ marginBottom: 10, fontWeight: '600' }}>Edit Project Name</Text>
+    //                 <TextInput
+    //                     value={projectName}
+    //                     onChangeText={onProjectNameChange}
+    //                     style={styles.input}
+    //                     placeholder="Enter new project name"
+    //                 />
+    //                 <Button title="Save" onPress={onSave} />
+    //                 <Button title="Cancel" onPress={onClose} />
+    //             </View>
+    //         </View>
+    //     </Modal>
+    // );
 
     const renderTask = useCallback(({ item, drag, isActive }) => {
         const projectName = getProjectName(item.projectId);
@@ -382,7 +395,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                     <>
                         <TouchableOpacity
                             style={styles.editButton}
-                            onPress={() => openEditProjectModal(column.key)} // Open edit modal when clicked
+                            onPress={() => openEditProjectModal(column.key, column.title)} // Open edit modal when clicked
                         >
                             <Text style={styles.editButtonText}>Edit</Text>
                         </TouchableOpacity>
@@ -417,6 +430,17 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 contentContainerStyle={styles.tasksContainer}
                 canDrag={({ item }) => !!item.id}
             />
+            {/* <EditProjectModal
+                visible={isEditModalVisible}
+                onClose={() => {
+                    setIsEditModalVisible(false);
+                    setEditingProjId(null);
+                    setNewProjectName('');
+                }}
+                onSave={handleEditProject}
+                projectName={newProjectName}
+                setProjectName={setNewProjectName}
+            /> */}
         </View>
     );
 
@@ -456,17 +480,22 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 onCreate={handleCreateProject}
                 // selectedTasks={projectModalTasks}
             />
-            <EditProjectModal
-                visible={isEditModalVisible}
-                onClose={() => {
-                    setIsEditModalVisible(false);
-                    setEditingProjId(null);
-                    setNewProjectName('');
-                }}
-                onSave={handleEditProject}
-                projectName={newProjectName}
-                setProjectName={setNewProjectName}
-            />
+
+            {isEditModalVisible && (
+                <ProjectNameEditModal
+                    visible={isEditModalVisible}
+                    onClose={() => {
+                        setIsEditModalVisible(false);
+                        setEditingProjId(null);
+                        setNewProjectName('');
+                    }}
+                    onSave={handleEditProject}
+                    projectName={newProjectName}
+                    projectId={editingProjId}
+                    onChangeProjectName={setNewProjectName}
+                />
+            )}
+            
         </View>
     );
 };
