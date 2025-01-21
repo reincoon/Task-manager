@@ -28,7 +28,10 @@ const HomeScreen = ({ navigation }) => {
     const [projects, setProjects] = useState([]);
     const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
     const [sourceColumnKey, setSourceColumnKey] = useState(null);
-    const [editingProjectIds, setEditingProjectIds] = useState({});
+    // const [editingProjectIds, setEditingProjectIds] = useState({});
+    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const [editingProjId, setEditingProjId] = useState(null);
+    const [newProjectName, setNewProjectName] = useState('');
 
     const menuRef = useRef();
 
@@ -161,6 +164,7 @@ const HomeScreen = ({ navigation }) => {
                     grouping={grouping}
                     setDraggingTask={setDraggingTask}
                     setHoveredTask={setHoveredTask}
+                    openEditProjectModal={openEditProjectModal}
                 />;
     };
 
@@ -191,20 +195,43 @@ const HomeScreen = ({ navigation }) => {
         
     };
 
-    const handleEditProject = (projectId) => {
-        setEditingProjectIds((prev) => ({
-            ...prev,
-            [projectId]: true
-        }));
+    const openEditProjectModal = (projectId, projectName) => {
+        const actualName = projectName.split(' (')[0];
+        setEditingProjId(projectId);
+        setNewProjectName(actualName.trim());
+        setIsEditModalVisible(true);
     };
 
-    const handleCancelEditing = (projectId) => {
-        setEditingProjectIds((prev) => {
-            const updated = { ...prev };
-            delete updated[projectId];
-            return updated;
-        });
+    // const handleEditProject = (projectId) => {
+    //     setEditingProjectIds((prev) => ({
+    //         ...prev,
+    //         [projectId]: true
+    //     }));
+    // };
+    const handleEditProject = async (projectId, newName) => {
+        if (!newName.trim()) {
+            Alert.alert('Error', 'Project name cannot be empty.');
+            return;
+        }
+        try {
+            await updateProjectName(userId, projectId, newName);
+            Alert.alert('Success', 'Project renamed.');
+        } catch (err) {
+            Alert.alert('Error', 'Failed to rename project.');
+        } finally {
+            setIsEditModalVisible(false);
+            setEditingProjId(null);
+            setNewProjectName('');
+        }
     };
+
+    // const handleCancelEditing = (projectId) => {
+    //     setEditingProjectIds((prev) => {
+    //         const updated = { ...prev };
+    //         delete updated[projectId];
+    //         return updated;
+    //     });
+    // };
 
     const handleAddProjectFromList = () => {
         setShowProjectModal(true);
@@ -228,36 +255,36 @@ const HomeScreen = ({ navigation }) => {
             Alert.alert('Error', 'Could not delete task');
         }
     };
-    const handleRenameProject = async (projectId, newName) => {
-        if (!newName.trim()) {
-            Alert.alert("Invalid Name", "Project name cannot be empty.");
-            return;
-        }
+    // const handleRenameProject = async (projectId, newName) => {
+    //     if (!newName.trim()) {
+    //         Alert.alert("Invalid Name", "Project name cannot be empty.");
+    //         return;
+    //     }
 
-        if (!userId || !projectId || !newName) {
-            Alert.alert("Error", "User ID, Project ID, and the new project name are required.");
-            return;
-        }
+    //     if (!userId || !projectId || !newName) {
+    //         Alert.alert("Error", "User ID, Project ID, and the new project name are required.");
+    //         return;
+    //     }
     
-        console.log("projectId:", projectId);
-        setNewProjectNames((prevNames) => ({
-                    ...prevNames,
-                    [projectId]: newName,
-                }));
-                // setEditingProjectId(null);
-                try {
-                    await updateProjectName(userId, projectId, newName);
-                    Alert.alert("Success", "Project renamed successfully.");
-                    setNewProjectNames(prev => {
-                        const updated = { ...prev };
-                        delete updated[projectId]; // Remove the edited project from the state
-                        return updated;
-                    });
-                } catch (error) {
-                    console.error("Error renaming project:", error);
-                    Alert.alert("Error", "Could not rename project.");
-                }
-    }
+    //     console.log("projectId:", projectId);
+    //     setNewProjectNames((prevNames) => ({
+    //                 ...prevNames,
+    //                 [projectId]: newName,
+    //             }));
+    //             // setEditingProjectId(null);
+    //             try {
+    //                 await updateProjectName(userId, projectId, newName);
+    //                 Alert.alert("Success", "Project renamed successfully.");
+    //                 setNewProjectNames(prev => {
+    //                     const updated = { ...prev };
+    //                     delete updated[projectId]; // Remove the edited project from the state
+    //                     return updated;
+    //                 });
+    //             } catch (error) {
+    //                 console.error("Error renaming project:", error);
+    //                 Alert.alert("Error", "Could not rename project.");
+    //             }
+    // }
 
     const renderListView = () => {
         return (
@@ -272,45 +299,46 @@ const HomeScreen = ({ navigation }) => {
                 setDraggingTask={setDraggingTask}
                 setHoveredTask={setHoveredTask}
                 grouping={grouping}
-                onEditProject={handleEditProject}
-                editingProjectIds={editingProjectIds}
-                onCancelEditing={handleCancelEditing}
-                onRenameProject={handleRenameProject}
+                // onEditProject={handleEditProject}
+                // editingProjectIds={editingProjectIds}
+                // onCancelEditing={handleCancelEditing}
+                // onRenameProject={handleRenameProject}
+                openEditProjectModal={openEditProjectModal}
             />
         );
     }
 
-    // Handle moving a task via modal
-    const handleMove = async (targetProjectId) => {
-        setIsMoveModalVisible(false);
-        if (!draggingTask || !sourceColumnKey) return;
+    // // Handle moving a task via modal
+    // const handleMove = async (targetProjectId) => {
+    //     setIsMoveModalVisible(false);
+    //     if (!draggingTask || !sourceColumnKey) return;
 
-        const targetProject = targetProjectId ? projects.find(p => p.id === targetProjectId) : { name: 'Unassigned' };
+    //     const targetProject = targetProjectId ? projects.find(p => p.id === targetProjectId) : { name: 'Unassigned' };
 
-        try {
-            await updateTasksProject(userId, [draggingTask], targetProjectId || null);
-            Alert.alert(
-                'Success',
-                targetProjectId
-                    ? `Task moved to ${targetProject.name}.`
-                    : 'Task unassigned from project.'
-            );
-        } catch (error) {
-            console.error('Error updating task:', error);
-            Alert.alert('Error', 'Failed to update task.');
-        }
+    //     try {
+    //         await updateTasksProject(userId, [draggingTask], targetProjectId || null);
+    //         Alert.alert(
+    //             'Success',
+    //             targetProjectId
+    //                 ? `Task moved to ${targetProject.name}.`
+    //                 : 'Task unassigned from project.'
+    //         );
+    //     } catch (error) {
+    //         console.error('Error updating task:', error);
+    //         Alert.alert('Error', 'Failed to update task.');
+    //     }
 
-        // Reset dragging state
-        setDraggingTask(null);
-        setSourceColumnKey(null);
-    };
+    //     // Reset dragging state
+    //     setDraggingTask(null);
+    //     setSourceColumnKey(null);
+    // };
 
-    // Cancel the move modal
-    const handleCancelMove = () => {
-        setIsMoveModalVisible(false);
-        setDraggingTask(null);
-        setSourceColumnKey(null);
-    };
+    // // Cancel the move modal
+    // const handleCancelMove = () => {
+    //     setIsMoveModalVisible(false);
+    //     setDraggingTask(null);
+    //     setSourceColumnKey(null);
+    // };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -354,13 +382,13 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
 
             {/* Move To Modal */}
-            <MoveToModal
+            {/* <MoveToModal
                 visible={isMoveModalVisible}
                 onClose={handleCancelMove}
                 onMove={handleMove}
                 columns={grouping === 'project' ? projects : PRIORITIES.map(p => ({ id: p, name: p }))}
                 currentColumnKey={grouping === 'project' ? draggingTask?.projectId : draggingTask?.priority}
-            />
+            /> */}
 
             {/* Project Creation Modal */}
             <ProjectModal

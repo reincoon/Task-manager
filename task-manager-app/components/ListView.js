@@ -6,6 +6,7 @@ import { groupTasksByProject, buildListData, groupTasksByPriority, buildListData
 import { PRIORITIES } from "../helpers/priority";
 import { updateTasksPriority, updateTasksProject, reorderTasksWithinProject, reorderTasks, updateProjectName, deleteProject } from "../helpers/firestoreHelpers";
 import { Ionicons } from '@expo/vector-icons';
+import ProjectNameEditModal from "./ProjectNameEditModal";
 
 const ListView = ({
     userId,
@@ -22,6 +23,10 @@ const ListView = ({
     grouping,
 }) => {
     const [data, setData] = useState([]);
+    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const [editingProjId, setEditingProjId] = useState(null);
+    const [newProjectName, setNewProjectName] = useState('');
+
     // const [originalData, setOriginalData] = useState([]);
     // const [sourceColumnKey, setSourceColumnKey] = useState(null);
 
@@ -48,6 +53,30 @@ const ListView = ({
         return found ? found.name : 'Unassigned';
     };
 
+    const openEditProjectModal = (projectId, projectName) => {
+        const actualName = projectName.split(' (')[0];
+        setEditingProjId(projectId);
+        setNewProjectName(actualName.trim());
+        setIsEditModalVisible(true);
+    };
+
+    const handleEditProject = async (projId, newName) => {
+        if (!newName.trim()) {
+            Alert.alert('Error', 'Project name cannot be empty.');
+            return;
+        }
+        try {
+            await updateProjectName(userId, projId, newName);
+            Alert.alert('Success', 'Project renamed.');
+        } catch (err) {
+            Alert.alert('Error', 'Failed to rename project.');
+        } finally {
+            setIsEditModalVisible(false);
+            setEditingProjId(null);
+            setNewProjectName('');
+        }
+    };
+
     const renderItem = useCallback(({ item, drag, isActive }) => {
         if (item.type === 'projectHeader') {
             return (
@@ -57,28 +86,29 @@ const ListView = ({
                     </Text>
                     <TouchableOpacity
                         onPress={() => {
-                            Alert.prompt(
-                                'Edit Project Name',
-                                'Enter a new name for this project:',
-                                [
-                                    { text: 'Cancel', style: 'cancel' },
-                                    {
-                                        text: 'OK',
-                                        onPress: async (newName) => {
-                                            if (newName) {
-                                                try {
-                                                    await updateProjectName(userId, item.pName, newName);
-                                                    Alert.alert('Success', 'Project name updated.');
-                                                } catch (error) {
-                                                    Alert.alert('Error', 'Could not update project name.');
-                                                }
-                                            }
-                                        }
-                                    }
-                                ],
-                                'plain-text',
-                                item.projectName
-                            );
+                            // Alert.prompt(
+                            //     'Edit Project Name',
+                            //     'Enter a new name for this project:',
+                            //     [
+                            //         { text: 'Cancel', style: 'cancel' },
+                            //         {
+                            //             text: 'OK',
+                            //             onPress: async (newName) => {
+                            //                 if (newName) {
+                            //                     try {
+                            //                         await updateProjectName(userId, item.pName, newName);
+                            //                         Alert.alert('Success', 'Project name updated.');
+                            //                     } catch (error) {
+                            //                         Alert.alert('Error', 'Could not update project name.');
+                            //                     }
+                            //                 }
+                            //             }
+                            //         }
+                            //     ],
+                            //     'plain-text',
+                            //     item.projectName
+                            // );
+                            openEditProjectModal(item.pName, item.projectName);
                         }}
                     >
                         <Text>Edit</Text>
@@ -289,7 +319,24 @@ const ListView = ({
                 activationDistance={5}
                 containerStyle={{ paddingBottom: 100 }}
             />
-            
+            <ProjectNameEditModal
+                // visible={isEditModalVisible}
+                // onClose={() => setIsEditModalVisible(false)}
+                // onSave={handleEditProject}
+                // projectName={newProjectName}
+                // projectId={editingProjId}
+                // onChangeProjectName={setNewProjectName}
+                visible={isEditModalVisible}
+                onClose={() => {
+                    setIsEditModalVisible(false);
+                    setEditingProjId(null);
+                    setNewProjectName('');
+                }}
+                onSave={handleEditProject}
+                projectName={newProjectName}
+                projectId={editingProjId}
+                onChangeProjectName={setNewProjectName}
+            />
         </View>
     );
 };
