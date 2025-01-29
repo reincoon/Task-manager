@@ -245,6 +245,13 @@ export async function saveTask({
             dueDate: s.dueDate instanceof Date ? s.dueDate.toISOString() : s.dueDate,
         }));
 
+        // If not all subtasks are completed, clear taskCompletedAt
+        const allCompleted = updatedSubtasks.every((s) => s.isCompleted);
+        let updatedTaskCompletedAt = null;
+        if (allCompleted) {
+            updatedTaskCompletedAt = new Date().toISOString();
+        }
+
         // Update Firestore document
         const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
         await updateDoc(taskDocRef, {
@@ -258,6 +265,7 @@ export async function saveTask({
             notificationId: newNotificationId || null,
             attachments: attachments,
             colour: colour,
+            taskCompletedAt: updatedTaskCompletedAt,
         });
 
         // Delete attachments from Supabase if flagged
