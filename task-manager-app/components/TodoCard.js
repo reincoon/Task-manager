@@ -1,13 +1,74 @@
 // import { useRef } from 'react';
 // import { Menu, MenuItem, MenuDivider } from 'react-native-material-menu';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { calculateTaskStatus, toggleTaskCompletion } from '../helpers/subtaskCompletionHelpers';
+import { useMemo } from 'react';
 
 // TodoCard component shows details about a single to-do list:
-const TodoCard = ({ task, projectName, onPress, onLongPress, onDeleteTask, showMoveButton, onMoveTask }) => {
+const TodoCard = ({ 
+    task, 
+    projectName, 
+    onPress, 
+    onLongPress, 
+    onDeleteTask, 
+    showMoveButton, 
+    onMoveTask,
+    isActive = false,
+    userId,
+    setDraggingTask,
+}) => {
     // Count number of subtasks and attachments
     const subtaskCount = Array.isArray(task.subtasks) ? task.subtasks.length : 0;
     const attachmentCount = Array.isArray(task.attachments) ? task.attachments.length : 0;
+
+    // Compute to-do list status
+    const status = useMemo(() => {
+        return calculateTaskStatus(task);
+    }, [task]);
+
+    // Compute subtask progress
+    const totalSubtasks = task.subtasks ? task.subtasks.length : 0;
+    const completedCount = task.subtasks ? task.subtasks.filter((s) => s.isCompleted).length : 0;
+    const progressPercentage = totalSubtasks > 0 ? Math.round((completedCount / totalSubtasks) * 100) : 0;
+
+    // Mark entire to-do list as finished
+    const handleCompleteTask = async () => {
+        if (!userId || !task?.id) {
+            return;
+        }
+
+        try {
+            await toggleTaskCompletion({
+                userId,
+                taskId: task.id,
+                subtasks: task.subtasks || [],
+                markAsComplete: true,
+            });
+            Alert.alert('Success', 'To-Do list marked as finished.');
+        } catch (error) {
+            console.error('Error marking task complete:', error);
+            Alert.alert('Error', 'Failed to mark this list as finished.');
+        }
+    }
+
+    // Undo finishing the task
+    const handleUnfinishTask = async () => {
+        if (!userId || !task?.id) {
+            return;
+        }
+        try {
+            await toggleTaskCompletion({
+                userId,
+                taskId: task.id,
+                subtasks: task.subtasks || [],
+                markAsComplete: false,
+            });
+            Alert.alert('Success', 'To-Do list reverted to incomplete.');
+        } catch (error) {
+            Alert.alert('Error', 'Failed to revert the list.');
+        }
+    };
 
     return (
         <View style={styles.card}>
@@ -23,6 +84,32 @@ const TodoCard = ({ task, projectName, onPress, onLongPress, onDeleteTask, showM
                 {/* Title */}
                 <Text style={styles.title}>{task.title}</Text>
         
+                {/* Status */}
+                <Text style={styles.details}>Status: {status}</Text>
+
+                {/* Show completed timestamp */}
+                {task.taskCompletedAt && (
+                    <Text style={styles.details}>
+                        Completed At: {new Date(task.taskCompletedAt).toLocaleString()}
+                    </Text>
+                )}
+                {/* Progress bar for subtasks */}
+                {subtaskCount > 0 && (
+                    <>
+                        <View style={styles.progressBarContainer}>
+                            <View
+                                style={[
+                                    styles.progressBar,
+                                    { width: `${progressPercentage}%` }
+                                ]}
+                            />
+                        </View>
+                        <Text style={styles.details}>
+                            {completedCount}/{subtaskCount} subtasks
+                        </Text>
+                    </>
+                )}
+
                 {/* Project name */}
                 <Text style={styles.details}>Project: {projectName || 'Unassigned'}</Text>
 
@@ -38,6 +125,17 @@ const TodoCard = ({ task, projectName, onPress, onLongPress, onDeleteTask, showM
                 <Text style={styles.details}>Subtasks: {subtaskCount}</Text>
                 <Text style={styles.details}>Attachments: {attachmentCount}</Text>
             </TouchableOpacity>
+
+            {/* Icon to mark entire list as complete, if not already finished, and revert */}
+            {status !== 'Finished' ? (
+                <TouchableOpacity style={styles.completeIcon} onPress={handleCompleteTask}>
+                    <Ionicons name="checkmark-done-circle" size={24} color="green" />
+                </TouchableOpacity>
+            ) : (
+                <TouchableOpacity style={styles.completeIcon} onPress={handleUnfinishTask}>
+                    <Ionicons name="arrow-undo-circle" size={24} color="orange" />
+                </TouchableOpacity>
+            )}
     
             {/* Move Button (Visible Only in Kanban View) for MoveToModal */}
             {showMoveButton && (
@@ -74,6 +172,7 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 2,
         alignItems: 'center',
+        position: 'relative',
     },
     colourIndicator: {
         margin: 5,
@@ -84,6 +183,7 @@ const styles = StyleSheet.create({
     },
     cardTouchable: {
         flex: 1,
+        paddingRight: 34,
     },
     title: {
         fontSize: 16,
@@ -105,5 +205,23 @@ const styles = StyleSheet.create({
         top: 8,
         right: 8,
         padding: 4,
+    },
+    completeIcon: {
+        position: 'absolute',
+        top: 48,
+        right: 8,
+        padding: 4,
+    },
+    progressBarContainer: {
+        width: '100%',
+        height: 6,
+        backgroundColor: '#eee',
+        borderRadius: 3,
+        marginTop: 4,
+        overflow: 'hidden',
+    },
+    progressBar: {
+        height: '100%',
+        backgroundColor: '#28a745',
     },
 });

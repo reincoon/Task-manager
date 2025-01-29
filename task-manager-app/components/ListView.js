@@ -142,6 +142,7 @@ const ListView = ({
                         ]);
                     }}
                     showMoveButton={false}
+                    userId={userId}
                 />
             );
         }

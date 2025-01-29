@@ -47,6 +47,7 @@ export async function fetchTaskDetails(userId, taskId) {
         notificationId: data.notificationId || null,
         attachments: data.attachments || [],
         colour: data.colour || COLOURS[0].value,
+        taskCompletedAt: data.taskCompletedAt || null,
     };
 }
 
@@ -240,7 +241,8 @@ export async function saveTask({
         updatedSubtasks = updatedSubtasks.map(s => ({
             ...s,
             // dueDate: s.dueDate.toISOString(),
-            dueDate: new Date(s.dueDate).toISOString(),
+            // dueDate: new Date(s.dueDate).toISOString(),
+            dueDate: s.dueDate instanceof Date ? s.dueDate.toISOString() : s.dueDate,
         }));
 
         // Update Firestore document

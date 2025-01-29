@@ -310,6 +310,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                     setIsMoveModalVisible(true);
                 }}
                 isActive={isActive}
+                userId={userId}
             />
         );
     }, [grouping, userId, navigation, setHoveredTask]);

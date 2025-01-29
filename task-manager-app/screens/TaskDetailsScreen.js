@@ -14,6 +14,8 @@ import { cyclePriority } from '../helpers/priority';
 import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/attachmentHelpers';
 import { fetchTaskDetails, saveTask, cancelTaskChanges, deleteTask, deleteSubtask, addTaskToCalendar, addSubtaskToCalendar } from '../helpers/taskActions';
 import ColourPicker from '../components/ColourPicker';
+import { calculateTaskStatus, toggleTaskCompletion } from '../helpers/subtaskCompletionHelpers';
+import { or } from 'firebase/firestore';
 
 const TaskDetailsScreen = ({ route, navigation }) => {
     const { taskId } = route.params;
@@ -34,7 +36,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         reminder: 'None',
         isRecurrent: false,
         notificationId: null,
-        eventId: null
+        eventId: null,
+        isCompleted: false,
     });
     const [editingSubtaskIndex, setEditingSubtaskIndex] = useState(null);
     // original task is stored to revert in case if cancelled
@@ -48,6 +51,11 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
     const [selectedColour, setSelectedColour] = useState(COLOURS[0].value);
+
+    const [taskStatus, setTaskStatus] = useState('Not Started');
+    const [completedCount, setCompletedCount] = useState(0);
+    const [manuallyFinished, setManuallyFinished] = useState(false);
+    const [localTaskCompletedAt, setLocalTaskCompletedAt] = useState(null);
 
     // Request notification permissions and get user ID
     useEffect(() => {
@@ -110,6 +118,20 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         loadTask();
     }, [userId, taskId, db, navigation]);
 
+    // Recalculate task status and progress on subtasks change
+    useEffect(() => {
+        const currentTask = { subtasks, dueDate };
+        const status = calculateTaskStatus(currentTask);
+        setTaskStatus(status);
+        const total = subtasks.length;
+        const done = subtasks.filter((s) => s.isCompleted).length;
+        setCompletedCount(done);
+    }, [subtasks, dueDate]);
+
+    // useEffect(() => {
+    //     if (fetched.manuallyFinished) setManuallyFinished(fetched.manuallyFinished);
+    // }, [fetched]);
+
     // Save the task by calling the saveTask helper function
     const handleSaveTask = async () => {
         if (isSaving || !userId) {
@@ -132,6 +154,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 currentTask: {
                     title: taskTitle,
                     notes,
+                    manuallyFinished,
                     dueDate,
                     notification,
                     priority,
@@ -170,6 +193,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 setPriority,
                 setSubtasks,
             });
+            setManuallyFinished(originalTask.manuallyFinished);
             // Revert colour
             setSelectedColour(originalTask?.colour || COLOURS[0].value);
             navigation.goBack();
@@ -208,6 +232,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             isRecurrent: false,
             notificationId: null,
             eventId: null,
+            isCompleted: false,
         });
         setEditingSubtaskIndex(null);
         setShowSubtaskForm(false);
@@ -353,6 +378,66 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         }
     };
 
+    // Mark the task as finished local override
+    const markTaskAsFinished = () => {
+        setManuallyFinished(true);
+    };
+    // Revert the task as unfinished local override 
+    const unfinishTask = () => {
+        setManuallyFinished(false);
+    };
+
+    // final displayed status in the UI
+    const autoStatus = calculateTaskStatus({ subtasks, dueDate });
+    const displayedStatus = manuallyFinished ? 'Finished' : autoStatus;
+
+    // Mark entire list as completed locally
+    const markTaskAsCompletedLocally = () => {
+        const nowStr = new Date().toISOString();
+        const updated = subtasks.map(s => {
+            if (!s.isCompleted) {
+                return {
+                    ...s,
+                    isCompleted: true,
+                    completedAt: s.completedAt || nowStr,
+                };
+            }
+            return s;
+        });
+        setSubtasks(updated);
+        setLocalTaskCompletedAt(nowStr);
+    };
+
+    const markTaskAsUnfinishedLocally = () => {
+        // Set task as unfinished
+        setManuallyFinished(false);
+    
+        // Reset the completion status of subtasks locally
+        const updatedSubtasks = subtasks.map(subtask => {
+            // For each subtask, mark it as not completed
+            return { ...subtask, isCompleted: false, completedAt: null };
+        });
+        setSubtasks(updatedSubtasks);
+    
+        // Reset the local completion date of the task itself
+        setLocalTaskCompletedAt(null);
+    };
+
+    // Mark entire to-do list as completed
+    const markTaskAsCompleted = async () => {
+        try {
+            const updatedSubtasks = await toggleTaskCompletion({
+                userId,
+                taskId,
+                subtasks,
+                markAsComplete: true,
+            });
+            setSubtasks(updatedSubtasks);
+        } catch (error) {
+            console.error('Error marking task as completed:', error);
+        }
+    };
+
     if (loading) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
@@ -360,6 +445,10 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             </SafeAreaView>
         );
     }
+
+    // Calculate subtask progress
+  const totalSubtasks = subtasks.length;
+  const progress = totalSubtasks > 0 ? (completedCount / totalSubtasks) * 100 : 0;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -377,7 +466,35 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={true}>
+                {/* Display the status */}
+                <View style={styles.statusContainer}>
+                    <Text style={styles.statusText}>
+                        Status: {taskStatus}
+                    </Text>
+
+                    {/* Button/icon to mark entire list complete */}
+                    {taskStatus !== 'Finished' ? (
+                        <TouchableOpacity style={styles.completeButton} onPress={markTaskAsCompletedLocally}>
+                            <Ionicons name="checkmark-circle" size={22} color="white" />
+                            <Text style={styles.completeButtonText}>Mark Complete</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity style={styles.completeButton} onPress={markTaskAsUnfinishedLocally}>
+                            <Ionicons name="arrow-undo" size={22} color="white" />
+                            <Text style={styles.completeButtonText}>Mark Unfinished</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Progress bar */}
+                <View style={styles.progressBarContainer}>
+                    <View style={[styles.progressBar, { width: `${progress}%` }]} />
+                </View>
+                <Text style={styles.progressText}>
+                    {completedCount} / {totalSubtasks} Subtasks Completed
+                </Text>
+
                 {/* Title and Notes */}
                 <TextInput
                     style={styles.input}
@@ -432,7 +549,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                             reminder: 'None',
                             isRecurrent: false,
                             notificationId: null,
-                            eventId: null
+                            eventId: null,
+                            isCompleted: false,
                         });
                         setShowSubtaskForm(true);
                     }}
@@ -463,6 +581,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     onEditSubtask={handleEditSubtask}
                     onDeleteSubtask={handleDeleteSubtask}
                     onAddSubtaskToCalendar={addSubtaskToCalendarHandler}
+                    userId={userId}
+                    taskId={taskId}
+                    setSubtasks={setSubtasks}
                 />
                 {/* Attachments list */}
                 <AttachmentsList
@@ -554,6 +675,38 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#ccc',
         padding: 10,
+    },
+    statusText: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginRight: 10,
+    },
+    completeButton: {
+        backgroundColor: '#28a745',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 5,
+        paddingHorizontal: 8,
+        borderRadius: 5,
+    },
+    completeButtonText: {
+        color: '#fff',
+        marginLeft: 5,
+    },
+    progressBarContainer: {
+        height: 10,
+        backgroundColor: '#eee',
+        borderRadius: 5,
+        overflow: 'hidden',
+        marginVertical: 5,
+    },
+    progressBar: {
+        height: '100%',
+        backgroundColor: '#28a745',
+    },
+    progressText: {
+        marginBottom: 15,
+        fontWeight: '500',
     },
 });
 
