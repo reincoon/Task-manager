@@ -23,9 +23,10 @@ const TodoCard = ({
     const attachmentCount = Array.isArray(task.attachments) ? task.attachments.length : 0;
 
     // Compute to-do list status
-    const status = useMemo(() => {
-        return calculateTaskStatus(task);
-    }, [task]);
+    // const status = useMemo(() => {
+    //     return calculateTaskStatus(task);
+    // }, [task]);
+    const status = task.manuallyFinished ? 'Finished' : calculateTaskStatus(task);
 
     // Compute subtask progress
     const totalSubtasks = task.subtasks ? task.subtasks.length : 0;

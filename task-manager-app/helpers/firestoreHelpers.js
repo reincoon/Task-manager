@@ -132,3 +132,20 @@ export async function deleteProject(userId, projectId, navigation) {
         throw new Error('Error deleting project: ' + error.message);
     }
 }
+
+export async function getProjectsByUserId(userId) {
+    try {
+        const projectsRef = collection(db, 'projects');
+        const q = query(projectsRef, where('userId', '==', userId));
+        const snapshot = await getDocs(q);
+
+        const projects = [];
+        snapshot.forEach(doc => {
+            projects.push({ id: doc.id, name: doc.data().name });
+        });
+        return projects;
+    } catch (error) {
+        console.error('Error fetching projects: ', error);
+        throw error;
+    }
+}

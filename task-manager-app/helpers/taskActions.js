@@ -35,7 +35,7 @@ export async function fetchTaskDetails(userId, taskId) {
             ...subtask,
             dueDate: validDueDate,
         };
-    });
+    }); 
 
     return {
         title: data.title,
@@ -47,6 +47,7 @@ export async function fetchTaskDetails(userId, taskId) {
         notificationId: data.notificationId || null,
         attachments: data.attachments || [],
         colour: data.colour || COLOURS[0].value,
+        manuallyFinished: data.manuallyFinished || false,
         taskCompletedAt: data.taskCompletedAt || null,
     };
 }
@@ -186,6 +187,7 @@ export async function saveTask({
         attachments,
         notificationId: currentNotifId,
         colour,
+        manuallyFinished,
     } = currentTask;
 
     try {
@@ -248,7 +250,7 @@ export async function saveTask({
         // If not all subtasks are completed, clear taskCompletedAt
         const allCompleted = updatedSubtasks.every((s) => s.isCompleted);
         let updatedTaskCompletedAt = null;
-        if (allCompleted) {
+        if (allCompleted || manuallyFinished) {
             updatedTaskCompletedAt = new Date().toISOString();
         }
 
@@ -266,6 +268,7 @@ export async function saveTask({
             attachments: attachments,
             colour: colour,
             taskCompletedAt: updatedTaskCompletedAt,
+            manuallyFinished,
         });
 
         // Delete attachments from Supabase if flagged

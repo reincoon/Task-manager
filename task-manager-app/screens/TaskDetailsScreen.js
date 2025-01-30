@@ -14,7 +14,7 @@ import { cyclePriority } from '../helpers/priority';
 import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/attachmentHelpers';
 import { fetchTaskDetails, saveTask, cancelTaskChanges, deleteTask, deleteSubtask, addTaskToCalendar, addSubtaskToCalendar } from '../helpers/taskActions';
 import ColourPicker from '../components/ColourPicker';
-import { calculateTaskStatus, toggleTaskCompletion } from '../helpers/subtaskCompletionHelpers';
+import { calculateTaskStatus, toggleTaskCompletion, updateTaskStatusInFirestore } from '../helpers/subtaskCompletionHelpers';
 import { or } from 'firebase/firestore';
 
 const TaskDetailsScreen = ({ route, navigation }) => {
@@ -94,6 +94,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 if (fetched.colour) {
                     setSelectedColour(fetched.colour);
                 }
+                // Set status based on fetched data
+                setManuallyFinished(fetched.manuallyFinished || false);
                 // Keep original atatchments
                 setOriginalAttachments(fetched.attachments);
                 // Store the original task
@@ -107,6 +109,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     notificationId: fetched.notificationId,
                     attachments: fetched.attachments,
                     colour: fetched.colour || COLOURS[0].value,
+                    manuallyFinished: fetched.manuallyFinished || false,
                 });
 
                 setLoading(false);
@@ -120,13 +123,13 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
     // Recalculate task status and progress on subtasks change
     useEffect(() => {
-        const currentTask = { subtasks, dueDate };
+        const currentTask = { subtasks, dueDate, manuallyFinished };
         const status = calculateTaskStatus(currentTask);
         setTaskStatus(status);
         const total = subtasks.length;
         const done = subtasks.filter((s) => s.isCompleted).length;
         setCompletedCount(done);
-    }, [subtasks, dueDate]);
+    }, [subtasks, dueDate, manuallyFinished]);
 
     // useEffect(() => {
     //     if (fetched.manuallyFinished) setManuallyFinished(fetched.manuallyFinished);
@@ -154,7 +157,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 currentTask: {
                     title: taskTitle,
                     notes,
-                    manuallyFinished,
                     dueDate,
                     notification,
                     priority,
@@ -162,12 +164,16 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     attachments,
                     notificationId: taskNotificationId,
                     colour: selectedColour,
+                    manuallyFinished,
                 },
                 deletedAttachments,
                 setOriginalAttachments,
                 setDeletedAttachments,
                 setAddedAttachments,
             });
+            const newStatus = manuallyFinished ? 'Finished' : calculateTaskStatus({ subtasks, dueDate });
+            setTaskStatus(newStatus);
+
             Alert.alert('Success', 'Task updated successfully');
             navigation.goBack();
         } catch (err) {
@@ -194,6 +200,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 setSubtasks,
             });
             setManuallyFinished(originalTask.manuallyFinished);
+            setTaskStatus(calculateTaskStatus({ subtasks, dueDate }));
             // Revert colour
             setSelectedColour(originalTask?.colour || COLOURS[0].value);
             navigation.goBack();
@@ -378,21 +385,25 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         }
     };
 
-    // Mark the task as finished local override
-    const markTaskAsFinished = () => {
-        setManuallyFinished(true);
-    };
-    // Revert the task as unfinished local override 
-    const unfinishTask = () => {
-        setManuallyFinished(false);
-    };
+    // // Mark the task as finished local override
+    // const markTaskAsFinished = () => {
+    //     setManuallyFinished(true);
+    // };
+    // // Revert the task as unfinished local override 
+    // const unfinishTaskLocally = () => {
+    //     setManuallyFinished(false);
+    //     setTaskStatus(calculateTaskStatus({ subtasks, dueDate }));
+    // };
 
-    // final displayed status in the UI
-    const autoStatus = calculateTaskStatus({ subtasks, dueDate });
-    const displayedStatus = manuallyFinished ? 'Finished' : autoStatus;
+    // // final displayed status in the UI
+    // const autoStatus = calculateTaskStatus({ subtasks, dueDate });
+    // const displayedStatus = manuallyFinished ? 'Finished' : autoStatus;
 
     // Mark entire list as completed locally
-    const markTaskAsCompletedLocally = () => {
+    const markTaskAsCompletedLocally = async () => {
+        setManuallyFinished(true);
+        // setTaskStatus('Finished');
+        await updateTaskStatusInFirestore(true, userId, taskId);
         const nowStr = new Date().toISOString();
         const updated = subtasks.map(s => {
             if (!s.isCompleted) {
@@ -406,37 +417,49 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         });
         setSubtasks(updated);
         setLocalTaskCompletedAt(nowStr);
+        setTaskStatus('Finished');
     };
 
-    const markTaskAsUnfinishedLocally = () => {
+    const markTaskAsUnfinishedLocally = async () => {
         // Set task as unfinished
         setManuallyFinished(false);
+        // setTaskStatus('Finished');
+        // setTaskStatus(calculateTaskStatus({ subtasks, dueDate }));
     
-        // Reset the completion status of subtasks locally
-        const updatedSubtasks = subtasks.map(subtask => {
-            // For each subtask, mark it as not completed
-            return { ...subtask, isCompleted: false, completedAt: null };
+        // // Reset the completion status of subtasks locally
+        // const updatedSubtasks = subtasks.map(subtask => {
+        //     // For each subtask, mark it as not completed
+        //     return { ...subtask, isCompleted: false, completedAt: null };
+        // });
+        const updatedSubtasks = await toggleTaskCompletion({
+            userId,
+            taskId,
+            subtasks,
+            markAsComplete: false,
         });
+        
         setSubtasks(updatedSubtasks);
     
         // Reset the local completion date of the task itself
         setLocalTaskCompletedAt(null);
+        setTaskStatus('Not Started');
+        await updateTaskStatusInFirestore(false, userId, taskId);
     };
 
-    // Mark entire to-do list as completed
-    const markTaskAsCompleted = async () => {
-        try {
-            const updatedSubtasks = await toggleTaskCompletion({
-                userId,
-                taskId,
-                subtasks,
-                markAsComplete: true,
-            });
-            setSubtasks(updatedSubtasks);
-        } catch (error) {
-            console.error('Error marking task as completed:', error);
-        }
-    };
+    // // Mark entire to-do list as completed
+    // const markTaskAsCompleted = async () => {
+    //     try {
+    //         const updatedSubtasks = await toggleTaskCompletion({
+    //             userId,
+    //             taskId,
+    //             subtasks,
+    //             markAsComplete: true,
+    //         });
+    //         setSubtasks(updatedSubtasks);
+    //     } catch (error) {
+    //         console.error('Error marking task as completed:', error);
+    //     }
+    // };
 
     if (loading) {
         return (
@@ -447,8 +470,8 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     }
 
     // Calculate subtask progress
-  const totalSubtasks = subtasks.length;
-  const progress = totalSubtasks > 0 ? (completedCount / totalSubtasks) * 100 : 0;
+    const totalSubtasks = subtasks.length;
+    const progress = totalSubtasks > 0 ? (completedCount / totalSubtasks) * 100 : 0;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -475,9 +498,12 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
                     {/* Button/icon to mark entire list complete */}
                     {taskStatus !== 'Finished' ? (
+                    // {/* {subtasks.length === 0 ? ( */}
                         <TouchableOpacity style={styles.completeButton} onPress={markTaskAsCompletedLocally}>
                             <Ionicons name="checkmark-circle" size={22} color="white" />
-                            <Text style={styles.completeButtonText}>Mark Complete</Text>
+                            <Text style={styles.completeButtonText}>
+                                Mark Complete
+                            </Text>
                         </TouchableOpacity>
                     ) : (
                         <TouchableOpacity style={styles.completeButton} onPress={markTaskAsUnfinishedLocally}>

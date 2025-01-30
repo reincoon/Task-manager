@@ -31,27 +31,42 @@ async function playCompletionFeedback() {
 
 // Recompute the status of the to-do list based on completed subtasks and due date
 export function calculateTaskStatus(task) {
+    const { subtasks = [], dueDate, taskCompletedAt, manuallyFinished } = task;
     // Manual completion of to-do list without subtasks
-    if (task.taskCompletedAt) {
+    if (manuallyFinished) {
         return 'Finished';
     }
+
+    // // Manual completion of to-do list without subtasks
+    // if (task.taskCompletedAt) {
+    //     return 'Finished';
+    // }
+
     
-    const { subtasks = [], dueDate } = task;
+    
     // Convert dueDate to a Date object
-    const due = dueDate instanceof Date ? dueDate : new Date(dueDate);
+    // const due = dueDate instanceof Date ? dueDate : new Date(dueDate);
+    const due = new Date(dueDate);
     // Count completed subtasks
     const totalSubtasks = subtasks.length;
     const completedCount = subtasks.filter((s) => s.isCompleted).length;
     // If not all subtasks completed and current time is past due date, then overdue
     const now = new Date();
     const isPastDue = now > due;
-
+    // If the task has no subtasks, determine its status
+    // if (subtasks.length === 0) {
+    //     // const due = new Date(dueDate);
+    //     // const now = new Date();
+    //     if (taskCompletedAt) {
+    //         return 'Finished';
+    //     }
+    //     return isPastDue ? 'Overdue' : 'Not Started';
+    // }
     if (totalSubtasks === 0) {
-        if (isPastDue) {
-            return 'Overdue';
-        } else {
-            return 'Not Started';
+        if (taskCompletedAt) {
+            return 'Finished';
         }
+        return isPastDue ? 'Overdue' : 'Not Started';
     }
 
     if (completedCount === 0) {
@@ -60,18 +75,20 @@ export function calculateTaskStatus(task) {
             return 'Overdue';
         } 
         return 'Not Started';
-    } else if (completedCount > 0 && completedCount < totalSubtasks) {
+    // } else if (completedCount > 0 && completedCount < totalSubtasks) {
+    } else if (completedCount < totalSubtasks) {
         // Some subtasks completed
         if (isPastDue) {
             return 'Overdue';
         }
         return 'In Progress';
-    } else if (completedCount === totalSubtasks) {
+    // } else if (completedCount === totalSubtasks) {
+    } else {
         // All subtasks completed
         return 'Finished';
     }
     // Default to 'Not Started'
-    return 'Not Started';
+    // return 'Not Started';
 }
 
 // // Toggle a subtask's completion status and update Firestore
@@ -160,3 +177,18 @@ export async function toggleTaskCompletion({
         throw error;
     }
 }
+
+
+// Function to update task status in Firestore
+export async function updateTaskStatusInFirestore(isFinished, userId, taskId) {
+    try {
+        if (!userId || !taskId) {
+            throw new Error("Missing userId or taskId.");
+        }
+        const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
+        await updateDoc(taskDocRef, { manuallyFinished: isFinished });
+    } catch (err) {
+        console.error("Error updating task status:", err);
+        Alert.alert("Error", "Failed to update task status.");
+    }
+};
