@@ -15,7 +15,7 @@ import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/atta
 import { fetchTaskDetails, saveTask, cancelTaskChanges, deleteTask, deleteSubtask, addTaskToCalendar, addSubtaskToCalendar } from '../helpers/taskActions';
 import ColourPicker from '../components/ColourPicker';
 import { calculateTaskStatus, toggleTaskCompletion, updateTaskStatusInFirestore } from '../helpers/subtaskCompletionHelpers';
-import { or } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 
 const TaskDetailsScreen = ({ route, navigation }) => {
     const { taskId } = route.params;
@@ -200,7 +200,23 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 setSubtasks,
             });
             setManuallyFinished(originalTask.manuallyFinished);
-            setTaskStatus(calculateTaskStatus({ subtasks, dueDate }));
+
+            // Revert Firestore
+            const docRef = doc(db, `tasks/${userId}/taskList`, taskId);
+            await updateDoc(docRef, {
+                subtasks: originalTask.subtasks.map(s => ({
+                    ...s,
+                    dueDate: s.dueDate instanceof Date ? s.dueDate.toISOString() : s.dueDate,
+                })),
+                manuallyFinished: originalTask.manuallyFinished,
+                taskCompletedAt: null,
+            });
+            setTaskStatus(calculateTaskStatus({
+                subtasks: originalTask.subtasks,
+                dueDate: originalTask.dueDate,
+                manuallyFinished: originalTask.manuallyFinished,
+            }));
+            // setTaskStatus(calculateTaskStatus({ subtasks, dueDate }));
             // Revert colour
             setSelectedColour(originalTask?.colour || COLOURS[0].value);
             navigation.goBack();
