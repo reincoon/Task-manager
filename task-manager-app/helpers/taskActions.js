@@ -34,6 +34,7 @@ export async function fetchTaskDetails(userId, taskId) {
         return {
             ...subtask,
             dueDate: validDueDate,
+            createdAt: subtask.createdAt ? new Date(subtask.createdAt) : mainDueDate,
         };
     }); 
 
@@ -70,6 +71,7 @@ export async function createTask({
         const subtasksForDb = subtasks.map(subtask => ({
             ...subtask,
             dueDate: subtask.dueDate.toISOString(),
+            createdAt: subtask.createdAt ? subtask.createdAt.toISOString() : new Date().toISOString(),
         }));
 
         // Prepare attachments for Firestore
