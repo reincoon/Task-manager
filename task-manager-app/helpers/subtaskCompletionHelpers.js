@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Audio } from "expo-av";
 import { Alert } from "react-native";
 import { db } from "../firebaseConfig";
+import { safeDate } from "./date";
 
 // Play a short "completion" sound and trigger a light haptic feedback
 async function playCompletionFeedback() {
@@ -160,7 +161,8 @@ export async function toggleTaskCompletion({
         const updates = {
             subtasks: updatedSubtasks.map((s) => ({
                 ...s,
-                dueDate: s.dueDate instanceof Date ? s.dueDate.toISOString() : s.dueDate,
+                // dueDate: s.dueDate instanceof Date ? s.dueDate.toISOString() : s.dueDate,
+                dueDate: safeDate(s.dueDate).toISOString(),
             })),
             taskCompletedAt: markAsComplete ? nowString : null,
         };

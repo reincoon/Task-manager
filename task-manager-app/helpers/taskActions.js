@@ -6,6 +6,7 @@ import { addEventToCalendar } from './calendar';
 import * as FileSystem from 'expo-file-system';
 import { Alert } from 'react-native';
 import { COLOURS } from './constants';
+import { safeDate } from './date';
 
 // Fetch task details from Firestore
 export async function fetchTaskDetails(userId, taskId) {
@@ -18,23 +19,26 @@ export async function fetchTaskDetails(userId, taskId) {
     const data = taskSnapshot.data();
 
     // Convert main dueDate to Date object
-    let mainDueDate = new Date(data.dueDate);
-    if (isNaN(mainDueDate.getTime())) {
-        mainDueDate = new Date();
-    }
+    // let mainDueDate = new Date(data.dueDate);
+    let mainDueDate = safeDate(data.dueDate);
+    // if (isNaN(mainDueDate.getTime())) {
+    //     mainDueDate = new Date();
+    // }
 
     // Convert each subtask's dueDate to Date object
     let fetchedSubtasks = data.subtasks || [];
     fetchedSubtasks = fetchedSubtasks.map(subtask => {
-        let validDueDate = new Date(subtask.dueDate);
-        if (isNaN(validDueDate.getTime())) {
-            // Default to main task's dueDate if subtask dueDate is invalid
-            validDueDate = mainDueDate;
-        }
+        // let validDueDate = new Date(subtask.dueDate);
+        let validDueDate = safeDate(subtask.dueDate);
+        // if (isNaN(validDueDate.getTime())) {
+        //     // Default to main task's dueDate if subtask dueDate is invalid
+        //     validDueDate = mainDueDate;
+        // }
         return {
             ...subtask,
             dueDate: validDueDate,
-            createdAt: subtask.createdAt ? new Date(subtask.createdAt) : mainDueDate,
+            // createdAt: subtask.createdAt ? new Date(subtask.createdAt) : mainDueDate,
+            createdAt: subtask.createdAt ? safeDate(subtask.createdAt) : mainDueDate,
         };
     }); 
 
@@ -71,7 +75,7 @@ export async function createTask({
         const subtasksForDb = subtasks.map(subtask => ({
             ...subtask,
             dueDate: subtask.dueDate.toISOString(),
-            createdAt: subtask.createdAt ? subtask.createdAt.toISOString() : new Date().toISOString(),
+            // createdAt: subtask.createdAt ? subtask.createdAt.toISOString() : new Date().toISOString(),
         }));
 
         // Prepare attachments for Firestore

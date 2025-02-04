@@ -2,7 +2,7 @@
 // import { Menu, MenuItem, MenuDivider } from 'react-native-material-menu';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { calculateTaskStatus, toggleTaskCompletion } from '../helpers/subtaskCompletionHelpers';
+import { calculateTaskStatus, toggleTaskCompletion, updateTaskStatusInFirestore } from '../helpers/subtaskCompletionHelpers';
 import { useMemo } from 'react';
 
 // TodoCard component shows details about a single to-do list:
@@ -46,6 +46,7 @@ const TodoCard = ({
                 subtasks: task.subtasks || [],
                 markAsComplete: true,
             });
+            await updateTaskStatusInFirestore(true, userId, task.id);
             Alert.alert('Success', 'To-Do list marked as finished.');
         } catch (error) {
             console.error('Error marking task complete:', error);
@@ -65,6 +66,7 @@ const TodoCard = ({
                 subtasks: task.subtasks || [],
                 markAsComplete: false,
             });
+            await updateTaskStatusInFirestore(false, userId, task.id);
             Alert.alert('Success', 'To-Do list reverted to incomplete.');
         } catch (error) {
             Alert.alert('Error', 'Failed to revert the list.');

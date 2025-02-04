@@ -16,6 +16,7 @@ import { fetchTaskDetails, saveTask, cancelTaskChanges, deleteTask, deleteSubtas
 import ColourPicker from '../components/ColourPicker';
 import { calculateTaskStatus, toggleTaskCompletion, updateTaskStatusInFirestore } from '../helpers/subtaskCompletionHelpers';
 import { doc, updateDoc } from 'firebase/firestore';
+import { safeDate } from '../helpers/date';
 
 const TaskDetailsScreen = ({ route, navigation }) => {
     const { taskId } = route.params;
@@ -157,7 +158,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 currentTask: {
                     title: taskTitle,
                     notes,
-                    dueDate,
+                    dueDate: safeDate(dueDate),
                     notification,
                     priority,
                     subtasks,
@@ -171,7 +172,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 setDeletedAttachments,
                 setAddedAttachments,
             });
-            const newStatus = manuallyFinished ? 'Finished' : calculateTaskStatus({ subtasks, dueDate });
+            const newStatus = manuallyFinished ? 'Finished' : calculateTaskStatus({ subtasks, dueDate: safeDate(dueDate), manuallyFinished });
             setTaskStatus(newStatus);
 
             Alert.alert('Success', 'Task updated successfully');
@@ -206,14 +207,16 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             await updateDoc(docRef, {
                 subtasks: originalTask.subtasks.map(s => ({
                     ...s,
-                    dueDate: s.dueDate instanceof Date ? s.dueDate.toISOString() : s.dueDate,
+                    // dueDate: s.dueDate instanceof Date ? s.dueDate.toISOString() : s.dueDate,
+                    dueDate: safeDate(s.dueDate).toISOString(),
                 })),
                 manuallyFinished: originalTask.manuallyFinished,
                 taskCompletedAt: null,
             });
             setTaskStatus(calculateTaskStatus({
                 subtasks: originalTask.subtasks,
-                dueDate: originalTask.dueDate,
+                // dueDate: originalTask.dueDate,
+                dueDate: safeDate(originalTask.dueDate),
                 manuallyFinished: originalTask.manuallyFinished,
             }));
             // setTaskStatus(calculateTaskStatus({ subtasks, dueDate }));
