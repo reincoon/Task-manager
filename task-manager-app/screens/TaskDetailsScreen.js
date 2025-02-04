@@ -124,12 +124,22 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
     // Recalculate task status and progress on subtasks change
     useEffect(() => {
-        const currentTask = { subtasks, dueDate, manuallyFinished };
-        const status = calculateTaskStatus(currentTask);
+        // const currentTask = { subtasks, dueDate, manuallyFinished };
+        // const status = calculateTaskStatus(currentTask);
+        // setTaskStatus(status);
+        // const total = subtasks.length;
+        // const done = subtasks.filter((s) => s.isCompleted).length;
+        // setCompletedCount(done);
+        const finishedCount = subtasks.filter(s => s.isCompleted).length;
+        setCompletedCount(finishedCount);
+        
+        // For tasks with subtasks, ignore manuallyFinished.
+        const status = calculateTaskStatus({
+            subtasks,
+            dueDate,
+            manuallyFinished: subtasks.length === 0 ? manuallyFinished : false,
+        });
         setTaskStatus(status);
-        const total = subtasks.length;
-        const done = subtasks.filter((s) => s.isCompleted).length;
-        setCompletedCount(done);
     }, [subtasks, dueDate, manuallyFinished]);
 
     // useEffect(() => {
@@ -165,14 +175,17 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     attachments,
                     notificationId: taskNotificationId,
                     colour: selectedColour,
-                    manuallyFinished,
+                    manuallyFinished: subtasks.length === 0 ? manuallyFinished : false,
                 },
                 deletedAttachments,
                 setOriginalAttachments,
                 setDeletedAttachments,
                 setAddedAttachments,
             });
-            const newStatus = manuallyFinished ? 'Finished' : calculateTaskStatus({ subtasks, dueDate: safeDate(dueDate), manuallyFinished });
+            // const newStatus = manuallyFinished ? 'Finished' : calculateTaskStatus({ subtasks, dueDate: safeDate(dueDate), manuallyFinished });
+            const newStatus = subtasks.length === 0 
+                ? (manuallyFinished ? 'Finished' : calculateTaskStatus({ subtasks, dueDate })) 
+                : calculateTaskStatus({ subtasks, dueDate, manuallyFinished: false });
             setTaskStatus(newStatus);
 
             Alert.alert('Success', 'Task updated successfully');

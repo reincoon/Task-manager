@@ -26,7 +26,8 @@ const TodoCard = ({
     // const status = useMemo(() => {
     //     return calculateTaskStatus(task);
     // }, [task]);
-    const status = task.manuallyFinished ? 'Finished' : calculateTaskStatus(task);
+    // const status = task.manuallyFinished ? 'Finished' : calculateTaskStatus(task);
+    const status = calculateTaskStatus(task);
 
     // Compute subtask progress
     const totalSubtasks = task.subtasks ? task.subtasks.length : 0;
