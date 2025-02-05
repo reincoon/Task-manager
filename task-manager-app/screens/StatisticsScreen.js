@@ -5,7 +5,7 @@ import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { BarChart, PieChart, LineChart } from "react-native-chart-kit";
 import { collection, getDocs} from "firebase/firestore";
-import { formatDuration, computeStatistics, prepareBarChartData, prepareTrendLineDataForMetric } from "../helpers/statisticsHelpers";
+import { computeStatistics, prepareBarChartData, prepareTrendLineDataForMetric, prepareClosedSubtasksByPriority, prepareSubtasksOpenVsClosedData, prepareProjectsOpenVsClosedData } from "../helpers/statisticsHelpers";
 const screenWidth = Dimensions.get("window").width;
 
 // import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +28,7 @@ const TREND_OPTIONS = [
     { label: "To-Do lists Completed", value: "To-Do lists Completed" },
     { label: "Projects Completed", value: "Projects Completed" },
     { label: "Avg Project Completion Time", value: "Avg Project Completion Time" },
+    { label: "Avg To-Do List Completion Time", value: "Avg To-Do List Completion Time" },
 ];
 
 const StatisticsScreen = () => {
@@ -45,6 +46,7 @@ const StatisticsScreen = () => {
     const [selectedProject, setSelectedProject] = useState("All");
     const [selectedPriority, setSelectedPriority] = useState("All");
     const [selectedTrendMetric, setSelectedTrendMetric] = useState("To-Do lists Completed");
+    const [selectedPieMetric, setSelectedPieMetric] = useState("To-Do Lists");
 
     // Statistics state
     const [stats, setStats] = useState({
@@ -124,22 +126,45 @@ const StatisticsScreen = () => {
 
     // Prepare chart data
     const filters = { startDate, endDate, selectedProject, selectedPriority };
-    const pieData = [
-        {
-            name: "Closed",
-            population: stats.closedTasks,
-            color: "#2ecc71",
-            legendFontColor: "#7F7F7F",
-            legendFontSize: 12,
-        },
-        {
-            name: "Open",
-            population: stats.openTasks,
-            color: "#e74c3c",
-            legendFontColor: "#7F7F7F",
-            legendFontSize: 12,
-        }
-    ];
+    // const pieData = [
+    //     {
+    //         name: "Closed",
+    //         population: stats.closedTasks,
+    //         color: "#2ecc71",
+    //         legendFontColor: "#7F7F7F",
+    //         legendFontSize: 12,
+    //     },
+    //     {
+    //         name: "Open",
+    //         population: stats.openTasks,
+    //         color: "#e74c3c",
+    //         legendFontColor: "#7F7F7F",
+    //         legendFontSize: 12,
+    //     }
+    // ];
+    let pieData;
+    if (selectedPieMetric === "To-Do Lists") {
+        pieData = [
+            {
+                name: "Closed",
+                population: stats.closedTasks,
+                color: "#2ecc71",
+                legendFontColor: "#7F7F7F",
+                legendFontSize: 12,
+            },
+            {
+                name: "Open",
+                population: stats.openTasks,
+                color: "#e74c3c",
+                legendFontColor: "#7F7F7F",
+                legendFontSize: 12,
+            },
+        ];
+    } else if (selectedPieMetric === "Subtasks") {
+        pieData = prepareSubtasksOpenVsClosedData(tasks, filters);
+    } else if (selectedPieMetric === "Projects") {
+        pieData = prepareProjectsOpenVsClosedData(projects, tasks, filters);
+    }
     const barData = prepareBarChartData(tasks, filters);
     // const trendData = prepareTrendLineData(tasks, filters);
     const trendData = prepareTrendLineDataForMetric(selectedTrendMetric, tasks, projects, filters);
@@ -221,23 +246,34 @@ const StatisticsScreen = () => {
                 <View style={styles.statsContainer}>
                     <Text style={styles.statItem}>Total Projects: {stats.totalProjects}</Text>
                     <Text style={styles.statItem}>Completed Projects: {stats.completedProjects}</Text>
+                    <Text style={styles.statItem}>
+                        Average Project Completion Time: {stats.avgProjectCompletionTime}
+                    </Text>
                     <Text style={styles.statItem}>Total To-Do Lists: {stats.totalTasks}</Text>
                     <Text style={styles.statItem}>Closed To-Do Lists: {stats.closedTasks}</Text>
-                    <Text style={styles.statItem}>Open To-Do Lists: {stats.openTasks}</Text>
+                    <Text style={styles.statItem}>Opened To-Do Lists: {stats.openTasks}</Text>
                     <Text style={styles.statItem}>
-                        Avg To-Do List Completion Time (hrs): {stats.avgTaskCompletionTime}
+                        Opened To-Do Lists unassigned to a project: {stats.unassignedOpenTasks}
+                    </Text>
+                    <Text style={styles.statItem}>
+                        Average To-Do List Completion Time: {stats.avgTaskCompletionTime}
                     </Text>
                     <Text style={styles.statItem}>Total Subtasks: {stats.totalSubtasks}</Text>
                     <Text style={styles.statItem}>Closed Subtasks: {stats.closedSubtasks}</Text>
-                    {/* <Text style={styles.statItem}>
-                        Avg Subtask Completion Time (hrs): {stats.avgSubtaskCompletionTime}
-                    </Text> */}
-                    <Text style={styles.statItem}>
-                        Avg Project Completion Time (hrs): {stats.avgProjectCompletionTime}
-                    </Text>
                 </View>
         
                 {/* Charts */}
+                <Text style={styles.filterLabel}>Pie Chart Metric:</Text>
+                <Picker
+                    selectedValue={selectedPieMetric}
+                    style={styles.picker}
+                    onValueChange={(itemValue) => setSelectedPieMetric(itemValue)}
+                >
+                    <Picker.Item label="To-Do Lists Open vs Closed" value="To-Do Lists" />
+                    <Picker.Item label="Subtasks Open vs Closed" value="Subtasks" />
+                    <Picker.Item label="Projects Open vs Closed" value="Projects" />
+                </Picker>
+
                 <Text style={styles.chartTitle}>To-Do Lists: Open vs Closed</Text>
                 <PieChart
                     data={pieData}
@@ -255,10 +291,62 @@ const StatisticsScreen = () => {
                     paddingLeft="15"
                     absolute
                 />
+{/* 
+                <Text style={styles.chartTitle}>Subtasks: Open vs Closed</Text>
+                <PieChart
+                    data={prepareSubtasksOpenVsClosedData(tasks, filters)}
+                    width={screenWidth - 20}
+                    height={220}
+                    chartConfig={{
+                        backgroundColor: "#fff",
+                        backgroundGradientFrom: "#fff",
+                        backgroundGradientTo: "#fff",
+                        decimalPlaces: 0,
+                        color: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+                    }}
+                    accessor="population"
+                    backgroundColor="transparent"
+                    paddingLeft="15"
+                    absolute
+                />
+
+                <Text style={styles.chartTitle}>Projects: Open vs Closed</Text>
+                <PieChart
+                    data={prepareProjectsOpenVsClosedData(projects, tasks, filters)}
+                    width={screenWidth - 20}
+                    height={220}
+                    chartConfig={{
+                        backgroundColor: "#fff",
+                        backgroundGradientFrom: "#fff",
+                        backgroundGradientTo: "#fff",
+                        decimalPlaces: 0,
+                        color: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+                    }}
+                    accessor="population"
+                    backgroundColor="transparent"
+                    paddingLeft="15"
+                    absolute
+                /> */}
         
                 <Text style={styles.chartTitle}>Closed To-Do Lists by Priority</Text>
                 <BarChart
                     data={barData}
+                    width={screenWidth - 20}
+                    height={220}
+                    chartConfig={{
+                        backgroundColor: "#fff",
+                        backgroundGradientFrom: "#fff",
+                        backgroundGradientTo: "#fff",
+                        decimalPlaces: 0,
+                        color: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+                        labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+                    }}
+                    style={styles.chart}
+                />
+
+                <Text style={styles.chartTitle}>Closed Subtasks by Priority</Text>
+                <BarChart
+                    data={prepareClosedSubtasksByPriority(tasks, filters)}
                     width={screenWidth - 20}
                     height={220}
                     chartConfig={{
@@ -292,7 +380,7 @@ const StatisticsScreen = () => {
                     width={screenWidth - 20}
                     height={220}
                     yAxisSuffix={
-                        selectedTrendMetric === "Avg Project Completion Time" ? "h" : ""
+                        selectedTrendMetric === "Avg Project Completion Time" || "Avg To-Do List Completion Time" ? "h" : ""
                     }
                     chartConfig={{
                         backgroundColor: "#fff",

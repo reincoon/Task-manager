@@ -100,6 +100,11 @@ export function computeStatistics(tasks, projects, filters) {
         avgProjectCompletionTime = totalProjectTimeMs / countCompletedProjects / (1000 * 60 * 60);
     }
 
+    // Compute unassigned open to‑do lists
+    const unassignedOpenTasks = filteredTasks.filter(
+        task => (!task.projectId || task.projectId === "null") && task.taskCompletedAt === null
+    ).length;
+
     return {
         totalProjects,
         completedProjects,
@@ -111,6 +116,7 @@ export function computeStatistics(tasks, projects, filters) {
         closedSubtasks,
         // avgSubtaskCompletionTime: avgSubtaskCompletionTime.toFixed(2),
         avgProjectCompletionTime: formatDuration(avgProjectCompletionTime),
+        unassignedOpenTasks,
     };
 }
 
@@ -135,6 +141,88 @@ export function prepareBarChartData(tasks, filters) {
     };
     return data;
 }
+
+// Prepare data for closed subtasks by priority
+export function prepareClosedSubtasksByPriority(tasks, filters) {
+    const counts = PRIORITIES.map(priority => {
+        let count = 0;
+        const filteredTasks = filterTasks(tasks, filters);
+        filteredTasks.forEach(task => {
+            if (Array.isArray(task.subtasks)) {
+                count += task.subtasks.filter(sub => sub.isCompleted && sub.priority === priority).length;
+            }
+        });
+        return count;
+    });
+    return {
+        labels: PRIORITIES,
+        datasets: [{ data: counts }]
+    };
+}
+
+// Prepare data for open vs closed subtasks for a pie chart
+export function prepareSubtasksOpenVsClosedData(tasks, filters) {
+    let total = 0;
+    let closed = 0;
+    const filteredTasks = filterTasks(tasks, filters);
+    filteredTasks.forEach(task => {
+        if (Array.isArray(task.subtasks)) {
+            total += task.subtasks.length;
+            closed += task.subtasks.filter(sub => sub.isCompleted).length;
+        }
+    });
+    const open = total - closed;
+    return [
+        {
+            name: "Closed",
+            population: closed,
+            color: "#2ecc71",
+            legendFontColor: "#7F7F7F",
+            legendFontSize: 12,
+        },
+        {
+            name: "Open",
+            population: open,
+            color: "#e74c3c",
+            legendFontColor: "#7F7F7F",
+            legendFontSize: 12,
+        }
+    ];
+}
+
+// Prepare data for open vs closed projects for a pie chart
+export function prepareProjectsOpenVsClosedData(projects, tasks, filters) {
+    let openProjects = 0;
+    let closedProjects = 0;
+    const filteredTasks = filterTasks(tasks, filters);
+    projects.forEach(project => {
+        const projectTasks = filteredTasks.filter(task => task.projectId === project.id);
+        if (projectTasks.length > 0) {
+            if (projectTasks.every(task => task.taskCompletedAt !== null)) {
+                closedProjects++;
+            } else {
+                openProjects++;
+            }
+        }
+    });
+    return [
+        {
+            name: "Closed",
+            population: closedProjects,
+            color: "#2ecc71",
+            legendFontColor: "#7F7F7F",
+            legendFontSize: 12,
+        },
+        {
+            name: "Open",
+            population: openProjects,
+            color: "#e74c3c",
+            legendFontColor: "#7F7F7F",
+            legendFontSize: 12,
+        }
+    ];
+}
+
 
 // ---------------- TREND CHARTS ----------------
 
@@ -223,13 +311,46 @@ export function prepareAvgProjectCompletionTrendLineData(projects, tasks, filter
     return { labels, datasets: [{ data: dataPoints }] };
 }
 
-  // Wrapper function allows to choose which trend data to return based on a metric
+// Compute average To-Do List completion time trend
+export function prepareAvgTaskTrendLineData(tasks, filters) {
+    const days = 7;
+    const trendData = {};
+    const today = new Date();
+    // For each day create an empty array to collect durations in hours
+    for (let i = 0; i < days; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        trendData[date.toDateString()] = [];
+    }
+    const filteredTasks = filterTasks(tasks, filters);
+    filteredTasks.forEach(task => {
+        if (task.taskCompletedAt) {
+            const key = new Date(task.taskCompletedAt).toDateString();
+            if (trendData.hasOwnProperty(key)) {
+                const duration = (task.taskCompletedAt.getTime() - task.createdAt.getTime()) / (1000 * 60 * 60);
+                trendData[key].push(duration);
+            }
+        }
+    });
+    const labels = Object.keys(trendData).sort((a, b) => new Date(a) - new Date(b));
+    const dataPoints = labels.map(label => {
+        const durations = trendData[label];
+        if (durations.length === 0) return 0;
+        const avg = durations.reduce((sum, d) => sum + d, 0) / durations.length;
+        return parseFloat(avg.toFixed(2));
+    });
+    return { labels, datasets: [{ data: dataPoints }] };
+}
+
+// Wrapper function allows to choose which trend data to return based on a metric
 export function prepareTrendLineDataForMetric(metric, tasks, projects, filters) {
     // metric can be one of: "Tasks Completed", "Projects Completed", "Avg Project Completion Time"
     if (metric === "Projects Completed") {
         return prepareProjectTrendLineData(projects, tasks, filters);
     } else if (metric === "Avg Project Completion Time") {
         return prepareAvgProjectCompletionTrendLineData(projects, tasks, filters);
+    } else if (metric === "Avg To-Do List Completion Time") {
+        return prepareAvgTaskTrendLineData(tasks, filters);
     } else {
         // Default to "Tasks Completed"
         return prepareTaskTrendLineData(tasks, filters);
