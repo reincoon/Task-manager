@@ -5,7 +5,7 @@ import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { BarChart, PieChart, LineChart } from "react-native-chart-kit";
 import { collection, getDocs} from "firebase/firestore";
-import { computeStatistics, prepareBarChartData, prepareTrendLineDataForMetric } from "../helpers/statisticsHelpers";
+import { formatDuration, computeStatistics, prepareBarChartData, prepareTrendLineDataForMetric } from "../helpers/statisticsHelpers";
 const screenWidth = Dimensions.get("window").width;
 
 // import { Ionicons } from '@expo/vector-icons';
@@ -53,11 +53,11 @@ const StatisticsScreen = () => {
         totalTasks: 0,
         closedTasks: 0,
         openTasks: 0,
-        avgTaskCompletionTime: 0,
+        avgTaskCompletionTime: "0m",
         totalSubtasks: 0,
         closedSubtasks: 0,
         // avgSubtaskCompletionTime: 0,
-        avgProjectCompletionTime: 0,
+        avgProjectCompletionTime: "0m",
     });
 
     // Fetch projects and tasks from Firestore on mount
@@ -71,7 +71,7 @@ const StatisticsScreen = () => {
             const projectsData = projectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setProjects(projectsData);
     
-            // Fetch tasks (assumes tasks are stored under: tasks/{userId}/taskList)
+            // Fetch tasks
             const tasksSnapshot = await getDocs(collection(db, `tasks/${userId}/taskList`));
             const tasksData = tasksSnapshot.docs.map(doc => {
                     const data = doc.data();
@@ -291,6 +291,9 @@ const StatisticsScreen = () => {
                     data={trendData}
                     width={screenWidth - 20}
                     height={220}
+                    yAxisSuffix={
+                        selectedTrendMetric === "Avg Project Completion Time" ? "h" : ""
+                    }
                     chartConfig={{
                         backgroundColor: "#fff",
                         backgroundGradientFrom: "#fff",

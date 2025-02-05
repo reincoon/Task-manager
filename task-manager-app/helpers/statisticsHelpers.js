@@ -1,5 +1,20 @@
 import { PRIORITIES } from './priority';
 
+// Format a duration given in hours as "Xd Yh Zm"
+export function formatDuration(hours) {
+    if (!hours || isNaN(hours)) return "0m";
+    const totalMinutes = Math.round(hours * 60);
+    const days = Math.floor(totalMinutes / (24 * 60));
+    const remainderMinutes = totalMinutes % (24 * 60);
+    const hrs = Math.floor(remainderMinutes / 60);
+    const mins = remainderMinutes % 60;
+    let parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hrs > 0 || days > 0) parts.push(`${hrs}h`);
+    parts.push(`${mins}m`);
+    return parts.join(" ");
+}
+
 // Filter tasks based on the provided filter options
 export function filterTasks(tasks, { startDate, endDate, selectedProject, selectedPriority }) {
     return tasks.filter(task => {
@@ -91,11 +106,11 @@ export function computeStatistics(tasks, projects, filters) {
         totalTasks,
         closedTasks,
         openTasks,
-        avgTaskCompletionTime: avgTaskCompletionTime.toFixed(2),
+        avgTaskCompletionTime: formatDuration(avgTaskCompletionTime),
         totalSubtasks,
         closedSubtasks,
         // avgSubtaskCompletionTime: avgSubtaskCompletionTime.toFixed(2),
-        avgProjectCompletionTime: avgProjectCompletionTime.toFixed(2),
+        avgProjectCompletionTime: formatDuration(avgProjectCompletionTime),
     };
 }
 
