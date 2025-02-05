@@ -1,112 +1,4 @@
-import { db } from '../firebaseConfig';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import { PRIORITIES } from './priority';
-
-// // Fetch tasks with optional filters: period type, priority, project
-// export async function getStatistics({ userId, periodType, priority, projectId }) {
-//     try {
-//         // Build a Firestore query
-//         let tasksRef = collection(db, `tasks/${userId}/taskList`);
-//         let q = tasksRef;
-//         // Define a start date
-//         const now = new Date();
-//         let startDate = new Date();
-//         if (periodType === 'daily') {
-//             startDate.setDate(now.getDate() - 1);
-//         } else if (periodType === 'weekly') {
-//             startDate.setDate(now.getDate() - 7);
-//         } else if (periodType === 'monthly') {
-//             startDate.setMonth(now.getMonth() - 1);
-//         } else if (periodType === 'yearly') {
-//             startDate.setFullYear(now.getFullYear() - 1);
-//         }
-
-//         // Filter by priority
-//         if (priority) {
-//             q = query(q, where('priority', '==', priority));
-//         }
-//         // Filter by projectId
-//         if (projectId) {
-//             q = query(q, where('projectId', '==', projectId));
-//         }
-
-//         const snapshot = await getDocs(q);
-
-//         // Process tasks
-//         let totalTasks = 0;
-//         let completedTasks = 0;
-//         let totalSubtasks = 0;
-//         let completedSubtasks = 0;
-//         let totalTimeSpent = 0;
-        
-//         snapshot.forEach(docSnap => {
-//             const data = docSnap.data();
-//             totalTasks++;
-//             // Count completed to-do lists
-//             if (data.taskCompletedAt) {
-//                 completedTasks++;
-//             }
-//             // Aggregate subtasks data
-//             if (data.subtasks) {
-//                 data.subtasks.forEach(subtask => {
-//                     totalSubtasks++;
-//                     if (subtask.isCompleted) {
-//                         completedSubtasks++;
-//                     }
-//                     if (subtask.timeSpent) {
-//                         totalTimeSpent += subtask.timeSpent;
-//                     }
-//                 });
-//             }
-
-//             if (data.timeSpent) {
-//                 totalTimeSpent += data.timeSpent;
-//             }
-//             // Filter by priority
-//             if (priority && data.priority !== priority) {
-//                 return;
-//             }
-//             // Filter by project
-//             if (projectId && data.projectId !== projectId) {
-//                 return;
-//             }
-
-//             const isTaskCompleted = !!data.taskCompletedAt || data.subtasks?.every(s => s.isCompleted);
-//             if (isTaskCompleted && !data.taskCompletedAt) {
-//                 completedTasks += 1;
-//             }
-
-//             // Summation of timeSpent
-//             if (data.timeSpent) {
-//                 totalTimeSpent += data.timeSpent;
-//             }
-
-//             // Subtasks
-//             let subs = data.subtasks || [];
-//             totalSubtasks += subs.length;
-//             subs.forEach(s => {
-//                 if (s.isCompleted) {
-//                     completedSubtasks += 1;
-//                 }
-//                 if (s.timeSpent) {
-//                     totalTimeSpent += s.timeSpent;
-//                 }
-//             });
-//         });
-//         // Return aggregated stats
-//         return {
-//             totalTasks,
-//             completedTasks,
-//             totalSubtasks,
-//             completedSubtasks,
-//             totalTimeSpent,
-//         };
-//     } catch (error) {
-//         console.error('Error in getStatistics:', error);
-//         throw error;
-//     }
-// }
-
 
 // Filter tasks based on the provided filter options
 export function filterTasks(tasks, { startDate, endDate, selectedProject, selectedPriority }) {
@@ -122,9 +14,7 @@ export function filterTasks(tasks, { startDate, endDate, selectedProject, select
     });
 }
 
-
 // Compute statistics from tasks and projects given filter options.
-
 export function computeStatistics(tasks, projects, filters) {
     const filteredTasks = filterTasks(tasks, filters);
     const totalTasks = filteredTasks.length;
@@ -132,14 +22,14 @@ export function computeStatistics(tasks, projects, filters) {
     const openTasks = totalTasks - closedTasks;
 
     // Compute average to-do lists completion time (in hours)
-    let avgCompletionTime = 0;
+    let avgTaskCompletionTime = 0;
     const closedTaskList = filteredTasks.filter(task => task.taskCompletedAt !== null);
     if (closedTaskList.length > 0) {
-        const totalTimeMs = closedTaskList.reduce((sum, task) => sum + (task.taskCompletedAt - task.createdAt), 0);
-        avgCompletionTime = totalTimeMs / closedTaskList.length / (1000 * 60 * 60);
+        const totalTimeMs = closedTaskList.reduce((sum, task) => sum + (task.taskCompletedAt.getTime() - task.createdAt.getTime()), 0);
+        avgTaskCompletionTime = totalTimeMs / closedTaskList.length / (1000 * 60 * 60);
     }
 
-    // Count total and closed subtasks across filtered tasks.
+    // Count total and closed subtasks across filtered tasks
     let totalSubtasks = 0;
     let closedSubtasks = 0;
     filteredTasks.forEach(task => {
@@ -149,22 +39,67 @@ export function computeStatistics(tasks, projects, filters) {
         }
     });
 
-    // If filtering by project is "All" then count all projects; otherwise, count as 1.
-    const totalProjects = filters.selectedProject === "All" ? projects.length : 1;
-  
+    // Compute projects statistics
+    let totalProjects = 0;
+    let completedProjects = 0;
+    let totalProjectTimeMs = 0;
+    let countCompletedProjects = 0;
+    if (filters.selectedProject === "All") {
+        projects.forEach(project => {
+            const projectTasks = filteredTasks.filter(task => task.projectId === project.id);
+            // totalProjects++;
+            // // Completed project is if it has at least one task and all its tasks are closed
+            // if (projectTasks.length > 0 && projectTasks.every(task => task.taskCompletedAt !== null)) {
+            //     completedProjects++;
+            // }
+            if (projectTasks.length > 0) {
+                totalProjects++;
+                if (projectTasks.every(task => task.taskCompletedAt !== null)) {
+                    completedProjects++;
+                    const minCreatedAt = new Date(Math.min(...projectTasks.map(task => task.createdAt.getTime())));
+                    const maxCompletedAt = new Date(Math.max(...projectTasks.map(task => task.taskCompletedAt.getTime())));
+                    const projectTimeMs = maxCompletedAt.getTime() - minCreatedAt.getTime();
+                    totalProjectTimeMs += projectTimeMs;
+                    countCompletedProjects++;
+                }
+            }
+        });
+    } else {
+        // Filtering by a single project
+        totalProjects = 1;
+        const projectTasks = filteredTasks.filter(task => task.projectId === filters.selectedProject);
+        // if (projectTasks.length > 0 && projectTasks.every(task => task.taskCompletedAt !== null)) {
+        //     completedProjects = 1;
+        // }
+        if (projectTasks.length > 0 && projectTasks.every(task => task.taskCompletedAt !== null)) {
+            completedProjects = 1;
+            const minCreatedAt = new Date(Math.min(...projectTasks.map(task => task.createdAt.getTime())));
+            const maxCompletedAt = new Date(Math.max(...projectTasks.map(task => task.taskCompletedAt.getTime())));
+            totalProjectTimeMs = maxCompletedAt.getTime() - minCreatedAt.getTime();
+            countCompletedProjects = 1;
+        }
+    }
+
+    let avgProjectCompletionTime = 0;
+    if (countCompletedProjects > 0) {
+        avgProjectCompletionTime = totalProjectTimeMs / countCompletedProjects / (1000 * 60 * 60);
+    }
+
     return {
         totalProjects,
+        completedProjects,
         totalTasks,
         closedTasks,
         openTasks,
-        avgCompletionTime: avgCompletionTime.toFixed(2),
+        avgTaskCompletionTime: avgTaskCompletionTime.toFixed(2),
         totalSubtasks,
         closedSubtasks,
+        // avgSubtaskCompletionTime: avgSubtaskCompletionTime.toFixed(2),
+        avgProjectCompletionTime: avgProjectCompletionTime.toFixed(2),
     };
 }
 
 // Prepare bar chart data for closed tasks grouped by priority
-
 export function prepareBarChartData(tasks, filters) {
     const data = {
         labels: PRIORITIES,
@@ -186,9 +121,10 @@ export function prepareBarChartData(tasks, filters) {
     return data;
 }
 
-// Prepare trend line chart data based on the number of tasks completed per day over the past 7 days
-export function prepareTrendLineData(tasks, filters) {
-    // Create an object for the past 7 days
+// ---------------- TREND CHARTS ----------------
+
+// Prepare trend line data for tasks completed per day over the past 7 days
+export function prepareTaskTrendLineData(tasks, filters) {
     const days = 7;
     const trendData = {};
     const today = new Date();
@@ -197,18 +133,90 @@ export function prepareTrendLineData(tasks, filters) {
         date.setDate(today.getDate() - i);
         trendData[date.toDateString()] = 0;
     }
-    // Count the number of tasks completed per day
     const filteredTasks = filterTasks(tasks, filters);
     filteredTasks.forEach(task => {
         if (task.taskCompletedAt) {
-            const key = new Date(task.taskCompletedAt).toLocaleDateString();
+            const key = new Date(task.taskCompletedAt).toDateString();
             if (trendData.hasOwnProperty(key)) {
                 trendData[key]++;
             }
         }
     });
-    // Sort labels (oldest to newest)
     const labels = Object.keys(trendData).sort((a, b) => new Date(a) - new Date(b));
     const dataPoints = labels.map(label => trendData[label]);
     return { labels, datasets: [{ data: dataPoints }] };
+}
+
+// Prepare trend line data for projects completed per day over the past 7 days
+export function prepareProjectTrendLineData(projects, tasks, filters) {
+    // For each project determine its completion date if it is complete and group by completion date
+    const days = 7;
+    const trendData = {};
+    const today = new Date();
+    for (let i = 0; i < days; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        trendData[date.toDateString()] = 0;
+    }
+    // For each project get its tasks from the filtered tasks
+    projects.forEach(project => {
+        const projectTasks = tasks.filter(task => task.projectId === project.id);
+        if (projectTasks.length > 0 && projectTasks.every(task => task.taskCompletedAt !== null)) {
+            const projectCompletionDate = new Date(Math.max(...projectTasks.map(task => task.taskCompletedAt.getTime())));
+            const key = projectCompletionDate.toDateString();
+            if (trendData.hasOwnProperty(key)) {
+                trendData[key]++;
+            }
+        }
+    });
+    const labels = Object.keys(trendData).sort((a, b) => new Date(a) - new Date(b));
+    const dataPoints = labels.map(label => trendData[label]);
+    return { labels, datasets: [{ data: dataPoints }] };
+}
+
+// Prepare trend line data for average project completion time per day over the past 7 days
+export function prepareAvgProjectCompletionTrendLineData(projects, tasks, filters) {
+    const days = 7;
+    const trendData = {};
+    const today = new Date();
+    // For each day store an array of project completion times (in hours)
+    for (let i = 0; i < days; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        trendData[date.toDateString()] = [];
+    }
+    projects.forEach(project => {
+        const projectTasks = tasks.filter(task => task.projectId === project.id);
+        if (projectTasks.length > 0 && projectTasks.every(task => task.taskCompletedAt !== null)) {
+            const minCreatedAt = new Date(Math.min(...projectTasks.map(task => task.createdAt.getTime())));
+            const maxCompletedAt = new Date(Math.max(...projectTasks.map(task => task.taskCompletedAt.getTime())));
+            const projectCompletionTime = (maxCompletedAt.getTime() - minCreatedAt.getTime()) / (1000 * 60 * 60);
+            const key = maxCompletedAt.toDateString();
+            if (trendData.hasOwnProperty(key)) {
+                trendData[key].push(projectCompletionTime);
+            }
+        }
+    });
+    // Compute the average for each day
+    const labels = Object.keys(trendData).sort((a, b) => new Date(a) - new Date(b));
+    const dataPoints = labels.map(label => {
+        const times = trendData[label];
+        if (times.length === 0) return 0;
+        const avg = times.reduce((sum, val) => sum + val, 0) / times.length;
+        return parseFloat(avg.toFixed(2));
+    });
+    return { labels, datasets: [{ data: dataPoints }] };
+}
+
+  // Wrapper function allows to choose which trend data to return based on a metric
+export function prepareTrendLineDataForMetric(metric, tasks, projects, filters) {
+    // metric can be one of: "Tasks Completed", "Projects Completed", "Avg Project Completion Time"
+    if (metric === "Projects Completed") {
+        return prepareProjectTrendLineData(projects, tasks, filters);
+    } else if (metric === "Avg Project Completion Time") {
+        return prepareAvgProjectCompletionTrendLineData(projects, tasks, filters);
+    } else {
+        // Default to "Tasks Completed"
+        return prepareTaskTrendLineData(tasks, filters);
+    }
 }
