@@ -290,9 +290,7 @@ const TaskCreationScreen = ({ navigation }) => {
                         placeholder="To-Do List Title"
                     />
                     {/* Microphone button */}
-                    <SpeechToTextButton
-                        onTranscribedText={(text) => setTaskTitle(text)}
-                    />
+                    <SpeechToTextButton onTranscribedText={(text) => setTaskTitle(text)}/>
                 </View>
                 {/* Notes */}
                 <View style={styles.notesContainer}>

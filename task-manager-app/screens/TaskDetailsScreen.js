@@ -125,12 +125,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
     // Recalculate task status and progress on subtasks change
     useEffect(() => {
-        // const currentTask = { subtasks, dueDate, manuallyFinished };
-        // const status = calculateTaskStatus(currentTask);
-        // setTaskStatus(status);
-        // const total = subtasks.length;
-        // const done = subtasks.filter((s) => s.isCompleted).length;
-        // setCompletedCount(done);
         const finishedCount = subtasks.filter(s => s.isCompleted).length;
         setCompletedCount(finishedCount);
         
@@ -142,10 +136,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         });
         setTaskStatus(status);
     }, [subtasks, dueDate, manuallyFinished]);
-
-    // useEffect(() => {
-    //     if (fetched.manuallyFinished) setManuallyFinished(fetched.manuallyFinished);
-    // }, [fetched]);
 
     // Save the task by calling the saveTask helper function
     const handleSaveTask = async () => {
@@ -221,7 +211,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             await updateDoc(docRef, {
                 subtasks: originalTask.subtasks.map(s => ({
                     ...s,
-                    // dueDate: s.dueDate instanceof Date ? s.dueDate.toISOString() : s.dueDate,
                     dueDate: safeDate(s.dueDate).toISOString(),
                 })),
                 manuallyFinished: originalTask.manuallyFinished,
@@ -229,11 +218,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
             });
             setTaskStatus(calculateTaskStatus({
                 subtasks: originalTask.subtasks,
-                // dueDate: originalTask.dueDate,
                 dueDate: safeDate(originalTask.dueDate),
                 manuallyFinished: originalTask.manuallyFinished,
             }));
-            // setTaskStatus(calculateTaskStatus({ subtasks, dueDate }));
             // Revert colour
             setSelectedColour(originalTask?.colour || COLOURS[0].value);
             navigation.goBack();
@@ -418,20 +405,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         }
     };
 
-    // // Mark the task as finished local override
-    // const markTaskAsFinished = () => {
-    //     setManuallyFinished(true);
-    // };
-    // // Revert the task as unfinished local override 
-    // const unfinishTaskLocally = () => {
-    //     setManuallyFinished(false);
-    //     setTaskStatus(calculateTaskStatus({ subtasks, dueDate }));
-    // };
-
-    // // final displayed status in the UI
-    // const autoStatus = calculateTaskStatus({ subtasks, dueDate });
-    // const displayedStatus = manuallyFinished ? 'Finished' : autoStatus;
-
     // Mark entire list as completed locally
     const markTaskAsCompletedLocally = async () => {
         setManuallyFinished(true);
@@ -456,14 +429,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     const markTaskAsUnfinishedLocally = async () => {
         // Set task as unfinished
         setManuallyFinished(false);
-        // setTaskStatus('Finished');
-        // setTaskStatus(calculateTaskStatus({ subtasks, dueDate }));
-    
-        // // Reset the completion status of subtasks locally
-        // const updatedSubtasks = subtasks.map(subtask => {
-        //     // For each subtask, mark it as not completed
-        //     return { ...subtask, isCompleted: false, completedAt: null };
-        // });
+
         const updatedSubtasks = await toggleTaskCompletion({
             userId,
             taskId,
@@ -478,21 +444,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         setTaskStatus('Not Started');
         await updateTaskStatusInFirestore(false, userId, taskId);
     };
-
-    // // Mark entire to-do list as completed
-    // const markTaskAsCompleted = async () => {
-    //     try {
-    //         const updatedSubtasks = await toggleTaskCompletion({
-    //             userId,
-    //             taskId,
-    //             subtasks,
-    //             markAsComplete: true,
-    //         });
-    //         setSubtasks(updatedSubtasks);
-    //     } catch (error) {
-    //         console.error('Error marking task as completed:', error);
-    //     }
-    // };
 
     if (loading) {
         return (
@@ -531,7 +482,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
                     {/* Button/icon to mark entire list complete */}
                     {taskStatus !== 'Finished' ? (
-                    // {/* {subtasks.length === 0 ? ( */}
                         <TouchableOpacity style={styles.completeButton} onPress={markTaskAsCompletedLocally}>
                             <Ionicons name="checkmark-circle" size={22} color="white" />
                             <Text style={styles.completeButtonText}>
@@ -562,11 +512,11 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                         onChangeText={setTaskTitle}
                         placeholder="To-Do List Title"
                     />
-                    <SpeechToTextButton  onTranscribedText={(text) => setTaskTitle(text)}/>
+                    <SpeechToTextButton onTranscribedText={(text) => setTaskTitle(text)}/>
                 </View>
                 <View style={styles.notesContainer}>
                     <TextInput
-                        style={[styles.input, styles.notesInput]}
+                        style={[styles.input, styles.notesInput, { flex: 1, marginRight: 10 }]}
                         value={notes}
                         onChangeText={setNotes}
                         placeholder="Notes"
