@@ -16,6 +16,7 @@ import { addAttachmentOfflineAndOnline, removeAttachment, deleteAllAttachmentsFr
 import { removeFileFromSupabase } from '../helpers/supabaseStorageHelpers';
 import { createTask, addSubtaskToCalendar, addTaskToCalendar } from '../helpers/taskActions';
 import ColourPicker from '../components/ColourPicker';
+import SpeechToTextButton from '../components/SpeechToTextButton';
 
 const TaskCreationScreen = ({ navigation }) => {
     const [taskTitle, setTaskTitle] = useState('');
@@ -280,19 +281,33 @@ const TaskCreationScreen = ({ navigation }) => {
 
             {/* Main to-do list form */}
             <ScrollView showsVerticalScrollIndicator={false}>
-                <TextInput
-                    style={styles.input}
-                    value={taskTitle}
-                    onChangeText={setTaskTitle}
-                    placeholder="To-Do List Title"
-                />
-                <TextInput
-                    style={[styles.input, styles.notesInput]}
-                    value={notes}
-                    onChangeText={setNotes}
-                    placeholder="Notes"
-                    multiline
-                />
+                {/* Title */}
+                <View style={styles.titleContainer}>
+                    <TextInput
+                        style={styles.input}
+                        value={taskTitle}
+                        onChangeText={setTaskTitle}
+                        placeholder="To-Do List Title"
+                    />
+                    {/* Microphone button */}
+                    <SpeechToTextButton
+                        onTranscribedText={(text) => setTaskTitle(text)}
+                    />
+                </View>
+                {/* Notes */}
+                <View style={styles.notesContainer}>
+                    <TextInput
+                        style={[styles.input, styles.notesInput, { flex: 1, marginRight: 10 }]}
+                        value={notes}
+                        onChangeText={setNotes}
+                        placeholder="Notes"
+                        multiline
+                    />
+                    <SpeechToTextButton
+                        onTranscribedText={(text) => setNotes(text)}
+                    />
+                </View>
+                
 
                 {/* Color Picker */}
                 <View style={{ marginBottom: 20 }}>
@@ -412,11 +427,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 20,
     },
+    titleContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 20,
+    },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 20,
         padding: 16,
+    },
+    notesContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 20,
     },
     input: {
         borderWidth: 1,

@@ -10,19 +10,11 @@ const screenWidth = Dimensions.get("window").width;
 
 // import { Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../firebaseConfig';
-import { getStatistics } from '../helpers/statisticsHelpers';
 // import { doc, getDoc } from 'firebase/firestore';
 import { PRIORITIES } from '../helpers/priority';
 import { getProjectsByUserId } from '../helpers/firestoreHelpers';
 import { useFocusEffect } from '@react-navigation/native';
 // import { SafeAreaView } from 'react-native-safe-area-context';
-
-const PERIOD_OPTIONS = [
-    { label: 'Daily', value: 'daily' },
-    { label: 'Weekly', value: 'weekly' },
-    { label: 'Monthly', value: 'monthly' },
-    { label: 'Yearly', value: 'yearly' },
-];
 
 const TREND_OPTIONS = [
     { label: "To-Do lists Completed", value: "To-Do lists Completed" },

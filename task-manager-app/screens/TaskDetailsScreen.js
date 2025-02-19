@@ -7,6 +7,7 @@ import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
 import DateTimeSelector from '../components/DateTimeSelector';
 import SubtaskList from '../components/SubtaskList';
 import AttachmentsList from '../components/AttachmentsList';
+import SpeechToTextButton from '../components/SpeechToTextButton';
 
 import { requestNotificationPermissions } from '../helpers/notifications';
 import { NOTIFICATION_OPTIONS, COLOURS } from '../helpers/constants';
@@ -554,19 +555,25 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 </Text>
 
                 {/* Title and Notes */}
-                <TextInput
-                    style={styles.input}
-                    value={taskTitle}
-                    onChangeText={setTaskTitle}
-                    placeholder="To-Do List Title"
-                />
-                <TextInput
-                    style={[styles.input, styles.notesInput]}
-                    value={notes}
-                    onChangeText={setNotes}
-                    placeholder="Notes"
-                    multiline
-                />
+                <View style={styles.titleContainer}>
+                    <TextInput
+                        style={styles.input}
+                        value={taskTitle}
+                        onChangeText={setTaskTitle}
+                        placeholder="To-Do List Title"
+                    />
+                    <SpeechToTextButton  onTranscribedText={(text) => setTaskTitle(text)}/>
+                </View>
+                <View style={styles.notesContainer}>
+                    <TextInput
+                        style={[styles.input, styles.notesInput]}
+                        value={notes}
+                        onChangeText={setNotes}
+                        placeholder="Notes"
+                        multiline
+                    />
+                    <SpeechToTextButton onTranscribedText={(text) => setNotes(text)} />
+                </View>
                 {/* Colour Picker */}
                 <View style={{ marginBottom: 20 }}>
                     <Text style={{ marginBottom: 10, fontWeight: '600' }}>
@@ -709,6 +716,16 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 20,
         borderRadius: 5,
+    },
+    titleContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 20,
+    },
+    notesContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 20,
     },
     notesInput: {
         height: 80,
