@@ -1,12 +1,8 @@
 import { useState } from "react";
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Audio } from 'expo-av';
-// import uuid from 'react-native-uuid';
-// import { supabase } from "../supabaseClient";
-// import * as FileSystem from 'expo-file-system';
 
 const ASSEMBLYAI_API_KEY = 'f67efaeeb1ea48c78a00eeab7b86384b';
-// const ASSEMBLYAI_API_URL = 'https://api.assemblyai.com';
 
 // A button that records audio using expo-av, uploads to Supabase, transcribes via AssemblyAI, calls onTranscribedText once recognised
 export default function SpeechToTextButton({ onTranscribedText }) {
