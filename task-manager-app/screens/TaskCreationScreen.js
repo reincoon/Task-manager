@@ -1,268 +1,51 @@
-import { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { db, auth } from '../firebaseConfig';
 import NotificationPicker from '../components/NotificationPicker';
 import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
-import { requestNotificationPermissions, scheduleNotification } from '../helpers/notifications';
-import { COLOURS, NOTIFICATION_OPTIONS } from '../helpers/constants';
-import { cyclePriority } from '../helpers/priority';
+import { NOTIFICATION_OPTIONS } from '../helpers/constants';
 import DateTimeSelector from '../components/DateTimeSelector';
-import { scheduleTaskNotification } from '../helpers/notificationsHelpers';
 import SubtaskList from '../components/SubtaskList';
 import AttachmentsList from '../components/AttachmentsList';
-import * as FileSystem from 'expo-file-system';
 import { addAttachmentOfflineAndOnline, removeAttachment, deleteAllAttachmentsFromSupabase } from '../helpers/attachmentHelpers';
-import { removeFileFromSupabase } from '../helpers/supabaseStorageHelpers';
-import { createTask, addSubtaskToCalendar, addTaskToCalendar } from '../helpers/taskActions';
 import ColourPicker from '../components/ColourPicker';
 import SpeechToTextButton from '../components/SpeechToTextButton';
+import { useTaskCreation } from '../hooks/useTaskCreation';
 
-const TaskCreationScreen = ({ navigation }) => {
-    const [taskTitle, setTaskTitle] = useState('');
-    const [notes, setNotes] = useState('');
-    const [dueDate, setDueDate] = useState(new Date());
-    const [notification, setNotification] = useState('None');
-    const [priority, setPriorityState] = useState('Low');
-    const [subtasks, setSubtasks] = useState([]);
-    const [showSubtaskForm, setShowSubtaskForm] = useState(false);
-    const [currentSubtask, setCurrentSubtask] = useState({
-        title: '',
-        dueDate: new Date(),
-        priority: 'Low',
-        reminder: 'None',
-        isRecurrent: false,
-        notificationId: null,
-        eventId: null
-    });
-    const [originalAttachments, setOriginalAttachments] = useState([]);
-    const [attachments, setAttachments] = useState([]);
-    const [addedAttachments, setAddedAttachments] = useState([]);
-    const [deletedAttachments, setDeletedAttachments] = useState([]);
-    const [isSaving, setIsSaving] = useState(false);
-    const [isCancelling, setIsCancelling] = useState(false);
-
-    const [taskId, setTaskId] = useState(null);
-    const [userId, setUserId] = useState(null);
-
-    const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-    const [selectedColour, setSelectedColour] = useState(COLOURS[0].value);
-
-    // Request permissions for notifications and get user ID
-    useEffect(() => {
-        requestNotificationPermissions();
-        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-            if (currentUser) {
-                setUserId(currentUser.uid);
-            } else {
-                Alert.alert('Error', 'No user signed in.');
-                navigation.goBack();
-            }
-        });
-
-        return () => {
-            unsubscribe();
-        };
-    }, [navigation]);    
-
-    // Add or edit a subtask by updating the local state
-    const handleAddSubtask = async () => {
-        if (!currentSubtask.title.trim()) {
-            Alert.alert('Error', 'Subtask title is required');
-            return;
-        }
-
-        let subtaskDueDate = currentSubtask.dueDate;
-        if (!(subtaskDueDate instanceof Date) || isNaN(subtaskDueDate.getTime())) {
-            subtaskDueDate = new Date();
-        }
-
-        // Schedule Subtask Notification
-        let subtaskNotificationId = null;
-        if (currentSubtask.reminder !== 'None') {
-            subtaskNotificationId = await scheduleTaskNotification(
-                currentSubtask.title,
-                currentSubtask.reminder,
-                subtaskDueDate
-            );
-        }
-
-        const newSubtask = {
-            ...currentSubtask,
-            dueDate: subtaskDueDate,
-            notificationId: subtaskNotificationId || null
-        };
-
-        // Add the subtask
-        setSubtasks([...subtasks, newSubtask]);
-
-        setCurrentSubtask({
-            title: '',
-            dueDate: new Date(),
-            priority: 'Low',
-            reminder: 'None',
-            isRecurrent: false,
-            notificationId: null,
-            eventId: null,
-        });
-        setShowSubtaskForm(false);
-    };
-
-    // Save the new to-do list by calling the createTask helper function
-    const handleSaveTask = async () => {
-        if (isSaving) return;
-        setIsSaving(true);
-
-        if (!taskTitle.trim()) {
-            Alert.alert('Error', 'Task title is required');
-            setIsSaving(false);
-            return;
-        }
-
-        if (!userId) {
-            Alert.alert('Error', 'You need to be logged in to create a task');
-            setIsSaving(false);
-            return;
-        }
-
-        try {
-            const currentTask = {
-                title: taskTitle,
-                notes,
-                dueDate,
-                notification,
-                priority,
-                subtasks,
-                attachments,
-                colour: selectedColour,
-            };
-
-            await createTask({
-                userId,
-                db,
-                currentTask,
-                setTaskId,
-                setOriginalTask: () => {},
-                setOriginalAttachments: setOriginalAttachments,
-                setDeletedAttachments: setDeletedAttachments,
-                setAddedAttachments: setAddedAttachments,
-            });
-
-            Alert.alert('Success', 'Task created successfully');
-            navigation.navigate('Home');
-        } catch (error) {
-            Alert.alert('Error', error.message);
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    // Add the to-do list to the calendar by calling the addTaskToCalendar helper function
-    const addMainTaskToCalendar = async () => {
-        if (!userId || !taskId) {
-            Alert.alert('Info', 'You need to save the task first before adding it to calendar.');
-            return;
-        }
-
-        try {
-            await addTaskToCalendar({
-                userId,
-                taskId,
-                db,
-                taskTitle,
-                dueDate,
-                setTaskNotificationId: () => {},
-                promptAddEventAnyway: (title, date, notes, existingId, onConfirm) => {
-                    Alert.alert(
-                        'Already in Calendar',
-                        'This event already exists. Do you want to add another one anyway?',
-                        [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: 'Add Anyway', onPress: onConfirm },
-                        ]
-                    );
-                },
-            });
-        } catch (error) {
-            console.error('Error adding task to calendar:', error);
-            Alert.alert('Error', 'Failed to add task to calendar.');
-        }
-    };
-
-    // Add a subtask to the calendar by calling the addSubtaskToCalendar helper function
-    const addSubtaskToCalendarHandler = async (subtask, index) => {
-        if (!userId || !taskId) {
-            Alert.alert('Info', 'You need to save the task first before adding subtasks to calendar.');
-            return;
-        }
-
-        try {
-            await addSubtaskToCalendar({
-                userId,
-                taskId,
-                db,
-                subtask,
-                index,
-                setSubtasks,
-                promptAddEventAnyway: (title, date, notes, existingId, onConfirm) => {
-                    Alert.alert(
-                        'Already in Calendar',
-                        'This subtask already exists. Do you want to add another one anyway?',
-                        [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: 'Add Anyway', onPress: onConfirm },
-                        ]
-                    );
-                },
-            });
-        } catch (error) {
-            console.error('Error adding subtask to calendar:', error);
-            Alert.alert('Error', 'Failed to add subtask to calendar.');
-        }
-    };
-
-    // Cancel the to-do list creation by deleting any newly added attachments and resetting the form
-    const handleCancel = async () => {
-        if (isCancelling) return;
-        setIsCancelling(true);
-
-        try {
-            // Delete 'addedAttachments' from Supabase and local storage
-            for (const attachment of addedAttachments) {
-                if (attachment.supabaseKey) {
-                    await removeFileFromSupabase(attachment.supabaseKey);
-                }
-                if (attachment.localUri) {
-                    await FileSystem.deleteAsync(attachment.localUri, { idempotent: true });
-                }
-            }
-
-            // Revert
-            setAttachments([]);
-            // Clear tracking states
-            setDeletedAttachments([]);
-            setAddedAttachments([]);
-
-            // Reset other form fields
-            setTaskTitle('');
-            setNotes('');
-            setDueDate(new Date());
-            setNotification('None');
-            setPriorityState('Low');
-            setSubtasks([]);
-            setSelectedColour(COLOURS[0].value);
-
-            navigation.goBack();
-        } catch (error) {
-            console.log('Error during cancellation:', error);
-            Alert.alert('Error', 'Failed to cancel task editing.');
-        } finally {
-            setIsCancelling(false);
-        }
-    }
-
-    const setPriority = (p) => setPriorityState(cyclePriority(p));
-
+export default function TaskCreationScreen ({ navigation }) {
+    const {
+        taskTitle,
+        setTaskTitle,
+        notes,
+        setNotes,
+        dueDate,
+        setDueDate,
+        notification,
+        setNotification,
+        priority,
+        setPriority,
+        selectedColour,
+        setSelectedColour,
+        subtasks,
+        setSubtasks,
+        showSubtaskForm,
+        setShowSubtaskForm,
+        currentSubtask,
+        setCurrentSubtask,
+        attachments,
+        setAttachments,
+        addedAttachments,
+        setAddedAttachments,
+        isSaving,
+        isCancelling,
+        isUploadingAttachment,
+        setIsUploadingAttachment,
+        handleAddSubtask,
+        handleSaveTask,
+        addMainTaskToCalendar,
+        addSubtaskToCalendarHandler,
+        handleCancel,
+    } = useTaskCreation(navigation);
+    
     return (
         <SafeAreaView style={styles.container}>
             {/* Header */}
@@ -465,4 +248,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default TaskCreationScreen;
+// export default TaskCreationScreen;
