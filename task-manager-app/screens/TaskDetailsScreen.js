@@ -1,450 +1,74 @@
-import { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { db, auth } from '../firebaseConfig';
 import NotificationPicker from '../components/NotificationPicker';
 import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
 import DateTimeSelector from '../components/DateTimeSelector';
 import SubtaskList from '../components/SubtaskList';
 import AttachmentsList from '../components/AttachmentsList';
 import SpeechToTextButton from '../components/SpeechToTextButton';
+import ColourPicker from '../components/ColourPicker';
+import { useTaskDetails } from '../hooks/useTaskDetails';
 
-import { requestNotificationPermissions } from '../helpers/notifications';
-import { NOTIFICATION_OPTIONS, COLOURS } from '../helpers/constants';
+import { NOTIFICATION_OPTIONS } from '../helpers/constants';
 import { cyclePriority } from '../helpers/priority';
 import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/attachmentHelpers';
-import { fetchTaskDetails, saveTask, cancelTaskChanges, deleteTask, deleteSubtask, addTaskToCalendar, addSubtaskToCalendar } from '../helpers/taskActions';
-import ColourPicker from '../components/ColourPicker';
-import { calculateTaskStatus, toggleTaskCompletion, updateTaskStatusInFirestore } from '../helpers/subtaskCompletionHelpers';
-import { doc, updateDoc } from 'firebase/firestore';
-import { safeDate } from '../helpers/date';
 
-const TaskDetailsScreen = ({ route, navigation }) => {
+export default function TaskDetailsScreen({ route, navigation }) {
     const { taskId } = route.params;
-    const [loading, setLoading] = useState(true);
-    const [userId, setUserId] = useState(null);
-    // Task-level states
-    const [taskTitle, setTaskTitle] = useState('');
-    const [notes, setNotes] = useState('');
-    const [dueDate, setDueDate] = useState(new Date());
-    const [notification, setNotification] = useState('None');
-    const [priority, setPriority] = useState('Low');
-    const [subtasks, setSubtasks] = useState([]);
-    const [showSubtaskForm, setShowSubtaskForm] = useState(false);
-    const [currentSubtask, setCurrentSubtask] = useState({
-        title: '',
-        dueDate: new Date(),
-        priority: 'Low',
-        reminder: 'None',
-        isRecurrent: false,
-        notificationId: null,
-        eventId: null,
-        isCompleted: false,
-    });
-    const [editingSubtaskIndex, setEditingSubtaskIndex] = useState(null);
-    // original task is stored to revert in case if cancelled
-    const [originalTask, setOriginalTask] = useState(null); 
-    // notificationId is stored to keep in case if cancelled
-    const [taskNotificationId, setTaskNotificationId] = useState(null);
-    const [originalAttachments, setOriginalAttachments] = useState([]);
-    const [attachments, setAttachments] = useState([]);
-    const [deletedAttachments, setDeletedAttachments] = useState([]);
-    const [addedAttachments, setAddedAttachments] = useState([]);
-    const [isSaving, setIsSaving] = useState(false);
-    const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-    const [selectedColour, setSelectedColour] = useState(COLOURS[0].value);
 
-    const [taskStatus, setTaskStatus] = useState('Not Started');
-    const [completedCount, setCompletedCount] = useState(0);
-    const [manuallyFinished, setManuallyFinished] = useState(false);
-    const [localTaskCompletedAt, setLocalTaskCompletedAt] = useState(null);
-
-    // Request notification permissions and get user ID
-    useEffect(() => {
-        requestNotificationPermissions();
-        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-            if (currentUser) {
-                setUserId(currentUser.uid);
-            } else {
-                Alert.alert('Error', 'No user signed in.');
-                navigation.goBack();
-            }
-        });
-
-        return () => {
-            unsubscribe();
-        };
-    }, [navigation]);
-
-    // Fetch task details once userId is available
-    useEffect(() => {
-        async function loadTask() {
-            if (!userId) return;
-            try {
-                const fetched = await fetchTaskDetails(userId, taskId, db);
-                // Populate states
-                setTaskTitle(fetched.title);
-                setNotes(fetched.notes);
-                setDueDate(fetched.dueDate);
-                setNotification(fetched.notification);
-                setPriority(fetched.priority);
-                setSubtasks(fetched.subtasks);
-                setTaskNotificationId(fetched.notificationId);
-                setAttachments(fetched.attachments);
-
-                // Fetch colour
-                if (fetched.colour) {
-                    setSelectedColour(fetched.colour);
-                }
-                // Set status based on fetched data
-                setManuallyFinished(fetched.manuallyFinished || false);
-                // Keep original atatchments
-                setOriginalAttachments(fetched.attachments);
-                // Store the original task
-                setOriginalTask({
-                    title: fetched.title,
-                    notes: fetched.notes,
-                    dueDate: fetched.dueDate,
-                    notification: fetched.notification,
-                    priority: fetched.priority,
-                    subtasks: fetched.subtasks,
-                    notificationId: fetched.notificationId,
-                    attachments: fetched.attachments,
-                    colour: fetched.colour || COLOURS[0].value,
-                    manuallyFinished: fetched.manuallyFinished || false,
-                });
-
-                setLoading(false);
-            } catch (err) {
-                Alert.alert('Error', err.message);
-                navigation.goBack();
-            }
-        }
-        loadTask();
-    }, [userId, taskId, db, navigation]);
-
-    // Recalculate task status and progress on subtasks change
-    useEffect(() => {
-        const finishedCount = subtasks.filter(s => s.isCompleted).length;
-        setCompletedCount(finishedCount);
-        
-        // For tasks with subtasks, ignore manuallyFinished.
-        const status = calculateTaskStatus({
-            subtasks,
-            dueDate,
-            manuallyFinished: subtasks.length === 0 ? manuallyFinished : false,
-        });
-        setTaskStatus(status);
-    }, [subtasks, dueDate, manuallyFinished]);
-
-    // Save the task by calling the saveTask helper function
-    const handleSaveTask = async () => {
-        if (isSaving || !userId) {
-            return;
-        }
-        setIsSaving(true);
-        
-        if (!taskTitle.trim()) {
-            Alert.alert('Error', 'Task title is required');
-            setIsSaving(false);
-            return;
-        }
-
-        try {
-            await saveTask({
-                userId,
-                taskId,
-                db,
-                originalTask,
-                currentTask: {
-                    title: taskTitle,
-                    notes,
-                    dueDate: safeDate(dueDate),
-                    notification,
-                    priority,
-                    subtasks,
-                    attachments,
-                    notificationId: taskNotificationId,
-                    colour: selectedColour,
-                    manuallyFinished: subtasks.length === 0 ? manuallyFinished : false,
-                },
-                deletedAttachments,
-                setOriginalAttachments,
-                setDeletedAttachments,
-                setAddedAttachments,
-            });
-            // const newStatus = manuallyFinished ? 'Finished' : calculateTaskStatus({ subtasks, dueDate: safeDate(dueDate), manuallyFinished });
-            const newStatus = subtasks.length === 0 
-                ? (manuallyFinished ? 'Finished' : calculateTaskStatus({ subtasks, dueDate })) 
-                : calculateTaskStatus({ subtasks, dueDate, manuallyFinished: false });
-            setTaskStatus(newStatus);
-
-            Alert.alert('Success', 'Task updated successfully');
-            navigation.goBack();
-        } catch (err) {
-            Alert.alert('Error', err.message);
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    // Cancel any changes by calling the cancelTaskChanges helper function
-    const handleCancel = async () => {
-        try {
-            await cancelTaskChanges({
-                originalTask,
-                addedAttachments,
-                setAttachments,
-                setDeletedAttachments,
-                setAddedAttachments,
-                setTaskTitle,
-                setNotes,
-                setDueDate,
-                setNotification,
-                setPriority,
-                setSubtasks,
-            });
-            setManuallyFinished(originalTask.manuallyFinished);
-
-            // Revert Firestore
-            const docRef = doc(db, `tasks/${userId}/taskList`, taskId);
-            await updateDoc(docRef, {
-                subtasks: originalTask.subtasks.map(s => ({
-                    ...s,
-                    dueDate: safeDate(s.dueDate).toISOString(),
-                })),
-                manuallyFinished: originalTask.manuallyFinished,
-                taskCompletedAt: null,
-            });
-            setTaskStatus(calculateTaskStatus({
-                subtasks: originalTask.subtasks,
-                dueDate: safeDate(originalTask.dueDate),
-                manuallyFinished: originalTask.manuallyFinished,
-            }));
-            // Revert colour
-            setSelectedColour(originalTask?.colour || COLOURS[0].value);
-            navigation.goBack();
-        } catch (error) {
-            Alert.alert('Error', 'Failed to cancel task editing.');
-            console.log('Error during cancellation:', error);
-        }
-    };
-
-    // Add or edit a subtask by updating the local state
-    const handleAddSubtask = async () => {
-        if (!currentSubtask.title.trim()) {
-            Alert.alert('Error', 'Subtask title is required');
-            return;
-        }
-
-        const updatedSubtask = {
-            ...currentSubtask,
-            dueDate: currentSubtask.dueDate instanceof Date ? currentSubtask.dueDate : new Date(),
-        };
-
-        if (editingSubtaskIndex !== null) {
-            // Editing existing subtask
-            const updatedSubtasks = [...subtasks];
-            updatedSubtasks[editingSubtaskIndex] = updatedSubtask;
-            setSubtasks(updatedSubtasks);
-        } else {
-            setSubtasks([...subtasks, updatedSubtask]);
-        }
-        // Reset current subtask and close sheet
-        setCurrentSubtask({
-            title: '',
-            dueDate: new Date(),
-            priority: 'Low',
-            reminder: 'None',
-            isRecurrent: false,
-            notificationId: null,
-            eventId: null,
-            isCompleted: false,
-        });
-        setEditingSubtaskIndex(null);
-        setShowSubtaskForm(false);
-    };
-
-    // Delete the entire to-do list
-    const handleDeleteTask = async () => {
-        Alert.alert('Delete To-Do List', 'Are you sure you want to delete this to-do list?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete', style: 'destructive', onPress: async () => {
-                try {
-                    console.log('Deleting to-do list. Subtasks:', subtasks);
-                    console.log('Deleting to-do list. Attachments:', attachments);
-                    await deleteTask(userId, {
-                        id: taskId,
-                        notificationId: taskNotificationId,
-                        subtasks,
-                        attachments,
-                        colour: selectedColour,
-                    }, navigation, true);
-                    Alert.alert('Deleted', 'Task deleted successfully');
-                } catch (err) {
-                    console.error('Error deleting task:', err);
-                    Alert.alert('Error', 'Could not delete task');
-                }
-            }},
-        ]);
-    };
-
-    // Edit a subtask
-    const handleEditSubtask = (index) => {
-        const subtaskToEdit = subtasks[index];
-        let safeDueDate = subtaskToEdit.dueDate instanceof Date ? subtaskToEdit.dueDate : new Date();
-
-        setCurrentSubtask({
-            ...subtaskToEdit,
-            dueDate: safeDueDate
-        });
-        setEditingSubtaskIndex(index);
-        setShowSubtaskForm(true);
-    };
-
-    // Delete a subtask
-    const handleDeleteSubtask = async (index) => {
-        Alert.alert('Delete Subtask', 'Are you sure you want to delete this subtask?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete', style: 'destructive', onPress: async () => {
-                try {
-                    await deleteSubtask({
-                        userId,
-                        taskId,
-                        db,
-                        subtasks,
-                        index,
-                        setSubtasks,
-                    });
-                    Alert.alert('Deleted', 'Subtask deleted successfully');
-                } catch (err) {
-                    console.error('Error deleting subtask:', err);
-                    Alert.alert('Error', 'Could not delete subtask');
-                }
-            }}
-        ]);
-    };
-
-    const promptAddEventAnyway = async (title, dueDate, notes, existingEventId, onConfirm) => {
-        Alert.alert(
-            'Already in Calendar',
-            'This event already exists in your calendar. Do you want to add another one anyway?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Add Anyway', style: 'default', onPress: onConfirm }
-            ]
-        );
-    };
-
-    const promptAddEvent = async (title, dueDate, notes, onConfirm) => {
-        Alert.alert(
-            'Add to Calendar',
-            `Do you want to add "${title}" to your calendar?`,
-            [
-                { text: 'No', style: 'cancel' },
-                { text: 'Yes', style: 'default', onPress: onConfirm }
-            ]
-        );
-    };
-
-    const addTaskToCalendarHandler = async () => {
-        if (!userId) {
-            Alert.alert('Error', 'No user logged in.');
-            return;
-        }
-        try {
-            await addTaskToCalendar({
-                userId,
-                taskId,
-                taskTitle,
-                dueDate,
-                setTaskNotificationId,
-                promptAddEventAnyway: (title, date, notes, existingId, onConfirm) => {
-                    Alert.alert(
-                        'Already in Calendar',
-                        'This event already exists. Do you want to add another one anyway?',
-                        [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: 'Add Anyway', onPress: onConfirm },
-                        ]
-                    );
-                },
-            });
-            Alert.alert('Success', 'Task added to calendar');
-        } catch (err) {
-            console.error('Error adding task to calendar:', err);
-        }
-    };
-
-    const addSubtaskToCalendarHandler = async (subtask, index) => {
-        if (!userId) {
-            Alert.alert('Error', 'No user logged in.');
-            return;
-        }
-        try {
-            await addSubtaskToCalendar({
-                userId,
-                taskId,
-                subtask,
-                index,
-                setSubtasks,
-                promptAddEventAnyway: (title, date, notes, existingId, onConfirm) => {
-                    Alert.alert(
-                        'Already in Calendar',
-                        'This subtask already exists. Do you want to add another one anyway?',
-                        [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: 'Add Anyway', onPress: onConfirm },
-                        ]
-                    );
-                },
-            });
-            Alert.alert('Success', 'Subtask added to calendar');
-        } catch (err) {
-            console.error('Error adding subtask to calendar:', err);
-        }
-    };
-
-    // Mark entire list as completed locally
-    const markTaskAsCompletedLocally = async () => {
-        setManuallyFinished(true);
-        // setTaskStatus('Finished');
-        await updateTaskStatusInFirestore(true, userId, taskId);
-        const nowStr = new Date().toISOString();
-        const updated = subtasks.map(s => {
-            if (!s.isCompleted) {
-                return {
-                    ...s,
-                    isCompleted: true,
-                    completedAt: s.completedAt || nowStr,
-                };
-            }
-            return s;
-        });
-        setSubtasks(updated);
-        setLocalTaskCompletedAt(nowStr);
-        setTaskStatus('Finished');
-    };
-
-    const markTaskAsUnfinishedLocally = async () => {
-        // Set task as unfinished
-        setManuallyFinished(false);
-
-        const updatedSubtasks = await toggleTaskCompletion({
-            userId,
-            taskId,
-            subtasks,
-            markAsComplete: false,
-        });
-        
-        setSubtasks(updatedSubtasks);
+    const {
+        userId,
+        loading,
+        taskTitle,
+        setTaskTitle,
+        notes,
+        setNotes,
+        dueDate,
+        setDueDate,
+        notification,
+        setNotification,
+        priority,
+        setPriority,
+        selectedColour,
+        setSelectedColour,
+        subtasks,
+        setSubtasks,
+        showSubtaskForm,
+        setShowSubtaskForm,
+        currentSubtask,
+        setCurrentSubtask,
+        editingSubtaskIndex,
+        setEditingSubtaskIndex,
+        taskNotificationId,
+        setTaskNotificationId,
+        attachments,
+        setAttachments,
+        deletedAttachments,
+        setDeletedAttachments,
+        addedAttachments,
+        setAddedAttachments,
+        isSaving,
+        isCancelling,
+        setIsCancelling,
+        originalTask,
+        isUploadingAttachment,
+        setIsUploadingAttachment,
+        taskStatus,
+        completedCount,
+        manuallyFinished,
+        localTaskCompletedAt,
+        handleSaveTask,
+        handleCancel,
+        handleAddSubtask,
+        handleDeleteTask,
+        handleEditSubtask,
+        handleDeleteSubtask,
+        markTaskAsCompletedLocally,
+        markTaskAsUnfinishedLocally,
+        addMainTaskToCalendarHandler,
+        addSubtaskToCalendarHandler,
+    } = useTaskDetails(taskId, navigation);
     
-        // Reset the local completion date of the task itself
-        setLocalTaskCompletedAt(null);
-        setTaskStatus('Not Started');
-        await updateTaskStatusInFirestore(false, userId, taskId);
-    };
-
     if (loading) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
@@ -585,7 +209,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 {/* Add to-do list to calendar */}
                 <TouchableOpacity
                     style={[styles.button, { backgroundColor: '#FFA726' }]}
-                    onPress={addTaskToCalendarHandler}
+                    onPress={addMainTaskToCalendarHandler}
                 >
                     <Ionicons name="calendar-outline" size={20} color="white" />
                     <Text style={styles.buttonText}>Add To-Do List to Calendar</Text>
@@ -734,5 +358,3 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
 });
-
-export default TaskDetailsScreen;
