@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 import { updateProjectName } from '../helpers/firestoreHelpers';
 
-const useProjectNameEdit = (userId) => {
+// Custom hook to manage project name editing
+export default function useProjectNameEdit(userId) {
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [editingProjId, setEditingProjId] = useState(null);
     const [newProjectName, setNewProjectName] = useState('');
@@ -42,5 +43,3 @@ const useProjectNameEdit = (userId) => {
         setEditingProjId,
     };
 };
-
-export default useProjectNameEdit;

@@ -10,7 +10,7 @@ import AddProjectButton from './AddProjectButton';
 import { deleteTask } from '../helpers/taskActions';
 import TodoCard from '../components/TodoCard';
 import ProjectNameEditModal from './ProjectNameEditModal';
-import useProjectNameEdit from '../helpers/useProjectNameEdit';
+import useProjectNameEdit from '../hooks/useProjectNameEdit';
 
 // Helper function to check if a task is due within the next 48 hours
 const isDueSoon = (dueDate) => {
