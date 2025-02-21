@@ -16,7 +16,7 @@ const DateTimeSelector = ({ date, onDateChange }) => {
                 onDateChange(newDate);
                 setShowTimePicker(true);
             } else {
-                // On iOS, mode='datetime' will pick both at once,
+                // On iOS, mode='datetime' will pick both at once
                 onDateChange(newDate);
             }
         }

@@ -45,3 +45,10 @@ export const COLOUR_ORDER = COLOURS.reduce((acc, color, index) => {
     acc[color.value] = index;
     return acc;
 }, {});
+
+export const TREND_OPTIONS = [
+    { label: "To-Do lists Completed", value: "To-Do lists Completed" },
+    { label: "Projects Completed", value: "Projects Completed" },
+    { label: "Avg Project Completion Time", value: "Avg Project Completion Time" },
+    { label: "Avg To-Do List Completion Time", value: "Avg To-Do List Completion Time" },
+];
