@@ -6,6 +6,7 @@ import { NOTIFICATION_OPTIONS } from '../helpers/constants';
 import { cyclePriority } from '../helpers/priority';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import DateTimeSelector from './DateTimeSelector';
+import SpeechToTextButton from './SpeechToTextButton';
 
 const SubtaskBottomSheet = ({
     visible,
@@ -14,8 +15,6 @@ const SubtaskBottomSheet = ({
     setCurrentSubtask,
     onSave,
 }) => {
-    // const bottomSheetRef = useRef(null);
-
     const snapPoints = useMemo(() => ['50%', '90%'], []);
     if (!visible) {
         return null;
@@ -33,11 +32,9 @@ const SubtaskBottomSheet = ({
         ? currentSubtask.dueDate 
         : new Date();
 
-
     return (
         <View style={styles.overlay}>
             <BottomSheet
-                // ref={bottomSheetRef}
                 index={1} // expanded sheet
                 snapPoints={snapPoints}
                 onChange={(index) => {
@@ -51,13 +48,15 @@ const SubtaskBottomSheet = ({
             >
                 <BottomSheetScrollView contentContainerStyle={styles.content}>
                     <Text style={styles.title}>Add Subtask</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={currentSubtask.title}
-                        onChangeText={(text) => setCurrentSubtask({ ...currentSubtask, title: text })}
-                        placeholder="Subtask Title"
-                    />
-
+                    <View style={styles.inputRow}>
+                        <TextInput
+                            style={[styles.input, { flex: 1}]}
+                            value={currentSubtask.title}
+                            onChangeText={(text) => setCurrentSubtask({ ...currentSubtask, title: text })}
+                            placeholder="Subtask Title"
+                        />
+                        <SpeechToTextButton onTranscribedText={(text) => setCurrentSubtask({ ...currentSubtask, title: text })}/>
+                    </View>
                     <TouchableOpacity
                         style={styles.button}
                         onPress={() =>
@@ -122,6 +121,11 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginBottom: 10,
         marginTop: 10,
+    },
+    inputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
     },
     input: {
         borderWidth: 1,
