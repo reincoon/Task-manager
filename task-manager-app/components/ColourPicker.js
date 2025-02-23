@@ -1,7 +1,11 @@
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLOURS } from '../helpers/constants';
 
-const ColourPicker = ({ selectedColour, onSelectColour }) => {
+export default function ColourPicker({ selectedColour, onSelectColour }) {
+    const currentColour = selectedColour && selectedColour.value !== undefined
+        ? selectedColour.value
+        : selectedColour;
+
     return (
         <View style={styles.container}>
             {COLOURS.map((colour) => (
@@ -10,7 +14,7 @@ const ColourPicker = ({ selectedColour, onSelectColour }) => {
                     style={[
                         styles.colourCircle,
                         { backgroundColor: colour.value },
-                        selectedColour === colour.value && styles.selected,
+                        currentColour === colour.value && styles.selected,
                     ]}
                     onPress={() => onSelectColour(colour.value)}
                 />
@@ -18,8 +22,6 @@ const ColourPicker = ({ selectedColour, onSelectColour }) => {
         </View>
     );
 };
-
-export default ColourPicker;
 
 const styles = StyleSheet.create({
     container: {
