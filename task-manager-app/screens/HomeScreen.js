@@ -1,23 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Menu, MenuItem } from 'react-native-material-menu';
-import { db, auth } from '../firebaseConfig';
-import { collection, onSnapshot } from 'firebase/firestore';
-import { PRIORITIES } from '../helpers/priority';
+import { View, StyleSheet, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
+// import { Ionicons } from '@expo/vector-icons';
+// import { Menu, MenuItem } from 'react-native-material-menu';
+import { auth } from '../firebaseConfig';
+// import { collection, onSnapshot } from 'firebase/firestore';
+// import { PRIORITIES } from '../helpers/priority';
 import ProjectModal from '../components/ProjectModal';
-import { updateTasksProject, createProject } from '../helpers/firestoreHelpers';
+import { createProject } from '../helpers/firestoreHelpers';
 import KanbanBoard from '../components/KanbanBoard';
 import ListView from '../components/ListView';
-import AddProjectButton from '../components/AddProjectButton';
-import MoveToModal from '../components/MoveToModal';
+// import AddProjectButton from '../components/AddProjectButton';
+// import MoveToModal from '../components/MoveToModal';
 import { deleteTask as deleteTaskHelper } from '../helpers/taskActions';
-import { COLOURS, PRIORITY_ORDER } from '../helpers/constants';
+import { PRIORITY_ORDER } from '../helpers/constants';
+import HomeHeader from '../components/HomeHeader';
+import FloatingActionButton from '../components/FloatingActionButton';
+import useTasks from '../hooks/useTasks';
+import useProjects from '../hooks/useProjects';
 
 const HomeScreen = ({ navigation }) => {
-    const [rawTasks, setRawTasks] = useState([]);
+    // const [rawTasks, setRawTasks] = useState([]);
     const [tasks, setTasks] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // const [loading, setLoading] = useState(true);
     const [sortOption, setSortOption] = useState(null);
     const [viewMode, setViewMode] = useState('list');
     const [showProjectModal, setShowProjectModal] = useState(false);
@@ -74,62 +78,72 @@ const HomeScreen = ({ navigation }) => {
     useEffect(() => {
         const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
             if (!currentUser) {
-                console.log('No user is signed in.');
-                setRawTasks([]);
+                // console.log('No user is signed in.');
+                // setRawTasks([]);
                 setProjects([]);
-                setLoading(false);
+                // setLoading(false);
             } else {
                 setUserId(currentUser.uid);
-                console.log('User signed in:', currentUser.uid);
+                // console.log('User signed in:', currentUser.uid);
             }
         });
         return () => unsubscribeAuth();
     }, []);
 
-    useEffect(() => {
-        if (!userId) return;
-        const tasksRef = collection(db, `tasks/${userId}/taskList`);
-        const unsubscribeTasks = onSnapshot(tasksRef, (snapshot) => {
-            const fetchedTasks = snapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-                priority: doc.data().priority || 'Low',
-            }));
+    // useEffect(() => {
+    //     if (!userId) {
+    //         return;
+    //     }
+    //     const tasksRef = collection(db, `tasks/${userId}/taskList`);
+    //     const unsubscribeTasks = onSnapshot(tasksRef, (snapshot) => {
+    //         const fetchedTasks = snapshot.docs.map((doc) => ({
+    //             id: doc.id,
+    //             ...doc.data(),
+    //             priority: doc.data().priority || 'Low',
+    //         }));
 
-            // Sort tasks by the order field
-            const sortedTasks = [...fetchedTasks].sort((a, b) => (a.order || 0) - (b.order || 0));
-            setRawTasks(sortedTasks);
-            setLoading(false);
-        }, (error) => {
-            console.error("Snapshot listener error:", error);
-        });
-        return () => {
-            if (unsubscribeTasks) {
-                unsubscribeTasks();
-            }
-        };
-    }, [userId]);
+    //         // Sort tasks by the order field
+    //         const sortedTasks = [...fetchedTasks].sort((a, b) => (a.order || 0) - (b.order || 0));
+    //         setRawTasks(sortedTasks);
+    //         setLoading(false);
+    //     }, (error) => {
+    //         console.error("Snapshot listener error:", error);
+    //         setLoading(false);
+    //     });
+    //     return () => {
+    //         if (unsubscribeTasks) {
+    //             unsubscribeTasks();
+    //         }
+    //     };
+    // }, [userId]);
 
     // Fetch projects
+    // useEffect(() => {
+    //     if (!userId) return;
+    //     const projectsRef = collection(db, `projects/${userId}/userProjects`);
+    //     const unsubscribeProjects = onSnapshot(projectsRef, (snapshot) => {
+    //         const fetchedProjects = snapshot.docs.map(doc => ({
+    //             id: doc.id,
+    //             ...doc.data(),
+    //         }));
+    //         setProjects(fetchedProjects);
+    //     }, (error) => {
+    //         console.error("Snapshot listener error:", error);
+    //     });
+    //     return () => {
+    //         if (unsubscribeProjects) {
+    //             unsubscribeProjects();
+    //         }
+    //     };
+    // }, [userId]);
+
+    // Custom hooks for tasks and projects
+    const { rawTasks, loading } = useTasks(userId);
+    const fetchedProjects = useProjects(userId);
+
     useEffect(() => {
-        if (!userId) return;
-        const projectsRef = collection(db, `projects/${userId}/userProjects`);
-        const unsubscribeProjects = onSnapshot(projectsRef, (snapshot) => {
-            const fetchedProjects = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-            console.log('Fetched projects:', fetchedProjects);
-            setProjects(fetchedProjects);
-        }, (error) => {
-            console.error("Snapshot listener error:", error);
-        });
-        return () => {
-            if (unsubscribeProjects) {
-                unsubscribeProjects();
-            }
-        };
-    }, [userId]);
+        setProjects(fetchedProjects);
+    }, [fetchedProjects]);
 
     // Sort tasks whenever rawTasks or sortOption changes
     useEffect(() => {
@@ -137,21 +151,34 @@ const HomeScreen = ({ navigation }) => {
             setTasks([...rawTasks]);
         } else {
             // Apply the chosen sort
-            const temp = [...rawTasks];
-            if (sortOption === 'date') {
-                temp.sort((a, b) => {
+            const sorted = [...rawTasks].sort((a, b) => {
+                if (sortOption === 'date') {
                     const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
                     const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
                     return dateA - dateB;
-                });
-            } else if (sortOption === 'alphabetical') {
-                temp.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-            } else if (sortOption === 'colour') {
-                temp.sort((a, b) => ((a.colour || '').localeCompare(b.colour || '')));
-            } else if (sortOption === 'priority') {
-                temp.sort((a, b) => (PRIORITY_ORDER[a.priority] || 999) - (PRIORITY_ORDER[b.priority] || 999))
-            }
-            setTasks(temp)
+                } else if (sortOption === 'alphabetical') {
+                    return (a.title || '').localeCompare(b.title || '');
+                } else if (sortOption === 'colour') {
+                    return (a.colour || '').localeCompare(b.colour || '');
+                } else if (sortOption === 'priority') {
+                    return (PRIORITY_ORDER[a.priority] || 999) - (PRIORITY_ORDER[b.priority] || 999);
+                }
+                return 0;
+            });
+            // if (sortOption === 'date') {
+            //     sorted.sort((a, b) => {
+            //         const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+            //         const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+            //         return dateA - dateB;
+            //     });
+            // } else if (sortOption === 'alphabetical') {
+            //     sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+            // } else if (sortOption === 'colour') {
+            //     sorted.sort((a, b) => ((a.colour || '').localeCompare(b.colour || '')));
+            // } else if (sortOption === 'priority') {
+            //     sorted.sort((a, b) => (PRIORITY_ORDER[a.priority] || 999) - (PRIORITY_ORDER[b.priority] || 999))
+            // }
+            setTasks(sorted)
         }
     }, [sortOption, rawTasks]);
 
@@ -344,7 +371,7 @@ const HomeScreen = ({ navigation }) => {
         <SafeAreaView style={styles.container}>
             {loading ? <ActivityIndicator style={{marginTop:20}}/> : null}
             {/* Header section */}
-            <View style={styles.header}>
+            {/* <View style={styles.header}>
                 <Text style={styles.title}>Home</Text>
                 {viewMode === 'list' && (
                     <AddProjectButton
@@ -369,17 +396,28 @@ const HomeScreen = ({ navigation }) => {
                     <MenuItem onPress={() => handleMenuOption('Sort Alphabetically')}>Sort Alphabetically</MenuItem>
                     <MenuItem onPress={() => handleMenuOption('Sort by Colour')}>Sort by Colour</MenuItem>
                 </Menu>
-            </View>
+            </View> */}
+
+            <HomeHeader
+                title="Home"
+                menuRef={menuRef}
+                showMenu={() => menuRef.current?.show()}
+                hideMenu={() => menuRef.current?.hide()}
+                onMenuOption={handleMenuOption}
+                viewMode={viewMode}
+                onAddProjectPress={handleAddProjectFromList}
+            />
 
             {viewMode === 'list' ? renderListView() : renderKanbanView()}
 
             {/* Floating Action button */}
-            <TouchableOpacity
+            {/* <TouchableOpacity
                 style={styles.floatingButton}
                 onPress={() => navigation.navigate('TaskCreationScreen')}
             >
                 <Ionicons name="add" size={32} color="white" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+            <FloatingActionButton onPress={() => navigation.navigate('TaskCreationScreen')} />
 
             {/* Move To Modal */}
             {/* <MoveToModal
