@@ -1,8 +1,8 @@
 import { PRIORITY_ORDER, COLOUR_ORDER } from "./constants";
+
 // Group to-do lists by projects
 export function groupTasksByProject(tasks, projects) {
     const noProject = tasks.filter(t => !t.projectId);
-        // .sort((a, b) => (a.order || 0) - (b.order || 0));
     const byProject = {};
     projects.forEach((proj) => {
         byProject[proj.id] = [];
@@ -11,15 +11,9 @@ export function groupTasksByProject(tasks, projects) {
         if (t.projectId && byProject[t.projectId]) {
             byProject[t.projectId].push(t);
         }
-    });
-
-    // // Sort each project's tasks by order
-    // for (let pId in byProject) {
-    //     byProject[pId].sort((a, b) => (a.order || 0) - (b.order || 0));
-    // }
-    
+    });    
     return { noProject, byProject };
-}
+};
 
 // Sort todo lists for different sorting options
 function applySortOption(a, b, sortOption) {
@@ -33,7 +27,7 @@ function applySortOption(a, b, sortOption) {
         return (COLOUR_ORDER[a.colour] || 999) - (COLOUR_ORDER[b.colour] || 999);
     }
     return (a.order || 0) - (b.order || 0);
-}
+};
 
 // Create a flat data structure for DraggableFlatList
 export function buildListData(noProject, byProject, projects, sortOption = null) {
@@ -57,7 +51,7 @@ export function buildListData(noProject, byProject, projects, sortOption = null)
         byProject[pId].forEach(task => data.push({ type: 'task', ...task }));
     }
     return data;
-}
+};
 
 // Group tasks by priority
 export function groupTasksByPriority(tasks, priorities) {
@@ -76,7 +70,7 @@ export function groupTasksByPriority(tasks, priorities) {
     });
 
     return byPriority;
-}
+};
 
 // Create a flat data structure for DraggableFlatList when grouping by priority
 export function buildListDataByPriority(byPriority, sortOption = null) {
@@ -92,4 +86,48 @@ export function buildListDataByPriority(byPriority, sortOption = null) {
     }
 
     return data;
-}
+};
+
+// export const createProject = async (userId, projectName) => {
+//     try {
+//         const projectRef = await firestore
+//             .collection('users')
+//             .doc(userId)
+//             .collection('projects')
+//             .add({
+//                 name: projectName,
+//                 createdAt: new Date(),
+//             });
+//         return projectRef.id;
+//     } catch (error) {
+//         throw error;
+//     }
+// };
+
+// export const updateProjectName = async (userId, projectId, newName) => {
+//     try {
+//         await firestore
+//             .collection('users')
+//             .doc(userId)
+//             .collection('projects')
+//             .doc(projectId)
+//             .update({
+//                 name: newName,
+//             });
+//     } catch (error) {
+//         throw error;
+//     }
+// };
+
+// export const deleteProject = async (userId, projectId) => {
+//     try {
+//         await firestore
+//             .collection('users')
+//             .doc(userId)
+//             .collection('projects')
+//             .doc(projectId)
+//             .delete();
+//     } catch (error) {
+//         throw error;
+//     }
+// };
