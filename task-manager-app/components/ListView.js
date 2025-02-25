@@ -132,7 +132,7 @@ const ListView = ({
                                 onPress: async () => {
                                     try {
                                         await deleteTask(item);
-                                        Alert.alert('Deleted', 'Task deleted successfully');
+                                        // Alert.alert('Deleted', 'Task deleted successfully');
                                     } catch (err) {
                                         console.error('Error deleting task:', err);
                                         Alert.alert('Error', 'Could not delete task');

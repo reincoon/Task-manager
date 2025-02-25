@@ -293,7 +293,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                             onPress: async () => {
                                 try {
                                     await deleteTask(userId, item, navigation, false);
-                                    Alert.alert('Deleted', 'Task deleted successfully');
+                                    // Alert.alert('Deleted', 'Task deleted successfully');
                                 } catch (err) {
                                     console.error('Error deleting task:', err);
                                     Alert.alert('Error', 'Could not delete task');
