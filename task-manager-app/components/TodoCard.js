@@ -3,7 +3,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { calculateTaskStatus, toggleTaskCompletion, updateTaskStatusInFirestore } from '../helpers/subtaskCompletionHelpers';
-import { useMemo } from 'react';
 
 // TodoCard component shows details about a single to-do list:
 const TodoCard = ({ 
@@ -23,10 +22,6 @@ const TodoCard = ({
     const attachmentCount = Array.isArray(task.attachments) ? task.attachments.length : 0;
 
     // Compute to-do list status
-    // const status = useMemo(() => {
-    //     return calculateTaskStatus(task);
-    // }, [task]);
-    // const status = task.manuallyFinished ? 'Finished' : calculateTaskStatus(task);
     const status = calculateTaskStatus(task);
 
     // Compute subtask progress
