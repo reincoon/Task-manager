@@ -27,3 +27,28 @@ export const PRIORITY_ORDER = {
     Moderate: 3,
     Low: 4,
 };
+
+export const COLOURS = [
+    { name: 'Red', value: '#FF5733' },
+    { name: 'Blue', value: '#3498DB' },
+    { name: 'Green', value: '#2ECC71' },
+    { name: 'Yellow', value: '#F1C40F' },
+    { name: 'Purple', value: '#9B59B6' },
+    { name: 'Orange', value: '#E67E22' },
+    { name: 'Teal', value: '#1ABC9C' },
+    { name: 'Pink', value: '#FF69B4' },
+    { name: 'Gray', value: '#95A5A6' },
+    { name: 'Brown', value: '#8B4513' },
+];
+
+export const COLOUR_ORDER = COLOURS.reduce((acc, color, index) => {
+    acc[color.value] = index;
+    return acc;
+}, {});
+
+export const TREND_OPTIONS = [
+    { label: "To-Do lists Completed", value: "To-Do lists Completed" },
+    { label: "Projects Completed", value: "Projects Completed" },
+    { label: "Avg Project Completion Time", value: "Avg Project Completion Time" },
+    { label: "Avg To-Do List Completion Time", value: "Avg To-Do List Completion Time" },
+];

@@ -1,439 +1,166 @@
-import { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { db, auth } from '../firebaseConfig';
-import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import NotificationPicker from '../components/NotificationPicker';
 import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
-import { requestNotificationPermissions } from '../helpers/notifications';
+import DateTimeSelector from '../components/DateTimeSelector';
+import SubtaskList from '../components/SubtaskList';
+import AttachmentsList from '../components/AttachmentsList';
+import SpeechToTextButton from '../components/SpeechToTextButton';
+import ColourPicker from '../components/ColourPicker';
+import { useTaskDetails } from '../hooks/useTaskDetails';
+
 import { NOTIFICATION_OPTIONS } from '../helpers/constants';
 import { cyclePriority } from '../helpers/priority';
-// import { formatDateTime } from '../helpers/date';
-import DateTimeSelector from '../components/DateTimeSelector';
-import { scheduleTaskNotification, cancelTaskNotification } from '../helpers/notificationsHelpers';
-import SubtaskList from '../components/SubtaskList';
-import { addEventToCalendar } from '../helpers/calendar';
+import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/attachmentHelpers';
 
-const TaskDetailsScreen = ({ route, navigation }) => {
+export default function TaskDetailsScreen({ route, navigation }) {
     const { taskId } = route.params;
-    const [loading, setLoading] = useState(true);
-    const [taskTitle, setTaskTitle] = useState('');
-    const [notes, setNotes] = useState('');
-    const [dueDate, setDueDate] = useState(new Date());
-    const [notification, setNotification] = useState('None');
-    const [priority, setPriority] = useState('Low');
-    const [subtasks, setSubtasks] = useState([]);
-    const [showSubtaskForm, setShowSubtaskForm] = useState(false);
-    const [currentSubtask, setCurrentSubtask] = useState({
-        title: '',
-        dueDate: new Date(),
-        priority: 'Low',
-        reminder: 'None',
-        isRecurrent: false,
-        notificationId: null,
-        eventId: null
-    });
-    const [editingSubtaskIndex, setEditingSubtaskIndex] = useState(null);
-    // original task is stored to revert in case if cancelled
-    const [originalTask, setOriginalTask] = useState(null); 
-    // notificationId is stored to keep in case if cancelled
-    const [taskNotificationId, setTaskNotificationId] = useState(null);
-    const [userId, setUserId] = useState(null);
 
-    useEffect(() => {
-        requestNotificationPermissions();
-        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-            if (currentUser) {
-                setUserId(currentUser.uid);
-            } else {
-                Alert.alert('Error', 'No user signed in.');
-                navigation.goBack();
-            }
-        });
-
-        return () => {
-            unsubscribe();
-        };
-    }, [navigation]);
-
-    useEffect(() => {
-        const fetchTask = async () => {
-            if (!userId) return;
-
-            const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-            const taskSnapshot = await getDoc(taskDocRef);
-            if (!taskSnapshot.exists()) {
-                Alert.alert('Error', 'Task not found.');
-                navigation.goBack();
-                return;
-            }
-
-            const data = taskSnapshot.data();
-            // Convert to-do list dueDate to Date object
-            let mainDueDate = new Date(data.dueDate);
-            if (isNaN(mainDueDate.getTime())) {
-                mainDueDate = new Date();
-            }
-            // Convert each subtask's dueDate to a Date object
-            let fetchedSubtasks = data.subtasks || [];
-            fetchedSubtasks = fetchedSubtasks.map(subtask => {
-                let validDueDate = new Date(subtask.dueDate);
-                if (isNaN(validDueDate.getTime())) {
-                    // If invalid, default to current date or dueDate of the task
-                    validDueDate = new Date();
-                }
-                return {
-                    ...subtask,
-                    dueDate: validDueDate,
-                };    
-            });
-
-            setTaskTitle(data.title);
-            setNotes(data.notes || '');
-            setDueDate(mainDueDate);
-            setNotification(data.notification || 'None');
-            setPriority(data.priority || 'Low');
-            setSubtasks(fetchedSubtasks);
-            setTaskNotificationId(data.notificationId || null);
-
-            setOriginalTask({
-                title: data.title,
-                notes: data.notes || '',
-                dueDate: mainDueDate,
-                notification: data.notification || 'None',
-                priority: data.priority || 'Low',
-                subtasks: fetchedSubtasks,
-                notificationId: data.notificationId || null,
-            });
-
-            setLoading(false);
-        };
-        // fetchTask();
-        if (userId) {
-            fetchTask();
-        }
-    }, [userId, taskId, navigation]);
-
-    const handleSaveTask = async () => {
-        if (!taskTitle.trim()) {
-            Alert.alert('Error', 'Task title is required');
-            return;
-        }
-
-        if (!userId) {
-            Alert.alert('Error', 'No user signed in.');
-            return;
-        }
-
-        try {
-            // if saved cancel old notification and schedule new one
-            let newNotificationId = taskNotificationId;
-            const mainReminderChanged  = (originalTask.notification !== notification) || (originalTask.dueDate.getTime() !== dueDate.getTime());
-            // If reminder changed, aattempt to reschedule
-            if (mainReminderChanged ) {
-                // Cancel old notification
-                if (taskNotificationId) {
-                    await cancelTaskNotification(taskNotificationId);
-                }
-                // Schedule new
-                newNotificationId = await scheduleTaskNotification(taskTitle, notification, dueDate);
-            }
-
-            // Handle subtasks notifications changes
-            let updatedSubtasks = [...subtasks];
-            
-            if (originalTask) {
-                for (let i = 0; i < updatedSubtasks.length; i++) {
-                    const subtask = updatedSubtasks[i];
-                    const originalSubtask = originalTask.subtasks[i] || {};
-                    const reminderChanged = originalSubtask.reminder !== subtask.reminder;
-                    const dueDateChanged = (originalSubtask.dueDate && 
-                        (new Date(originalSubtask.dueDate).getTime() !== subtask.dueDate.getTime()));
-
-                    if (reminderChanged || dueDateChanged) {
-                        // Cancel old subtask notification
-                        if (subtask.notificationId) {
-                            await cancelTaskNotification(subtask.notificationId);
-                        }
-                        // Schedule new subtask notification
-                        let newSubtaskNotificationId = null;
-                        if (subtask.reminder !== 'None') {
-                            newSubtaskNotificationId = await scheduleTaskNotification(subtask.title, subtask.reminder, subtask.dueDate);
-                        }
-                        updatedSubtasks[i] = { ...subtask, notificationId: newSubtaskNotificationId };
-                    }
-                }
-            }
-
-            updatedSubtasks = updatedSubtasks.map(s => ({
-                ...s,
-                dueDate: s.dueDate.toISOString()  // Store as ISO string
-            }));
-
-            const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-            await updateDoc(taskDocRef, {
-                title: taskTitle,
-                notes: notes.trim() || null,
-                dueDate: dueDate.toISOString(),
-                notification,
-                priority,
-                subtasks: updatedSubtasks,
-                notificationId: newNotificationId || null,
-            });
-
-            Alert.alert('Success', 'Task updated successfully');
-            navigation.goBack();
-        } catch (error) {
-            Alert.alert('Error', error.message);
-        }
-    };
-
-    const handleCancel = () => {
-        // Revert to original task if the user doesn't want to save
-        if (originalTask) {
-            setTaskTitle(originalTask.title);
-            setNotes(originalTask.notes);
-            setDueDate(originalTask.dueDate);
-            setNotification(originalTask.notification);
-            setPriority(originalTask.priority);
-            setSubtasks(originalTask.subtasks);
-        }
-        navigation.goBack();
-    };
-
-    const handleAddSubtask = async () => {
-        if (!currentSubtask.title.trim()) {
-            Alert.alert('Error', 'Subtask title is required');
-            return;
-        }
-
-        // Schedule Subtask Notification
-        // let newSubtaskNotificationId = null;
-        let subtaskDueDate = currentSubtask.dueDate;
-
-        if (!(subtaskDueDate instanceof Date) || isNaN(subtaskDueDate.getTime())) {
-            subtaskDueDate = new Date();
-        }
-
-        // if (currentSubtask.reminder !== 'None') {
-        //     newSubtaskNotificationId = await scheduleTaskNotification(currentSubtask.title, currentSubtask.reminder, subtaskDueDate);
-        // }
-
-        const updatedSubtask = {
-            ...currentSubtask,
-            dueDate: subtaskDueDate,
-            // notificationId: newSubtaskNotificationId
-        };
-
-        if (editingSubtaskIndex !== null) {
-            // Editing existing subtask
-            const updatedSubtasks = [...subtasks];
-            updatedSubtasks[editingSubtaskIndex] = updatedSubtask;
-            setSubtasks(updatedSubtasks);
-        } else {
-            setSubtasks([...subtasks, updatedSubtask]);
-        }
-        // Reset current subtask and close sheet
-        setCurrentSubtask({
-            title: '',
-            dueDate: new Date(),
-            priority: 'Low',
-            reminder: 'None',
-            isRecurrent: false,
-            notificationId: null
-        });
-        setEditingSubtaskIndex(null);
-        setShowSubtaskForm(false);
-    };
-
-    // Delete the entire to-do lisy
-    const handleDeleteTask = async () => {
-        Alert.alert('Delete To-Do List', 'Are you sure you want to delete this to-do list?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete', style: 'destructive', onPress: async () => {
-                if (!userId) {
-                    return;
-                }
-                const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-
-                // Cancel to-do list notification
-                if (taskNotificationId) {
-                    await cancelTaskNotification(taskNotificationId);
-                }
-
-                // Cancel all subtasks notifications
-                for (const subtask of subtasks) {
-                    if (subtask.notificationId) {
-                        await cancelTaskNotification(subtask.notificationId);
-                    }
-                }
-
-                await deleteDoc(taskDocRef);
-                Alert.alert('Deleted', 'Task deleted successfully');
-                navigation.goBack();
-            }}
-        ]);
-    };
-
-    // Edit a subtask
-    const handleEditSubtask = (index) => {
-        const subtaskToEdit = subtasks[index];
-        // Check date is valid
-        let safeDueDate = subtaskToEdit.dueDate;
-        if (!(safeDueDate instanceof Date) || isNaN(safeDueDate.getTime())) {
-            safeDueDate = new Date();
-        }
-
-        setCurrentSubtask({
-            ...subtaskToEdit,
-            dueDate: safeDueDate
-        });
-        setEditingSubtaskIndex(index);
-        setShowSubtaskForm(true);
-    };
-
-    // Delete a subtask
-    const handleDeleteSubtask = (index) => {
-        Alert.alert('Delete Subtask', 'Are you sure you want to delete this subtask?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete', style: 'destructive', onPress: async () => {
-                const updatedSubtasks = [...subtasks];
-                const subtaskToDelete = updatedSubtasks[index];
-
-                // Cancel the subtask's notification
-                if (subtaskToDelete.newNotificationId) {
-                    await cancelTaskNotification(subtaskToDelete.notificationId);
-                }
-
-                updatedSubtasks.splice(index, 1);
-                setSubtasks(updatedSubtasks);
-            }}
-        ]);
-    };
-
-    const promptAddEventAnyway = async (title, dueDate, notes, existingEventId, onConfirm) => {
-        Alert.alert(
-            'Already in Calendar',
-            'This event already exists in your calendar. Do you want to add another one anyway?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Add Anyway', style: 'default', onPress: onConfirm }
-            ]
+    const {
+        userId,
+        loading,
+        taskTitle,
+        setTaskTitle,
+        notes,
+        setNotes,
+        dueDate,
+        setDueDate,
+        notification,
+        setNotification,
+        priority,
+        setPriority,
+        selectedColour,
+        setSelectedColour,
+        subtasks,
+        setSubtasks,
+        showSubtaskForm,
+        setShowSubtaskForm,
+        currentSubtask,
+        setCurrentSubtask,
+        editingSubtaskIndex,
+        setEditingSubtaskIndex,
+        taskNotificationId,
+        setTaskNotificationId,
+        attachments,
+        setAttachments,
+        deletedAttachments,
+        setDeletedAttachments,
+        addedAttachments,
+        setAddedAttachments,
+        isSaving,
+        isCancelling,
+        setIsCancelling,
+        originalTask,
+        isUploadingAttachment,
+        setIsUploadingAttachment,
+        taskStatus,
+        completedCount,
+        manuallyFinished,
+        localTaskCompletedAt,
+        handleSaveTask,
+        handleCancel,
+        handleAddSubtask,
+        handleDeleteTask,
+        handleEditSubtask,
+        handleDeleteSubtask,
+        markTaskAsCompletedLocally,
+        markTaskAsUnfinishedLocally,
+        addMainTaskToCalendarHandler,
+        addSubtaskToCalendarHandler,
+    } = useTaskDetails(taskId, navigation);
+    
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#007bff" />
+            </SafeAreaView>
         );
-    };
+    }
 
-    const promptAddEvent = async (title, dueDate, notes, onConfirm) => {
-        Alert.alert(
-            'Add to Calendar',
-            `Do you want to add "${title}" to your calendar?`,
-            [
-                { text: 'No', style: 'cancel' },
-                { text: 'Yes', style: 'default', onPress: onConfirm }
-            ]
-        );
-    };
+    // Calculate subtask progress
+    const totalSubtasks = subtasks.length;
+    const progress = totalSubtasks > 0 ? (completedCount / totalSubtasks) * 100 : 0;
 
-    // Add a to-do list to calendar
-    const addTaskToCalendar = async () => {
-        // await addEventToCalendar(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`);
-        if (!userId) {
-            Alert.alert('Error', 'No user logged in.');
-            return;
-        }
-        const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-        const snapshot = await getDoc(taskDocRef);
-        if (!snapshot.exists()) {
-            Alert.alert('Error', 'Task not found.');
-            return;
-        }
-        const data = snapshot.data();
-        const doAddEvent = async () => {
-            const eventId = await addEventToCalendar(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`, true);
-            if (eventId) {
-                await updateDoc(taskDocRef, { eventId });
-                setTaskNotificationId(eventId);
-            }
-        };
-
-        if (data.eventId) {
-            await promptAddEventAnyway(taskTitle, dueDate, '', data.eventId, doAddEvent);
-        } else {
-            await promptAddEvent(taskTitle, dueDate, '', doAddEvent);
-        }        
-    };
-    // Add a subtask to calendar
-    const addSubtaskToCalendar  = async (subtask, index) => {
-        // await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`);
-        if (!userId) {
-            Alert.alert('Error', 'No user logged in.');
-            return;
-        }
-        const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
-        const snapshot = await getDoc(taskDocRef);
-        if (!snapshot.exists()) {
-            Alert.alert('Error', 'Task not found.');
-            return;
-        }
-        const data = snapshot.data();
-        let updatedSubtasks = data.subtasks || [];
-        
-        const doAddSubtaskEvent = async () => {
-            const eventId = await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`, true);
-            if (eventId) {
-                updatedSubtasks[index] = {
-                    ...updatedSubtasks[index],
-                    eventId
-                };
-                await updateDoc(taskDocRef, { subtasks: updatedSubtasks });
-                setSubtasks(prev => {
-                    const copy = [...prev];
-                    copy[index] = { ...copy[index], eventId };
-                    return copy;
-                });
-            }
-        };
-
-        if (updatedSubtasks[index].eventId) {
-            await promptAddEventAnyway(subtask.title, subtask.dueDate, '', updatedSubtasks[index].eventId, doAddSubtaskEvent);
-        } else {
-            await promptAddEvent(subtask.title, subtask.dueDate, '', doAddSubtaskEvent);
-        }
-    };
-
-    return loading ? (
-        <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#007bff" />
-        </SafeAreaView>
-    ) : (
+    return (
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={handleCancel}>
+                <TouchableOpacity onPress={handleCancel} disabled={isUploadingAttachment}>
                     <Ionicons name="arrow-back" size={24} color="black" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Edit To-Do List</Text>
-                <TouchableOpacity onPress={handleSaveTask}>
+                <TouchableOpacity 
+                    onPress={handleSaveTask}
+                    disabled={isSaving || isUploadingAttachment}
+                >
                     <Ionicons name="save" size={24} color="black" />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <TextInput
-                    style={styles.input}
-                    value={taskTitle}
-                    onChangeText={setTaskTitle}
-                    placeholder="To-Do List Title"
-                />
-                <TextInput
-                    style={[styles.input, styles.notesInput]}
-                    value={notes}
-                    onChangeText={setNotes}
-                    placeholder="Notes"
-                    multiline
-                />
+            <ScrollView showsVerticalScrollIndicator={true}>
+                {/* Display the status */}
+                <View style={styles.statusContainer}>
+                    <Text style={styles.statusText}>
+                        Status: {taskStatus}
+                    </Text>
 
+                    {/* Button/icon to mark entire list complete */}
+                    {taskStatus !== 'Finished' ? (
+                        <TouchableOpacity style={styles.completeButton} onPress={markTaskAsCompletedLocally}>
+                            <Ionicons name="checkmark-circle" size={22} color="white" />
+                            <Text style={styles.completeButtonText}>
+                                Mark Complete
+                            </Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity style={styles.completeButton} onPress={markTaskAsUnfinishedLocally}>
+                            <Ionicons name="arrow-undo" size={22} color="white" />
+                            <Text style={styles.completeButtonText}>Mark Unfinished</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Progress bar */}
+                <View style={styles.progressBarContainer}>
+                    <View style={[styles.progressBar, { width: `${progress}%` }]} />
+                </View>
+                <Text style={styles.progressText}>
+                    {completedCount} / {totalSubtasks} Subtasks Completed
+                </Text>
+
+                {/* Title and Notes */}
+                <View style={styles.titleContainer}>
+                    <TextInput
+                        style={styles.input}
+                        value={taskTitle}
+                        onChangeText={setTaskTitle}
+                        placeholder="To-Do List Title"
+                    />
+                    <SpeechToTextButton onTranscribedText={(text) => setTaskTitle(text)}/>
+                </View>
+                <View style={styles.notesContainer}>
+                    <TextInput
+                        style={[styles.input, styles.notesInput, { flex: 1, marginRight: 10 }]}
+                        value={notes}
+                        onChangeText={setNotes}
+                        placeholder="Notes"
+                        multiline
+                    />
+                    <SpeechToTextButton onTranscribedText={(text) => setNotes(text)} />
+                </View>
+                {/* Colour Picker */}
+                <View style={{ marginBottom: 20 }}>
+                    <Text style={{ marginBottom: 10, fontWeight: '600' }}>
+                        Category Colour:
+                    </Text>
+                    <ColourPicker
+                        selectedColour={selectedColour}
+                        onSelectColour={setSelectedColour}
+                    />
+                </View>
+                {/* Due Date selector */}
                 <DateTimeSelector date={dueDate} onDateChange={setDueDate} />
-
+                {/* Notification picker */}
                 <View style={{ marginBottom: 20 }}>
                     <Text style={{ marginBottom: 10, fontWeight: '600' }}>Reminder:</Text>
                     <NotificationPicker
@@ -442,14 +169,14 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                         options={NOTIFICATION_OPTIONS}
                     />
                 </View>
-
+                {/* Priority button */}
                 <TouchableOpacity 
                     style={styles.button}
                     onPress={() => setPriority(cyclePriority(priority))}
                 >
                     <Text style={styles.buttonText}>Priority: {priority}</Text>
                 </TouchableOpacity>
-
+                {/* Add subtask button */}
                 <TouchableOpacity
                     style={[styles.button, { backgroundColor: '#28a745' }]}
                     onPress={() => {
@@ -460,7 +187,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                             priority: 'Low',
                             reminder: 'None',
                             isRecurrent: false,
-                            notificationId: null
+                            notificationId: null,
+                            eventId: null,
+                            isCompleted: false,
                         });
                         setShowSubtaskForm(true);
                     }}
@@ -480,7 +209,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                 {/* Add to-do list to calendar */}
                 <TouchableOpacity
                     style={[styles.button, { backgroundColor: '#FFA726' }]}
-                    onPress={addTaskToCalendar}
+                    onPress={addMainTaskToCalendarHandler}
                 >
                     <Ionicons name="calendar-outline" size={20} color="white" />
                     <Text style={styles.buttonText}>Add To-Do List to Calendar</Text>
@@ -490,10 +219,37 @@ const TaskDetailsScreen = ({ route, navigation }) => {
                     subtasks={subtasks} 
                     onEditSubtask={handleEditSubtask}
                     onDeleteSubtask={handleDeleteSubtask}
-                    onAddSubtaskToCalendar={addSubtaskToCalendar}
+                    onAddSubtaskToCalendar={addSubtaskToCalendarHandler}
+                    userId={userId}
+                    taskId={taskId}
+                    setSubtasks={setSubtasks}
+                />
+                {/* Attachments list */}
+                <AttachmentsList
+                    attachments={attachments}
+                    setAttachments={setAttachments}
+                    onAddAttachment={() =>
+                        addAttachmentOfflineAndOnline({
+                            attachments,
+                            setAttachments,  
+                            addedAttachments,
+                            setAddedAttachments,
+                        })
+                    }
+                    onRemoveAttachment={(index) => {
+                        const removed = attachments[index];
+                        setDeletedAttachments([...deletedAttachments, removed]);
+                        removeAttachment({
+                            attachments,
+                            setAttachments,
+                            index,
+                            shouldDeleteSupabase: false,
+                        });
+                    }}
+                    setIsUploading={setIsUploadingAttachment}
                 />
             </ScrollView>
-
+            {/* Subtask form modal */}
             <SubtaskBottomSheet
                 visible={showSubtaskForm}
                 onClose={() => setShowSubtaskForm(false)}
@@ -510,6 +266,11 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 20,
         backgroundColor: '#fff',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
         flexDirection: 'row',
@@ -529,6 +290,16 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 20,
         borderRadius: 5,
+    },
+    titleContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 20,
+    },
+    notesContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 20,
     },
     notesInput: {
         height: 80,
@@ -554,6 +325,36 @@ const styles = StyleSheet.create({
         borderBottomColor: '#ccc',
         padding: 10,
     },
+    statusText: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginRight: 10,
+    },
+    completeButton: {
+        backgroundColor: '#28a745',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 5,
+        paddingHorizontal: 8,
+        borderRadius: 5,
+    },
+    completeButtonText: {
+        color: '#fff',
+        marginLeft: 5,
+    },
+    progressBarContainer: {
+        height: 10,
+        backgroundColor: '#eee',
+        borderRadius: 5,
+        overflow: 'hidden',
+        marginVertical: 5,
+    },
+    progressBar: {
+        height: '100%',
+        backgroundColor: '#28a745',
+    },
+    progressText: {
+        marginBottom: 15,
+        fontWeight: '500',
+    },
 });
-
-export default TaskDetailsScreen;

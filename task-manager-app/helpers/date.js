@@ -11,3 +11,8 @@ export function formatDate(date) {
     }
     return date.toLocaleDateString();
 }
+
+export function safeDate(val) {
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? new Date() : d;
+}

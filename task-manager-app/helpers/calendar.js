@@ -29,31 +29,46 @@ export async function getDefaultCalendarId() {
 }
 
 export async function addEventToCalendar(title, startDate, notes = '', addAlarm = true) {
+    console.log('[addEventToCalendar] raw inputs:', { title, startDate, notes, addAlarm });
     const allowed = await ensureCalendarPermissions();
     if (!allowed) return null;
 
     const defaultCalId = await getDefaultCalendarId();
     if (!defaultCalId) return null;
 
+    if (!title || typeof title !== 'string') {
+        title = 'Untitled';
+    }
+    if (!(startDate instanceof Date) || isNaN(startDate.getTime())) {
+        startDate = new Date(Date.now() + 60_000);
+    }
+    if (!notes || typeof notes !== 'string') {
+        notes = '';
+    }
+
+    // A 30-minute event
     const endDate = new Date(startDate.getTime() + 30*60*1000); // 30 min event
-    try {
+    // try {
         const eventConfig = {
-            title: title,
+            // title: title,
+            title,
             startDate,
             endDate,
-            timeZone: 'UTC',
+            // timeZone: 'UTC',
             notes,
         };
         if (addAlarm) {
             // 5 minutes before event
             eventConfig.alarms = [{ relativeOffset: 0, method: Calendar.AlarmMethod.ALERT }];
         }
-        const eventId = await Calendar.createEventAsync(defaultCalId, eventConfig);
-        if (eventId) {
-            Alert.alert('Event Added', `Event "${title}" added to calendar. Check your calendar app for any alarms or notifications.`);
-        }
-        return eventId;
-    } catch (err) {
+        console.log('[addEventToCalendar] final event config:', eventConfig);
+        try {
+            const eventId = await Calendar.createEventAsync(defaultCalId, eventConfig);
+            if (eventId) {
+                Alert.alert('Event Added', `Event "${title}" added to calendar. Check your calendar app for any alarms or notifications.`);
+            }
+            return eventId;
+        } catch (err) {
         console.error('Error adding event:', err);
         Alert.alert('Error', 'Failed to add event to calendar.');
         return null;
