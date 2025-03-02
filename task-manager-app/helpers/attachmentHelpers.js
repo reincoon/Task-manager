@@ -26,7 +26,6 @@ export const addAttachmentOfflineAndOnline = async ({ attachments, setAttachment
                 return;
             }
 
-            // const asset = result.assets && result.assets.length > 0 ? result.assets[0] : null;
             const asset = result.assets?.[0];
 
             if (!asset) {
@@ -41,12 +40,6 @@ export const addAttachmentOfflineAndOnline = async ({ attachments, setAttachment
                 Alert.alert('Error', 'No file URI found.');
                 return;
             }
-
-            // // If mimeType is undefined, infer it based on file extension
-            // if (!mimeType) {
-            //     mimeType = getMimeTypeFromFileName(name);
-            //     console.log(`Inferred mimeType: ${mimeType} for file: ${name}`);
-            // }
 
             // Copy file locally
             const localFileName = `${Date.now()}-${name}`;
@@ -78,19 +71,12 @@ export const addAttachmentOfflineAndOnline = async ({ attachments, setAttachment
                 supabaseKey = supRes.supabaseKey;
                 signedUrl = supRes.signedUrl;
             }
-            // if (!supRes) {
-            //     // Upload failed, clean up and do not add the attachment
-            //     await FileSystem.deleteAsync(localUri, { idempotent: true });
-            //     return;
-            // }
+
             // Build the final attachment object
             const newAttachment = {
                 name,
                 mimeType: finalMime,
-                // mimeType: supRes.mimeType || 'application/octet-stream',
-                localUri,  
-                // supabaseKey: supRes.supabaseKey, 
-                // signedUrl: supRes.signedUrl,
+                localUri,
                 supabaseKey,
                 signedUrl
             };

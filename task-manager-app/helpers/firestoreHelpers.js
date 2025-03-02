@@ -1,4 +1,4 @@
-import { doc, updateDoc, deleteDoc, deleteField, collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { deleteTask } from './taskActions';
 
@@ -24,7 +24,6 @@ export async function updateTasksProject(userId, tasks, projectId = null) {
     
     tasks.forEach(task => {
         const taskRef = doc(db, `tasks/${userId}/taskList`, task.id);
-        // const updateData = projectId ? { projectId, order: nextOrder++ } : { projectId: null, order: nextOrder++ };
         const updateData = {
             projectId: projectId || null,
             order: nextOrder++
@@ -132,20 +131,3 @@ export async function deleteProject(userId, projectId, navigation) {
         throw new Error('Error deleting project: ' + error.message);
     }
 }
-
-// export async function getProjectsByUserId(userId) {
-//     try {
-//         const projectsRef = collection(db, 'projects');
-//         const q = query(projectsRef, where('userId', '==', userId));
-//         const snapshot = await getDocs(q);
-
-//         const projects = [];
-//         snapshot.forEach(doc => {
-//             projects.push({ id: doc.id, name: doc.data().name });
-//         });
-//         return projects;
-//     } catch (error) {
-//         console.error('Error fetching projects: ', error);
-//         throw error;
-//     }
-// }

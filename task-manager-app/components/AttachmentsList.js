@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ImageBackground, Dimensions, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-// import * as FileSystem from 'expo-file-system';
 import { handleOpenLocalFile, doDownloadSupabaseFile } from '../helpers/attachmentHelpers'
 import { WebView } from 'react-native-webview';
 import { Video } from 'expo-av';
@@ -10,7 +9,6 @@ const { width, height } = Dimensions.get('window');
 
 const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, setAttachments, setIsUploading }) => {
     const [imageModalVisible, setImageModalVisible] = useState(false);
-    // const [selectedImageUri, setSelectedImageUri] = useState(null);
     const [textModalVisible, setTextModalVisible] = useState(false);
     const [pdfModalVisible, setPdfModalVisible] = useState(false);
     const [videoModalVisible, setVideoModalVisible] = useState(false);
@@ -57,25 +55,16 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, set
                 },
             });
         } else if (item.supabaseKey) {
-            // Download file
-            // Alert.alert('Download from Supabase?', 'This file is not stored locally. Download now?',[
-            //     { text: 'Cancel', style: 'cancel'},
-            //     {
-            //         text: 'Download',
-            //         onPress: async () => {
-                        setPdfLoading(true);
-                        const localUri = await doDownloadSupabaseFile({
-                            attachment: item,
-                            attachments,
-                            setAttachments,
-                        });
-                        setPdfLoading(false);
-                        if (localUri) {
-                            handlePressAttachment({ ...item, localUri });
-                        }
-            //         },
-            //     },
-            // ]);
+            setPdfLoading(true);
+            const localUri = await doDownloadSupabaseFile({
+                attachment: item,
+                attachments,
+                setAttachments,
+            });
+            setPdfLoading(false);
+            if (localUri) {
+                handlePressAttachment({ ...item, localUri });
+            }
         } else {
             Alert.alert('Error', 'No local file or supabaseKey to open.');
         }
@@ -86,10 +75,6 @@ const AttachmentsList = ({ attachments, onAddAttachment, onRemoveAttachment, set
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>Attachments</Text>
-                {/* <TouchableOpacity style={styles.addButton} onPress={onAddAttachment}>
-                    <Ionicons name="attach" size={20} color="white" />
-                    <Text style={styles.addButtonText}>Add</Text>
-                </TouchableOpacity> */}
                 {isAddingAttachment ? (
                     <ActivityIndicator size="small" color="#007bff" style={{ marginRight: 10 }} />
                 ) : (

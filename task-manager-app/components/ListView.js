@@ -4,7 +4,7 @@ import DraggableFlatList from 'react-native-draggable-flatlist';
 import TodoCard from "./TodoCard";
 import { groupTasksByProject, buildListData, groupTasksByPriority, buildListDataByPriority } from '../helpers/projects';
 import { PRIORITIES } from "../helpers/priority";
-import { updateTasksPriority, updateTasksProject, reorderTasksWithinProject, reorderTasks, updateProjectName, deleteProject } from "../helpers/firestoreHelpers";
+import { updateTasksPriority, updateTasksProject, reorderTasks, updateProjectName, deleteProject } from "../helpers/firestoreHelpers";
 import { Ionicons } from '@expo/vector-icons';
 import ProjectNameEditModal from "./ProjectNameEditModal";
 import useProjectNameEdit from "../hooks/useProjectNameEdit";
