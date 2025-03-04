@@ -2,14 +2,15 @@ import 'react-native-get-random-values';
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-import { db, auth } from './firebaseConfig';
+import { StyleSheet, View } from 'react-native';
+import { auth } from './firebaseConfig';
 import AppNavigator from './navigation/AppNavigator';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { signInAnonymously } from 'firebase/auth';
 import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-// import { DraxProvider } from 'react-native-drax';
+// import { TailwindProvider } from 'nativewind';
+import tw from './twrnc';
 
 // Notification handler
 Notifications.setNotificationHandler({
@@ -21,6 +22,12 @@ Notifications.setNotificationHandler({
 });
 
 const App = () => {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    tw.setColorScheme(isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
   useEffect(() => {
     const initializeAnonymousUser = async () => {
       if (!auth.currentUser) {
@@ -31,8 +38,12 @@ const App = () => {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <AppNavigator />
+    <GestureHandlerRootView style={tw`flex-1`}>
+      {/* <TailwindProvider> */}
+        <View style={tw`flex-1 bg-mint dark:bg-darkBg`}>
+          <AppNavigator isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+        </View>
+      {/* </TailwindProvider> */}
       <StatusBar style="auto" />
     </GestureHandlerRootView>
   );
