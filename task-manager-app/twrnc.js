@@ -4,7 +4,7 @@ const tw = create({
     theme: {
         extend: {
             colors: {
-                light: '#F8F9FA',       // Light Gray for background 
+                light: '#FAFAFA',       // Light Gray for background 
                 mint: '#A4FCB4',       // Fresh Mint Green
                 sky: '#9EE1F0',        // Soft Sky Blue
                 forest: '#5D8765',     // Muted Forest Green

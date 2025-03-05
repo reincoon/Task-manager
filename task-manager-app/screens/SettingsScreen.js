@@ -38,7 +38,7 @@ const SettingsScreen = ({ navigation }) => {
 
     return (
         <SafeAreaView style={tw`${isDarkMode ? 'bg-darkBg' : 'bg-light'} flex-1 p-5`}>
-            <Text style={tw`text-3xl font-extrabold text-center ${isDarkMode ? 'text-darkTextPrimary' : 'text-textPrimary'} mb-8`}>
+            <Text style={tw`text-3xl font-extrabold text-center mb-8 font-inter ${isDarkMode ? 'text-darkTextPrimary' : 'text-textPrimary'}`}>
                 Settings
             </Text>
             
@@ -46,16 +46,17 @@ const SettingsScreen = ({ navigation }) => {
                 <ActivityIndicator size="large" color="#007BFF" />
             ) : user ? (
                 <>
+                    {/* Account Info Card */}
                     <View style={tw`bg-gray-100 dark:bg-gray-800 p-5 rounded-lg shadow mb-6`}>
-                        <Text style={tw`text-lg font-bold ${isDarkMode ? 'text-darkTextPrimary' : 'text-textPrimary'} mb-2`}>
+                        <Text style={tw`text-lg font-bold mb-2 font-inter ${isDarkMode ? 'text-darkTextPrimary' : 'text-textPrimary'}`}>
                             Account Info
                         </Text>
-                        <Text style={tw`text-base ${isDarkMode ? 'text-darkTextPrimary' : 'text-textPrimary'} mb-1`}>
+                        <Text style={tw`text-base mb-1 font-roboto ${isDarkMode ? 'text-darkTextPrimary' : 'text-textPrimary'}`}>
                             Email: {isAnonymous ? 'Guest' : user.email}
                         </Text>
 
                         {!isAnonymous && !isEditingName && (
-                            <Text style={tw`text-base ${isDarkMode ? 'text-darkTextPrimary' : 'text-textPrimary'} mb-1`}>
+                            <Text style={tw`text-base mb-1 font-roboto ${isDarkMode ? 'text-darkTextPrimary' : 'text-textPrimary'}`}>
                                 Name: {user.displayName || 'N/A'}
                             </Text>
                         )}
@@ -76,11 +77,11 @@ const SettingsScreen = ({ navigation }) => {
                             />
                         ) : (
                             <>
-                                <View>
-                                    <ActionButton title="Edit Name" onPress={() => setIsEditingName(true)} bgColor="#007BFF" />
-                                    <ActionButton title="Change Password" onPress={() => handleChangePassword(navigation)} bgColor="#007BFF" />
-                                    <ActionButton title="Log Out" onPress={() => handleLogOut(auth, setLoading, setUser, setName, setIsAnonymous, navigation, setTasks = () => {})} bgColor="#28A745" />
-                                    <ActionButton title="Delete Account" onPress={() => handleDeleteAccount(auth, setLoading, setUser, setName, setIsAnonymous, navigation)} bgColor="#DC3545" />
+                                <View style={tw`mb-6`}>
+                                    <ActionButton title="Edit Name" onPress={() => setIsEditingName(true)} bgColor="#A4FCB4" shadowColor="#5D8765" />
+                                    <ActionButton title="Change Password" onPress={() => handleChangePassword(navigation)} bgColor="#9EE1F0" shadowColor="#416147" />
+                                    <ActionButton title="Log Out" onPress={() => handleLogOut(auth, setLoading, setUser, setName, setIsAnonymous, navigation, setTasks = () => {})} bgColor="#416147" shadowColor="#8FD3A8" />
+                                    <ActionButton title="Delete Account" onPress={() => handleDeleteAccount(auth, setLoading, setUser, setName, setIsAnonymous, navigation)} bgColor="#E74C3C" shadowColor="#C94133" />
                                 </View>
                             </>
                         )}
