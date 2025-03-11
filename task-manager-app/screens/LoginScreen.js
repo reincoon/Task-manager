@@ -3,11 +3,13 @@ import { SafeAreaView, TextInput, TouchableOpacity, Text, Alert, View } from 're
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import { CommonActions } from '@react-navigation/native';
-import tw from '../twrnc';
+import tw, { theme } from '../twrnc';
+import { useTheme } from '../helpers/ThemeContext';
 
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const { isDarkMode, fontScale } = useTheme();
 
     const handleLogin = async () => {
         try {
@@ -25,32 +27,71 @@ const LoginScreen = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={tw`flex-1 bg-light p-6 justify-center`}>
-            <View style={tw`bg-white p-6 rounded-lg shadow`}>
-                <Text style={tw`text-3xl font-extrabold text-center mb-6 font-inter text-textPrimary`}>
+        <SafeAreaView style={tw`flex-1 p-6 justify-center ${isDarkMode ? 'bg-darkBg' : 'bg-light'}`}>
+            <View style={tw`p-6 rounded-lg shadow ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                <Text style={[
+                    tw`text-center mb-6 font-inter-var`,
+                    { 
+                        fontSize: theme.fontSize.xl3 * fontScale, 
+                        color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary, 
+                    },
+                ]}>
                     Log In
                 </Text>
                 <TextInput
-                    style={tw`border border-gray-300 p-3 rounded-md mb-4 font-roboto text-base`}
+                    style={[
+                        tw`border p-3 rounded-md mb-4 font-roboto-var`,
+                        { 
+                            fontSize: theme.fontSize.base * fontScale,
+                            color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
+                            borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc',
+                        },
+                    ]}
                     placeholder="Email"
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
                     autoCapitalize="none"
-                    placeholderTextColor="#888"
+                    placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : "#888"}
                 />
                 <TextInput
-                    style={tw`border border-gray-300 p-3 rounded-md mb-4 font-roboto text-base`}
+                    style={[
+                        tw`border p-3 rounded-md mb-4 font-roboto-var`,
+                        { 
+                            fontSize: theme.fontSize.base * fontScale,
+                            color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
+                            borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc',
+                        },
+                    ]}
                     placeholder="Password"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
-                    placeholderTextColor="#888"
+                    placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : "#888"}
                 />
-                <TouchableOpacity onPress={handleLogin} style={tw`py-3 bg-sky rounded-md mb-4`}>
-                    <Text style={tw`text-center font-bold text-white font-inter`}>Log In</Text>
+                <TouchableOpacity onPress={handleLogin} style={tw`py-3 rounded-md mb-4 ${isDarkMode ? 'bg-darkMint' : 'bg-sky'}`}>
+                    <Text 
+                        style={[
+                            tw`text-center font-poppins-semibold`,
+                            { 
+                                fontSize: theme.fontSize.lg * fontScale,
+                                color: theme.colors.textPrimary
+                            },
+                        ]}
+                    >
+                        Log In
+                    </Text>
                 </TouchableOpacity>
-                <Text style={tw`text-center font-roboto text-blue-500`} onPress={() => navigation.navigate('SignUp')}>
+                <Text 
+                    style={[
+                        tw`text-center font-roboto-var`,
+                        { 
+                            fontSize: theme.fontSize.sm * fontScale, 
+                            color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary 
+                        },
+                    ]}
+                    onPress={() => navigation.navigate('SignUp')}
+                >
                     Don't have an account? Sign Up
                 </Text>
             </View>

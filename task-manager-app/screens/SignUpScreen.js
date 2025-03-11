@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { SafeAreaView, TextInput, Button, StyleSheet, Text, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView, TextInput, Button, View, TouchableOpacity, Text, Alert, ActivityIndicator } from 'react-native';
 // import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 // import { CommonActions } from '@react-navigation/native';
 import { handleUpgradeAnonymousAccount } from '../helpers/authFunctions';
-import tw from '../twrnc';
+import tw, { theme } from '../twrnc';
+import { useTheme } from '../helpers/ThemeContext';
 
 const SignUpScreen = ({ navigation, route }) => {
     const [email, setEmail] = useState('');
@@ -12,6 +13,7 @@ const SignUpScreen = ({ navigation, route }) => {
     const [name, setName] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const { isDarkMode, fontScale } = useTheme();
 
     const handleSignUp = async () => {
         if (!name) { 
@@ -29,49 +31,99 @@ const SignUpScreen = ({ navigation, route }) => {
     };
 
     return (
-        <SafeAreaView style={tw`flex-1 bg-light p-6 justify-center`}>
-            <View style={tw`bg-white p-6 rounded-lg shadow`}>
-                <Text style={tw`text-3xl font-extrabold text-center mb-6 font-inter text-textPrimary`}>Sign Up</Text>
+        <SafeAreaView style={tw`flex-1 p-6 justify-center ${isDarkMode ? 'bg-darkBg' : 'bg-light'}`}>
+            <View style={tw`p-6 rounded-lg shadow ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                <Text 
+                    style={[
+                    tw`text-center mb-6 font-inter-var`,
+                    { 
+                        fontSize: theme.fontSize.xl3 * fontScale, 
+                        color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary 
+                    },
+                ]}>
+                    Sign Up
+                </Text>
                 {loading ? (
                     <ActivityIndicator size="large" color="#007BFF" />
                 ) : (
                     <>
                         <TextInput
-                            style={tw`border border-gray-300 p-3 rounded-md mb-4 font-roboto text-base`}
+                            style={[
+                                tw`border p-3 rounded-md mb-4 font-roboto-var`,
+                                { 
+                                    fontSize: theme.fontSize.base * fontScale, 
+                                    color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
+                                    borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc'
+                                },
+                            ]}
                             placeholder="Name"
                             value={name}
                             onChangeText={setName}
-                            placeholderTextColor="#888"
+                            placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : "#888"}
                         />
                         <TextInput
-                            style={tw`border border-gray-300 p-3 rounded-md mb-4 font-roboto text-base`}
+                            style={[
+                                tw`border p-3 rounded-md mb-4 font-roboto-var`,
+                                { 
+                                    fontSize: theme.fontSize.base * fontScale, 
+                                    color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
+                                    borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc'
+                                },
+                            ]}
                             placeholder="Email"
                             value={email}
                             onChangeText={setEmail}
                             keyboardType="email-address"
                             autoCapitalize="none"
-                            placeholderTextColor="#888"
+                            placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : "#888"}
                         />
                         <TextInput
-                            style={tw`border border-gray-300 p-3 rounded-md mb-4 font-roboto text-base`}
+                            style={[
+                                tw`border p-3 rounded-md mb-4 font-roboto-var`,
+                                { 
+                                    fontSize: theme.fontSize.base * fontScale, 
+                                    color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
+                                    borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc'
+                                },
+                            ]}
                             placeholder="Password"
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
-                            placeholderTextColor="#888"
+                            placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : "#888"}
                         />
                         <TextInput
-                            style={tw`border border-gray-300 p-3 rounded-md mb-4 font-roboto text-base`}
+                            style={[
+                                tw`border p-3 rounded-md mb-4 font-roboto-var`,
+                                { 
+                                    fontSize: theme.fontSize.base * fontScale, 
+                                    color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
+                                    borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc'
+                                },
+                            ]}
                             placeholder="Confirm Password"
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
                             secureTextEntry
-                            placeholderTextColor="#888"
+                            placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : "#888"}
                         />
-                        <TouchableOpacity onPress={handleSignUp} style={tw`py-3 bg-forest rounded-md mb-4`}>
-                            <Text style={tw`text-center font-bold text-white font-poppins`}>Sign Up</Text>
+                        <TouchableOpacity onPress={handleSignUp} style={tw`py-3 rounded-md mb-4 ${isDarkMode ? 'bg-darkForest' : 'bg-forest'}`}>
+                            <Text 
+                                style={[
+                                    tw`text-center font-bold text-white font-poppins-regular`,
+                                    { fontSize: theme.fontSize.lg * fontScale },
+                                ]}
+                            >
+                                Sign Up
+                            </Text>
                         </TouchableOpacity>
-                        <Text style={tw`text-center font-roboto text-blue-500`} onPress={() => navigation.navigate('Login')}>
+                        <Text 
+                            style={[
+                                tw`text-center font-roboto-var text-blue-500`,
+                                { fontSize: theme.fontSize.sm * fontScale },
+                            ]}
+                            onPress={() => navigation.navigate('Login')}
+                        >
                             Already have an account? Log in
                         </Text>
                     </>

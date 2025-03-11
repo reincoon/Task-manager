@@ -11,6 +11,7 @@ import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import tw from './twrnc';
 import { useFonts } from 'expo-font';
+import { ThemeProvider } from './helpers/ThemeContext';
 
 // Notification handler
 Notifications.setNotificationHandler({
@@ -64,7 +65,7 @@ const App = () => {
 
   if (!fontsLoaded) {
     return (
-      <View style={tw`flex-1 justify-center items-center bg-mint dark:bg-darkBg`}>
+      <View style={tw`flex-1 justify-center items-center bg-light dark:bg-darkBg`}>
         <Text style={tw`text-2xl font-bold text-darkTextPrimary dark:text-textPrimary`}>
           Loading fonts...
         </Text>
@@ -73,12 +74,14 @@ const App = () => {
   }
 
   return (
-    <GestureHandlerRootView style={tw`flex-1`}>
-      <View style={tw`flex-1 bg-mint dark:bg-darkBg`}>
-        <AppNavigator isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-      </View>
-      <StatusBar style="auto" />
-    </GestureHandlerRootView>
+    <ThemeProvider>
+      <GestureHandlerRootView style={tw`flex-1`}>
+        <View style={tw`flex-1 bg-light dark:bg-darkBg`}>
+          <AppNavigator />
+        </View>
+        <StatusBar style="auto" />
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 };
 
