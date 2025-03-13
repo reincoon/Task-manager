@@ -20,6 +20,7 @@ export const theme = {
         evergreen: '#416147',  // Deep Evergreen
         magenta: '#7A0064',    // Bold Deep Magenta
         cinnabar: '#E74C3C ',  // Cinnabar Red
+        violet: '#805CFB',     // Violet
         textPrimary: '#212529',   // Dark text for optimal readability
         textSecondary: '#333333', // Deeper gray for contrast
         // Dark Theme Colours
@@ -32,6 +33,7 @@ export const theme = {
         darkEvergreen: '#365940',         // Deep, subdued evergreen
         darkMagenta: '#69006B',           // A rich, deep magenta for emphasis
         darkCinnabar: '#C94133',           // Dark Cinnabar Red
+        darkViolet: '#533181',             // Dark Violet
     },
 };
 
