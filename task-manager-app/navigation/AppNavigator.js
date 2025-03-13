@@ -24,7 +24,7 @@ const HomeStack = () => (
 
 const SettingsStack = () => (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false, gestureDirection: 'horizontal-inverted' }} />
         <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Log In' }} />
         <Stack.Screen name="SignUp" component={SignUpScreen} options={{ title: 'Sign Up' }} />
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} option={{ title: 'Change Password' }} />
