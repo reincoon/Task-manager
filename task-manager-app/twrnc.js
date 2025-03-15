@@ -13,13 +13,14 @@ export const theme = {
         xl5: 48,
     },
     colors: {
+        white: '#FFFFFF',       // White
         light: '#FAFAFA',       // Light Gray for background 
         mint: '#A4FCB4',       // Fresh Mint Green
         sky: '#9EE1F0',        // Soft Sky Blue
         forest: '#5D8765',     // Muted Forest Green
         evergreen: '#416147',  // Deep Evergreen
         magenta: '#7A0064',    // Bold Deep Magenta
-        cinnabar: '#E74C3C ',  // Cinnabar Red
+        cinnabar: '#E74C3C',  // Cinnabar Red
         violet: '#805CFB',     // Violet
         textPrimary: '#212529',   // Dark text for optimal readability
         textSecondary: '#333333', // Deeper gray for contrast

@@ -1,29 +1,52 @@
-import { View, TextInput, TouchableOpacity, Text } from 'react-native';
-import tw from '../twrnc';
+import { View, TextInput, TouchableOpacity } from 'react-native';
+import tw, { theme } from '../twrnc';
+import { useTheme } from '../helpers/ThemeContext';
+import ThemedText from './ThemedText';
+import { Ionicons } from '@expo/vector-icons';
 
-const EditNameForm = ({ name, setName, handleSaveName, handleCancelEdit }) => (
-    <View style={tw`flex-row items-center mb-4`}>
-        <TextInput 
-            style={tw`flex-1 border border-gray-300 p-3 rounded-md font-roboto text-base`}
-            value={name}
-            onChangeText={setName}
-            placeholder="Enter your name"
-        />
-        <View style={tw`ml-4 flex-row`}>
-            <TouchableOpacity
-                onPress={handleSaveName}
-                style={tw`py-2 px-4 bg-mint rounded-md mr-2 shadow-custom`}
-            >
-                <Text style={tw`text-white font-poppins`}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-                onPress={handleCancelEdit}
-                style={tw`py-2 px-4 bg-cinnabar rounded-md shadow-custom`}
-            >
-                <Text style={tw`text-white font-poppins`}>Cancel</Text>
-            </TouchableOpacity>
+export default function EditNameForm({ name, setName, handleSaveName, handleCancelEdit }) {
+    const { isDarkMode, fontScale } = useTheme();
+
+    return (
+        // <View style={tw`flex-row items-center mb-4`}>
+        <View style={tw`w-full p-4 bg-transparent`}>
+            <TextInput 
+                style={[
+                    tw`border p-3 rounded-md font-roboto-var`,
+                    {
+                        fontSize: theme.fontSize.base * fontScale,
+                        color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
+                        borderColor: isDarkMode ? theme.colors.darkTextSecondary : theme.colors.forest,
+                        backgroundColor: isDarkMode ? theme.colors.darkBg : theme.colors.white,
+                    },
+                ]}
+                value={name}
+                onChangeText={setName}
+                placeholder="Enter your name"
+                placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : "#888"}
+            />
+            {/* Buttons */}
+            <View style={tw`flex-row justify-between mt-4`}>
+                <TouchableOpacity
+                    onPress={handleSaveName}
+                    style={tw`flex-row items-center justify-center py-3 px-4 rounded-md bg-mint shadow-custom w-[48%]`}
+                >
+                    <Ionicons name="checkmark-outline" size={theme.fontSize.xl * fontScale} color={theme.colors.textPrimary} style={tw`mr-2`} />
+                    <ThemedText variant="lg" style={tw`text-textPrimary`}>
+                        Save
+                    </ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={handleCancelEdit}
+                    style={tw`flex-row items-center justify-center py-3 px-4 rounded-md bg-cinnabar shadow-custom w-[48%]`}
+                >
+                    <Ionicons name="close-outline" size={theme.fontSize.xl * fontScale} color={theme.colors.white} style={tw`mr-2`} />
+                    <ThemedText variant="lg" style={tw`text-white`}>
+                        Cancel
+                    </ThemedText>
+                </TouchableOpacity>
+            </View>
         </View>
-    </View>
-);
-
-export default EditNameForm;
+    );
+};

@@ -1,12 +1,17 @@
-import { TouchableOpacity, Text } from "react-native";
-import tw from "../twrnc";
+import { TouchableOpacity, View } from "react-native";
+import tw, { theme } from "../twrnc";
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from "../helpers/ThemeContext";
+import ThemedText from "./ThemedText";
 
-const ActionButton = ({ title, onPress, bgColor, shadowColor }) => {
+const ActionButton = ({ title, onPress, bgColor, shadowColor, iconName, textColor, width = '80%' }) => {
+    const { fontScale } = useTheme();
+
     const baseStyle = {
-        ...tw`py-3 px-5 rounded-lg my-2`,
+        ...tw`flex-row items-center justify-center py-3 px-5 rounded-lg my-2`,
         backgroundColor: bgColor,
         alignSelf: 'center',
-        width: '80%',
+        width: width,
         shadowColor: shadowColor || '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
@@ -15,7 +20,14 @@ const ActionButton = ({ title, onPress, bgColor, shadowColor }) => {
     };
     return (
         <TouchableOpacity style={baseStyle} onPress={onPress}>
-            <Text style={tw`text-white font-bold text-center`}>{title}</Text>
+            {iconName && (
+                <View style={tw`mr-2`}>
+                    <Ionicons name={iconName} size={theme.fontSize.xl * fontScale} color={textColor} />
+                </View>
+            )}
+            <ThemedText variant="lg" style={{ color: textColor, textAlign: 'center' }}>
+                {title}
+            </ThemedText>
         </TouchableOpacity>
     );
 };

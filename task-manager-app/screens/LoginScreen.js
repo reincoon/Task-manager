@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { SafeAreaView, TextInput, TouchableOpacity, Text, Alert, View } from 'react-native';
+import { SafeAreaView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, View } from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import { CommonActions } from '@react-navigation/native';
 import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
+import ThemedText from '../components/ThemedText';
+import { Ionicons } from '@expo/vector-icons';
+import SignUpInHeader from '../components/SignUpInHeader';
 
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
@@ -28,73 +31,110 @@ const LoginScreen = ({ navigation }) => {
 
     return (
         <SafeAreaView style={tw`flex-1 p-6 justify-center ${isDarkMode ? 'bg-darkBg' : 'bg-light'}`}>
-            <View style={tw`p-6 rounded-lg shadow ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                <Text style={[
-                    tw`text-center mb-6 font-inter-var`,
-                    { 
-                        fontSize: theme.fontSize.xl3 * fontScale, 
-                        color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary, 
-                    },
-                ]}>
-                    Log In
-                </Text>
-                <TextInput
-                    style={[
-                        tw`border p-3 rounded-md mb-4 font-roboto-var`,
-                        { 
-                            fontSize: theme.fontSize.base * fontScale,
-                            color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
-                            borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc',
-                        },
-                    ]}
-                    placeholder="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : "#888"}
-                />
-                <TextInput
-                    style={[
-                        tw`border p-3 rounded-md mb-4 font-roboto-var`,
-                        { 
-                            fontSize: theme.fontSize.base * fontScale,
-                            color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
-                            borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc',
-                        },
-                    ]}
-                    placeholder="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : "#888"}
-                />
-                <TouchableOpacity onPress={handleLogin} style={tw`py-3 rounded-md mb-4 ${isDarkMode ? 'bg-darkMint' : 'bg-sky'}`}>
-                    <Text 
+            <KeyboardAvoidingView
+                style={tw`flex-1 justify-center p-6`}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+                <View style={tw`p-6 rounded-lg shadow ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                    {/* Header */}
+                    <SignUpInHeader title="Log In" icon="log-in-outline" navigation={navigation} />
+
+                    {/* Email field */}
+                    <View
+                        style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
+                        isDarkMode ? 'border-darkTextSecondary' : 'border-gray-300'
+                        }`}
+                    >
+                        <Ionicons
+                        name="mail-outline"
+                        size={20}
+                        color={isDarkMode ? theme.colors.darkTextSecondary : '#888'}
+                        style={tw`mr-2`}
+                        />
+                        <TextInput
+                            style={[
+                                tw`flex-1 border p-3 rounded-md m-1 font-roboto-var`,
+                                { 
+                                    fontSize: theme.fontSize.base * fontScale,
+                                    color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
+                                    borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc',
+                                },
+                            ]}
+                            placeholder="Email"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : "#888"}
+                        />
+                    </View>
+
+                    {/* Password Field */}
+                    <View
+                        style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
+                            isDarkMode ? 'border-darkTextSecondary' : 'border-gray-300'
+                        }`}
+                    >
+                        <Ionicons
+                        name="lock-closed-outline"
+                        size={20}
+                        color={isDarkMode ? theme.colors.darkTextSecondary : '#888'}
+                        style={tw`mr-2`}
+                        />
+                        <TextInput
+                            style={[
+                                tw`flex-1 border p-3 rounded-md m-1 font-roboto-var`,
+                                { 
+                                    fontSize: theme.fontSize.base * fontScale,
+                                    color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
+                                    borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc',
+                                },
+                            ]}
+                            placeholder="Password"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry
+                            placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : "#888"}
+                        />
+                    </View>
+                    {/* Login button */}
+                    <TouchableOpacity onPress={handleLogin} style={tw`py-3 rounded-md mb-4 ${isDarkMode ? 'bg-darkForest' : 'bg-evergreen'}`}>
+                        {/* <Text 
+                            style={[
+                                tw`text-center font-poppins-semibold`,
+                                { 
+                                    fontSize: theme.fontSize.lg * fontScale,
+                                    color: theme.colors.textPrimary
+                                },
+                            ]}
+                        >
+                            Log In
+                        </Text> */}
+
+                        <ThemedText variant="lg" style={tw`text-center font-poppins-semibold text-white`}>
+                            Log In
+                        </ThemedText>
+                    </TouchableOpacity>
+                    {/* <Text 
                         style={[
-                            tw`text-center font-poppins-semibold`,
+                            tw`text-center font-roboto-var`,
                             { 
-                                fontSize: theme.fontSize.lg * fontScale,
-                                color: theme.colors.textPrimary
+                                fontSize: theme.fontSize.sm * fontScale, 
+                                color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary 
                             },
                         ]}
+                        onPress={() => navigation.navigate('SignUp')}
                     >
-                        Log In
-                    </Text>
-                </TouchableOpacity>
-                <Text 
-                    style={[
-                        tw`text-center font-roboto-var`,
-                        { 
-                            fontSize: theme.fontSize.sm * fontScale, 
-                            color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary 
-                        },
-                    ]}
-                    onPress={() => navigation.navigate('SignUp')}
-                >
-                    Don't have an account? Sign Up
-                </Text>
-            </View>
+                        Don't have an account? Sign Up
+                    </Text> */}
+                    {/* Sign Up Link */}
+                    <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+                        <ThemedText variant="sm" style={tw`text-center font-roboto-var ${isDarkMode ? 'text-sky' : 'text-forest'}`}>
+                            Don't have an account? Sign Up
+                        </ThemedText>
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };

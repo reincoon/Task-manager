@@ -1,17 +1,18 @@
-import { View, Text, Switch } from 'react-native';
-import tw from '../twrnc';
+import { View, Switch } from 'react-native';
+import tw, { theme } from '../twrnc';
+import ThemedText from './ThemedText';
 
 export default function ThemeToggle({ isDark, onToggle }) {
     return (
         <View style={tw`flex-row items-center justify-center my-4`}>
-            <Text style={isDark ? tw`text-darkTextPrimary` : tw`text-textPrimary`}>Light</Text>
+            <ThemedText variant="sm" style={tw`mr-2`}>Light</ThemedText>
             <Switch
                 value={isDark}
                 onValueChange={onToggle}
-                thumbColor={isDark ? "#7A0064" : "#A4FCB4"}
-                trackColor={{ false: "#9EE1F0", true: "#416147" }}
+                thumbColor={isDark ? theme.colors.darkMint : theme.colors.mint }
+                trackColor={{ false: theme.colors.sky, true: theme.colors.evergreen }}
             />
-            <Text style={isDark ? tw`text-darkTextPrimary` : tw`text-textPrimary`}>Dark</Text>
+            <ThemedText variant="sm" style={tw`mr-2`}>Dark</ThemedText>
         </View>
     );
 };
