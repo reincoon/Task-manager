@@ -10,7 +10,7 @@ import ActionButton from '../components/ActionButton';
 import Slider from '@react-native-community/slider';
 import { useTheme } from '../helpers/ThemeContext';
 import ThemedText from '../components/ThemedText';
-import SignUpInHeader from '../components/SignUpInHeader';
+import SettingsStatsHeader from '../components/SettingsStatsHeader';
 
 const SettingsScreen = ({ navigation }) => {
     const [user, setUser] = useState(null);
@@ -39,7 +39,7 @@ const SettingsScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={tw`${isDarkMode ? 'bg-darkBg' : 'bg-light'} flex-1 p-5`}>
             {/* Header component */}
-            <SignUpInHeader title="Settings" icon="settings-outline" navigation={navigation} />
+            <SettingsStatsHeader title="Settings" icon="settings-outline" />
             
             {loading ? (
                 <ActivityIndicator size="large" color={theme.colors.sky} />
