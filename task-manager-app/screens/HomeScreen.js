@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { auth } from '../firebaseConfig';
-import { createProject } from '../helpers/firestoreHelpers';
+// import { createProject } from '../helpers/firestoreHelpers';
 import { deleteTask as deleteTaskHelper } from '../helpers/taskActions';
 import useTasks from '../hooks/useTasks';
 import useProjects from '../hooks/useProjects';
@@ -79,38 +79,17 @@ const HomeScreen = ({ navigation }) => {
         setIsEditModalVisible,
     });
 
-    // const handleCreateProject = async (projectName) => {
-    //     if (!userId) {
-    //         setShowProjectModal(false);
-    //         Alert.alert('Error', 'User not signed in.');
-    //         return;
-    //     }
-
-    //     try {
-    //         // Create a new project in Firebase
-    //         await createProject(userId, projectName);
-    //         Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
-    //     } catch (err) {
-    //         console.error(err);
-    //         Alert.alert('Error', err.message);
-    //     } finally {
-    //         // Reset states
-    //         setShowProjectModal(false);
-    //         setDraggingTask(null);
-    //         setHoveredTask(null);
-    //     }     
+    // const handleAddProjectFromList = (open = true) => {
+    //     setShowProjectModal(open);
     // };
-
-    // const openEditProjectModal = (projectId, projectName) => {
-    //     const actualName = projectName.split(' (')[0];
-    //     setEditingProjId(projectId);
-    //     setNewProjectName(actualName.trim());
-    //     setIsEditModalVisible(true);
-    // };
-
-    const handleAddProjectFromList = () => {
+    const openProjectModal = () => {
         setShowProjectModal(true);
     };
+    
+    const closeProjectModal = () => {
+        setShowProjectModal(false);
+    };
+    
 
     if (loading) {
         return (
@@ -119,6 +98,9 @@ const HomeScreen = ({ navigation }) => {
             </View>
         );
     }
+    const handleTutorialPress = () => {
+        Alert.alert('Tutorial', 'Here would be some helpful instructions.');
+    };
 
     // Helper function to delete a todo list passed as a prop
     const handleDeleteTask = async (item) => {
@@ -149,13 +131,15 @@ const HomeScreen = ({ navigation }) => {
                 grouping={grouping}
                 setSortOption={setSortOption}
                 sortOption={sortOption}
-                onAddProjectPress={handleAddProjectFromList}
+                onAddProjectPress={openProjectModal}
                 onDeleteTask={handleDeleteTask}
                 openEditProjectModal={openEditProjectModal}
                 showProjectModal={showProjectModal}
+                onCloseProjectModal={closeProjectModal}
                 onCreateProject={createNewProject}
                 setDraggingTask={setDraggingTask}
                 setHoveredTask={setHoveredTask}
+                onTutorialPress={handleTutorialPress}
             />
         </SafeAreaView>
     )

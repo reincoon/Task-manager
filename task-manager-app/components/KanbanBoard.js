@@ -31,8 +31,8 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     // State to manage 'Due Soon' filters per column
     const [dueSoonFilters, setDueSoonFilters] = useState({});
     // Project creation modal
-    const [isProjectModalVisible, setIsProjectModalVisible] = useState(false);
-    const [projectModalTasks, setProjectModalTasks] = useState([]);
+    // const [isProjectModalVisible, setIsProjectModalVisible] = useState(false);
+    // const [projectModalTasks, setProjectModalTasks] = useState([]);
 
     // Hook for handling project name updates
     const {
@@ -126,9 +126,9 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     }, [grouping, rawTasks, projects]);
 
     // Handle 'add' project action from Kanban view
-    const handleAddProject = () => {
-        setIsProjectModalVisible(true);
-    };
+    // const handleAddProject = () => {
+    //     setIsProjectModalVisible(true);
+    // };
 
     const handleDragEnd = useCallback(async (columnKey, newData) => {
         setColumns(prevColumns => {
@@ -211,26 +211,26 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         }));
     };
 
-    // Function to handle adding a new project from Kanban view
-    const handleCreateProject = async (projectName) => {
-        if (!userId) {
-            Alert.alert('Error', 'User not signed in.');
-            setIsProjectModalVisible(false);
-            return;
-        }
+    // // Function to handle adding a new project from Kanban view
+    // const handleCreateProject = async (projectName) => {
+    //     if (!userId) {
+    //         Alert.alert('Error', 'User not signed in.');
+    //         setIsProjectModalVisible(false);
+    //         return;
+    //     }
 
-        try {
-            // Create a new project in Firebase
-            await createProject(userId, projectName);
-            Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
-        } catch (err) {
-            console.error(err);
-            Alert.alert('Error', err.message);
-        } finally {
-            // Revert data
-            setIsProjectModalVisible(false);
-        }
-    };
+    //     try {
+    //         // Create a new project in Firebase
+    //         await createProject(userId, projectName);
+    //         Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
+    //     } catch (err) {
+    //         console.error(err);
+    //         Alert.alert('Error', err.message);
+    //     } finally {
+    //         // Revert data
+    //         setIsProjectModalVisible(false);
+    //     }
+    // };
 
     // A helper to find the project name
     const getProjectName = (projectId) => {
@@ -365,10 +365,10 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
             {/* Kanban Header */}
             <View style={styles.kanbanHeader}>
                 <Text style={styles.kanbanTitle}>Kanban Board</Text>
-                <AddProjectButton
+                {/* <AddProjectButton
                     onPress={handleAddProject}
                     label="Add Project"
-                />
+                /> */}
             </View>
             <ScrollView horizontal contentContainerStyle={styles.columnsContainer}>
                 {columns.map(column => renderColumn(column))}
@@ -387,14 +387,14 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 }
                 currentColumnKey={grouping === 'project' ? draggingItem?.projectId || 'No Project' : draggingItem?.priority}
             />
-            <ProjectModal
+            {/* <ProjectModal
                 visible={isProjectModalVisible}
                 onCancel={() => {
                     setIsProjectModalVisible(false); 
                     setProjectModalTasks([]);
                 }}
                 onCreate={handleCreateProject}
-            />
+            /> */}
 
             {isEditModalVisible && (
                 <ProjectNameEditModal

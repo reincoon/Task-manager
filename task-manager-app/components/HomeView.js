@@ -4,6 +4,8 @@ import KanbanBoard from './KanbanBoard';
 import ListView from './ListView';
 import FloatingActionButton from './FloatingActionButton';
 import ProjectModal from './ProjectModal';
+import tw, { theme } from '../twrnc';
+import { useTheme } from '../helpers/ThemeContext';
 
 export default function HomeView({
     userId,
@@ -17,13 +19,18 @@ export default function HomeView({
     sortOption,
     setSortOption,
     onAddProjectPress,
+    onCloseProjectModal,
     onDeleteTask,
     openEditProjectModal,
     showProjectModal,
     onCreateProject,
     setDraggingTask,
     setHoveredTask,
+    onTutorialPress
 }) {
+    const { isDarkMode } = useTheme();
+    const bgColor = isDarkMode ? theme.colors.darkBg : theme.colors.light;
+
     const renderKanbanView = () => (
         <KanbanBoard
             userId={userId}
@@ -54,22 +61,23 @@ export default function HomeView({
     );
 
     return (
-        <View style={styles.container}>
+        <View style={[tw`flex-1`, { backgroundColor: bgColor }]}>
             <HomeHeader
-                title="Home"
                 menuRef={menuRef}
                 showMenu={() => menuRef.current?.show()}
                 hideMenu={() => menuRef.current?.hide()}
                 onMenuOption={onMenuOption}
                 viewMode={viewMode}
                 onAddProjectPress={onAddProjectPress}
+                onTutorialPress={onTutorialPress}
             />
             {viewMode === 'list' ? renderListView() : renderKanbanView()}
             <FloatingActionButton onPress={() => navigation.navigate('TaskCreationScreen')} />
             <ProjectModal
                 visible={showProjectModal}
                 onCancel={() => {
-                    onAddProjectPress(false);
+                    // onAddProjectPress(false);
+                    onCloseProjectModal();
                     setDraggingTask(null); 
                     setHoveredTask(null);
                 }}
