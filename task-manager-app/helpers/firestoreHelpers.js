@@ -1,6 +1,7 @@
 import { doc, updateDoc, deleteDoc, collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { deleteTask } from './taskActions';
+import { getRandomColour } from './randomColors';
 
 // Add or update eventId for a To-Do list
 export async function updateTaskEventId(userId, taskId, eventId) {
@@ -56,11 +57,41 @@ export async function createProject(userId, projectName) {
     }
     
     const projectsRef = collection(db, `projects/${userId}/userProjects`);
+    const projectColor = getRandomColour();
+
     const projectDoc = await addDoc(projectsRef, {
         name: projectName,
         createdAt: new Date(),
+        color: projectColor,
     });
     return projectDoc.id;
+}
+
+// Fetch project colour from Firestore
+export async function getProjectColourFromDB(userId, projectId) {
+    if (!userId || !projectId) {
+        throw new Error("User ID and Project ID are required.");
+    }
+
+    const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
+    const projectSnapshot = await getDocs(query(collection(db, `projects/${userId}/userProjects`), where("id", "==", projectId)));
+
+    if (!projectSnapshot.empty) {
+        return projectSnapshot.docs[0].data().color || getRandomColour(); // Fallback to a random color
+    } else {
+        return getRandomColour();
+    }
+}
+
+
+// Update project colour
+export async function updateProjectColour(userId, projectId, newColour) {
+    if (!userId || !projectId || !newColour) {
+        throw new Error("User ID, Project ID, and new Color are required.");
+    }
+
+    const projectRef = doc(db, `projects/${userId}/userProjects`, projectId);
+    await updateDoc(projectRef, { color: newColour });
 }
 
 // Reorder to-do lists within the same project or priority

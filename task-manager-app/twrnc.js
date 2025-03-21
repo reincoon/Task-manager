@@ -15,13 +15,20 @@ export const theme = {
     colors: {
         white: '#FFFFFF',       // White
         light: '#FAFAFA',       // Light Gray for background 
+        gold: '#FFBF00',
+        greenCyan: '#48BB78',
         mint: '#A4FCB4',       // Fresh Mint Green
         sky: '#9EE1F0',        // Soft Sky Blue
         forest: '#5D8765',     // Muted Forest Green
         evergreen: '#416147',  // Deep Evergreen
         magenta: '#7A0064',    // Bold Deep Magenta
         cinnabar: '#E74C3C',  // Cinnabar Red
+        lavender: '#DFC5FE',  // Lignt Lavender
+        orange: '#FFA500',      // Bright Orange
         violet: '#805CFB',     // Violet
+        neon: '#1F51FF',       // Neon Blue
+        cerise: '#DE3163',     // Cerise Pink
+        lime: '#DAF7A6',       //Soft Green
         textPrimary: '#212529',   // Dark text for optimal readability
         textSecondary: '#333333', // Deeper gray for contrast
         // Dark Theme Colours
@@ -35,6 +42,7 @@ export const theme = {
         darkMagenta: '#69006B',           // A rich, deep magenta for emphasis
         darkCinnabar: '#C94133',           // Dark Cinnabar Red
         darkViolet: '#533181',             // Dark Violet
+        darkCardBg: '#1F2937',             // Dark Gray
     },
 };
 
