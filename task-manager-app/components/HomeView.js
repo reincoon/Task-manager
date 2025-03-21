@@ -61,7 +61,7 @@ export default function HomeView({
     );
 
     return (
-        <View style={[tw`flex-1`, { backgroundColor: bgColor }]}>
+        <View style={[tw`flex-1 pb-16`, { backgroundColor: bgColor }]}>
             <HomeHeader
                 menuRef={menuRef}
                 showMenu={() => menuRef.current?.show()}

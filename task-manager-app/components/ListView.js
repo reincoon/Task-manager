@@ -1,3 +1,4 @@
+import { useAnimatedStyle } from 'react-native-reanimated';
 import { useEffect, useState, useCallback } from "react";
 import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
@@ -8,6 +9,9 @@ import { updateTasksPriority, updateTasksProject, reorderTasks, updateProjectNam
 import { Ionicons } from '@expo/vector-icons';
 import ProjectNameEditModal from "./ProjectNameEditModal";
 import useProjectNameEdit from "../hooks/useProjectNameEdit";
+import tw, { theme } from '../twrnc';
+import { useTheme } from '../helpers/ThemeContext';
+import ThemedText from './ThemedText';
 
 const ListView = ({
     userId,
@@ -22,6 +26,7 @@ const ListView = ({
     grouping,
 }) => {
     const [data, setData] = useState([]);
+    const { isDarkMode, fontScale } = useTheme();
 
     // Hook for handling project name updates
     const {
@@ -53,22 +58,49 @@ const ListView = ({
         return found ? found.name : 'Unassigned';
     };
 
-    const renderItem = useCallback(({ item, drag, isActive }) => {
+    const renderItem = useCallback(({ item, drag }) => {
         if (item.type === 'projectHeader') {
+            const project = projects.find(p => p.id === item.pName);
+            const projectColour = project?.color || '#BBB';
+            const animatedStyle = useAnimatedStyle(() => ({
+                borderLeftColor: projectColour,
+            }));
+
             return (
-                <View style={styles.projectHeader}>
-                    <Text style={[styles.projectHeaderText, { color: '#333' }]}>
+                <View 
+                    style={[
+                        tw`px-3 py-2 mx-4 mt-3 rounded-md`,
+                        {
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : '#BBB',
+                            borderLeftWidth: 4,
+                        },
+                        animatedStyle
+                    ]}
+                >
+                    <ThemedText variant="lg" style={tw`font-bold`}>
                         {item.projectName}
-                    </Text>
-                    <TouchableOpacity
+                    </ThemedText>
+                    {/* Edit button */}
+                    {/* <TouchableOpacity
                         onPress={() => {
                             openEditProjectModal(item.pName, item.projectName);
                         }}
                     >
                         <Text>Edit</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
+                    <Ionicons
+                        name="create-outline"
+                        size={theme.fontSize.xl}
+                        style={tw`absolute right-10 top-2`}
+                        color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary}
+                        onPress={() => openEditProjectModal(item.pName, item.projectName)}
+                    />
                     {/* Delete Button */}
-                    <TouchableOpacity
+                    <Ionicons
+                        name="trash-outline"
+                        size={theme.fontSize.xl}
+                        style={tw`absolute right-2 top-2`}
+                        color={tw`${isDarkMode ? theme.colors.cinnabar : theme.colors.darkCinnabar}`}
                         onPress={() => {
                             Alert.alert('Confirm', 'Are you sure you want to delete this project?', [
                                 { text: 'Cancel', style: 'cancel' },
@@ -87,25 +119,49 @@ const ListView = ({
                                 }
                             ]);
                         }}
-                    >
-                        <Ionicons name="trash-outline" size={24} color="red" />
-                    </TouchableOpacity>
+                    />
                 </View>
             );
         }
         if (item.type === 'priorityHeader') {
+            const priorityColors = {
+                Low: theme.colors.forest,
+                Moderate: theme.colors.gold,
+                High: theme.colors.cinnabar,
+                Critical: theme.colors.violet,
+            };
             return (
-                <View style={styles.priorityHeader}>
-                    <Text style={[styles.priorityHeaderText, { color: '#333' }]}>
+                <View
+                    style={[
+                        tw`px-3 py-2 mx-4 mt-3 rounded-md`,
+                        {
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : '#BBB',
+                            borderLeftWidth: 4,
+                            borderLeftColor: priorityColors[item.priority] || theme.colors.forest,
+                        },
+                    ]}
+                >
+                    <ThemedText variant="lg" fontFamily="poppins-bold">
                         {item.priority} Priority
-                    </Text>
+                    </ThemedText>
                 </View>
             );
         }
         if (item.type === 'noProjectHeader') {
             return (
-                <View style={[styles.projectHeader, { backgroundColor: '#ccc' }]}>
-                    <Text style={styles.projectHeaderText}>Unassigned To-Do Lists</Text>
+                <View 
+                    style={[
+                        tw`px-3 py-2 mx-4 mt-3 rounded-md`,
+                        {
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : '#BBB',
+                            borderLeftWidth: 4,
+                            borderLeftColor: isDarkMode ? theme.colors.darkSky : theme.colors.sky,
+                        },
+                    ]}
+                >
+                    <ThemedText variant="lg" style={tw`font-bold`}>
+                        Unassigned To-Do Lists
+                    </ThemedText>
                 </View>
             );
         }
@@ -148,7 +204,7 @@ const ListView = ({
         }
 
         return null;
-    }, [grouping, projects, navigation, setDraggingTask, deleteTask, openEditProjectModal]);
+    }, [grouping, projects, navigation, setDraggingTask, deleteTask, openEditProjectModal, isDarkMode]);
 
     const keyExtractor = (item, index) => {
         if (item.type === 'projectHeader') {
@@ -198,7 +254,7 @@ const ListView = ({
         const originalProjectId = draggedItem.projectId || null;
         const originalPriority = draggedItem.priority || 'Low';
 
-            // Proceed with normal reordering or moving
+        // Proceed with normal reordering or moving
         try {
             if (grouping === 'project') {
                 // If finalProjectId differs from the old project
@@ -210,7 +266,7 @@ const ListView = ({
                     await updateTasksProject(userId, [draggedItem], finalProjectId);
                     Alert.alert(
                         'Success',
-                        finalProjectId ? 'Task moved to the selected project.' : 'Task unassigned.'
+                        finalProjectId ? 'To-Do list moved to the selected project.' : 'To-Do list was unassigned.'
                     );
                 } else {
                     // Reorder within the same project/unassigned
@@ -227,14 +283,14 @@ const ListView = ({
                     // Change the priority
                     draggedItem.priority = finalPriority;
                     await updateTasksPriority(userId, [draggedItem], finalPriority);
-                    Alert.alert('Success', `Task priority set to "${finalPriority}".`);
+                    Alert.alert('Success', `To-Do list's priority is set to "${finalPriority}".`);
                 } else {
                     // Reordering within the same priority
                     const tasksInSamePriority = newData.filter(
                         (item) => item.type === 'task' && (item.priority || 'Low') === originalPriority
                     );
                     await reorderTasks(userId, tasksInSamePriority, null, originalPriority);
-                    Alert.alert('Success', 'Tasks reordered within same priority.');
+                    Alert.alert('Success', 'To-Do lists were reordered within same priority.');
                 }
             }
         
@@ -250,25 +306,25 @@ const ListView = ({
 
     if (data.length === 0) {
         return (
-            <Text style={styles.noTasksText}>
+            <ThemedText variant="xl2" style={tw`text-center mt-5 text-gray-500`}>
                 No tasks available. Create a new to-do list!
-            </Text>
+            </ThemedText>
         );
     }
 
     return (
-        <View style={{ flex: 1 }}>
-            <Text style={styles.instructionsText}>
+        <View style={tw`flex-1`}>
+            <ThemedText variant="sm" style={tw`text-center my-3 mx-2 text-gray-400`}>
                 {'\n'}- Drag a to-do list under a project header or on a task in that project to move it into the project.
                 {'\n'}- Drag a task to the 'Unassigned to-do lists' section to remove it from a project.
-            </Text>
+            </ThemedText>
             <DraggableFlatList
                 data={data}
                 keyExtractor={keyExtractor}
                 renderItem={renderItem}
                 onDragEnd={onDragEnd}
                 activationDistance={5}
-                containerStyle={{ paddingBottom: 100 }}
+                contentContainerStyle={tw`pb-24`}
             />
             <ProjectNameEditModal
                 visible={isEditModalVisible}

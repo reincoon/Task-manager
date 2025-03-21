@@ -2,10 +2,10 @@ import { Text } from 'react-native';
 import { useTheme } from '../helpers/ThemeContext';
 import tw, { theme } from '../twrnc';
 
-export default function ThemedText({ variant = 'base', style, children, ...props }) {
+export default function ThemedText({ variant = 'base', fontFamily = 'poppins-regular', color, style, children, ...props }) {
     const { isDarkMode, fontScale } = useTheme();
 
-    const color = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
+    const defaultColor = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
 
     // Multiply the base font size by the user-controlled scale
     const computedFontSize = theme.fontSize[variant] 
@@ -14,8 +14,9 @@ export default function ThemedText({ variant = 'base', style, children, ...props
 
     const combinedStyle = [
         {
-            color,
-            fontSize: computedFontSize
+            color: color || defaultColor,
+            fontSize: computedFontSize,
+            fontFamily: fontFamily,
         },
         style
     ];

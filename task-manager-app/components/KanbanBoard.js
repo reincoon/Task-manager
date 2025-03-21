@@ -315,50 +315,55 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         );
     }, [grouping, userId, navigation, setHoveredTask]);
 
-    const renderColumn = (column) => (
-        <View key={column.key} style={styles.column}>
-            <View style={styles.columnHeader}>
-                <Text style={styles.columnTitle}>{column.title}</Text>
-                {grouping === 'project' && column.key !== 'No Project' && (
-                    <>
-                        <TouchableOpacity
-                            style={styles.editButton}
-                            onPress={() => openEditProjectModal(column.key, column.title)} // Open edit modal when clicked
-                        >
-                            <Text style={styles.editButtonText}>Edit</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.deleteButton}
-                            onPress={() => handleDeleteProject(column.key)} // Delete project when clicked
-                        >
-                            <Text style={styles.deleteButtonText}>Delete</Text>
-                        </TouchableOpacity>
-                    </>
-                )}
-                
-                <TouchableOpacity
-                    style={[
-                        styles.filterButton,
-                        { backgroundColor: dueSoonFilters[column.key] ? '#28a745' : '#007bff' },
-                    ]}
-                    onPress={() => toggleDueSoonFilter(column.key)}
-                >
-                    <Text style={styles.filterButtonText}>
-                        {dueSoonFilters[column.key] ? 'Show All' : 'Due Soon'}
-                    </Text>
-                </TouchableOpacity>
+    const renderColumn = (column) => {
+        const project = projects.find(p => p.id === column.key);
+        const projectColour = project?.color || '#BBB';
+
+        return (
+            <View key={column.key} style={styles.column}>
+                <View style={[styles.columnHeader, { borderLeftColor: projectColour }]}>
+                    <Text style={styles.columnTitle}>{column.title}</Text>
+                    {grouping === 'project' && column.key !== 'No Project' && (
+                        <>
+                            <TouchableOpacity
+                                style={styles.editButton}
+                                onPress={() => openEditProjectModal(column.key, column.title)} // Open edit modal when clicked
+                            >
+                                <Text style={styles.editButtonText}>Edit</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.deleteButton}
+                                onPress={() => handleDeleteProject(column.key)} // Delete project when clicked
+                            >
+                                <Text style={styles.deleteButtonText}>Delete</Text>
+                            </TouchableOpacity>
+                        </>
+                    )}
+                    
+                    <TouchableOpacity
+                        style={[
+                            styles.filterButton,
+                            { backgroundColor: dueSoonFilters[column.key] ? '#28a745' : '#007bff' },
+                        ]}
+                        onPress={() => toggleDueSoonFilter(column.key)}
+                    >
+                        <Text style={styles.filterButtonText}>
+                            {dueSoonFilters[column.key] ? 'Show All' : 'Due Soon'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+                <DraggableFlatList
+                    data={column.data}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderTask}
+                    onDragEnd={({ data }) => handleDragEnd(column.key, data)}
+                    activationDistance={5}
+                    contentContainerStyle={styles.tasksContainer}
+                    canDrag={({ item }) => !!item.id}
+                />
             </View>
-            <DraggableFlatList
-                data={column.data}
-                keyExtractor={(item) => item.id}
-                renderItem={renderTask}
-                onDragEnd={({ data }) => handleDragEnd(column.key, data)}
-                activationDistance={5}
-                contentContainerStyle={styles.tasksContainer}
-                canDrag={({ item }) => !!item.id}
-            />
-        </View>
-    );
+        )
+    };
 
     return (
         <View style={styles.container}>

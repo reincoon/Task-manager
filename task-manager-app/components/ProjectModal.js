@@ -1,9 +1,8 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useTheme } from '../helpers/ThemeContext';
 import tw, { theme } from '../twrnc';
 import ThemedText from './ThemedText';
-import ActionButton from './ActionButton';
 
 const ProjectModal = ({ visible, onCancel, onCreate }) => {
     const [projectName, setProjectName] = useState('');

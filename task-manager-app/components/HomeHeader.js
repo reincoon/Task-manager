@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
 import AddProjectButton from './AddProjectButton';
 import tw, { theme } from '../twrnc';
@@ -12,6 +12,7 @@ export default function HomeHeader({ menuRef, showMenu, hideMenu, onMenuOption, 
 
     const headerBg = isDarkMode ? theme.colors.darkBg : theme.colors.white;
     const borderColor = isDarkMode ? theme.colors.darkEvergreen : theme.colors.sky;
+    const toggleColor = isDarkMode ? theme.colors.darkSky : theme.colors.evergreen;
 
     // Toggles between list/kanban
     const handleTogglePress = () => {
@@ -22,86 +23,90 @@ export default function HomeHeader({ menuRef, showMenu, hideMenu, onMenuOption, 
     return (
         <View 
             style={[
-                tw`px-4 pt-4 pb-2 border-b flex-row`,
+                tw`px-5 pt-5 pb-3 border-b`,
                 { backgroundColor: headerBg, borderBottomColor: borderColor, borderBottomWidth: 1 },
             ]}
         >
-            <View style={tw`flex-1`}>
-                <ThemedText variant="xl2" style={tw`mb-1`}>
-                    ToDoFlow
+            <ThemedText variant="xl2" fontFamily="poppins-semibold" color={isDarkMode ? theme.colors.sky : theme.colors.forest}>
+                ToDoFlow
+            </ThemedText>
+            <View style={tw`flex-row justify-between items-center mt-1`}>
+        
+                    
+                    {/* <View style={tw`flex-row items-center justify-between`}> */}
+                <ThemedText variant="xl3" fontFamily="poppins-bold">
+                    Home
                 </ThemedText>
-                <View style={tw`flex-row items-center justify-between`}>
-                    <ThemedText variant="xl3" style={tw`font-bold`}>
-                        Home
-                    </ThemedText>
-                    <TouchableOpacity onPress={handleTogglePress} style={tw`ml-3`}>
-                        {viewMode === 'list' ? (
-                            <Ionicons name="copy-outline" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
-                        ) : (
-                            <Ionicons name="list-outline" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
-                        )}
-                    </TouchableOpacity>
-                </View>
-            </View>
-            {/* <Text style={styles.title}>{title}</Text> */}
-            {/* {viewMode === 'list' && (
-                <AddProjectButton onPress={onAddProjectPress} label="Add Project"/>
-            )} */}
-            {/* <Menu
-                ref={menuRef}
-                anchor={
-                    <TouchableOpacity onPress={showMenu}>
-                        <Ionicons name="ellipsis-horizontal" size={24} color="black" />
-                    </TouchableOpacity>
-                }
-                onRequestClose={hideMenu}
-            >
-                <MenuItem onPress={() => onMenuOption('List View')}>List View</MenuItem>
-                <MenuItem onPress={() => onMenuOption('Kanban View')}>Kanban View</MenuItem>
-                <MenuItem onPress={() => onMenuOption('Sort by Project')}>Group by Project</MenuItem>
-                <MenuItem onPress={() => onMenuOption('Sort by Priority')}>Group by Priority</MenuItem>
-                <MenuItem onPress={() => onMenuOption('Sort by Date')}>Sort by Date</MenuItem>
-                <MenuItem onPress={() => onMenuOption('Sort Alphabetically')}>Sort Alphabetically</MenuItem>
-                <MenuItem onPress={() => onMenuOption('Sort by Colour')}>Sort by Colour</MenuItem>
-            </Menu> */}
-            <View style={tw`flex-row items-center ml-3`}>
-                {/* Tutorial icon */}
-                <TouchableOpacity onPress={onTutorialPress} style={tw`mx-2`}>
-                    <Ionicons name="help-circle-outline" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
-                </TouchableOpacity>
-
-                {/* Toggle view icon (List or Kanban)
-                <TouchableOpacity style={tw`mx-2`} onPress={handleTogglePress}>
-                    {viewMode === 'list' ? (
-                        <Ionicons name="copy-outline" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : textPrimary} />
-                    ) : (
-                        <Ionicons name="list-outline" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : textPrimary} />
-                    )}
-                </TouchableOpacity> */}
-
-                {/* Menu icon for sorting/grouping */}
-                <Menu
+                {/* <Text style={styles.title}>{title}</Text> */}
+                {/* {viewMode === 'list' && (
+                    <AddProjectButton onPress={onAddProjectPress} label="Add Project"/>
+                )} */}
+                {/* <Menu
                     ref={menuRef}
                     anchor={
-                        <TouchableOpacity onPress={showMenu} style={tw`mx-2`}>
-                            <Ionicons name="ellipsis-horizontal" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
+                        <TouchableOpacity onPress={showMenu}>
+                            <Ionicons name="ellipsis-horizontal" size={24} color="black" />
                         </TouchableOpacity>
                     }
                     onRequestClose={hideMenu}
                 >
-                    {/* <MenuItem onPress={() => onMenuOption('List View')}>List View</MenuItem>
-                    <MenuItem onPress={() => onMenuOption('Kanban View')}>Kanban View</MenuItem> */}
+                    <MenuItem onPress={() => onMenuOption('List View')}>List View</MenuItem>
+                    <MenuItem onPress={() => onMenuOption('Kanban View')}>Kanban View</MenuItem>
                     <MenuItem onPress={() => onMenuOption('Sort by Project')}>Group by Project</MenuItem>
                     <MenuItem onPress={() => onMenuOption('Sort by Priority')}>Group by Priority</MenuItem>
                     <MenuItem onPress={() => onMenuOption('Sort by Date')}>Sort by Date</MenuItem>
                     <MenuItem onPress={() => onMenuOption('Sort Alphabetically')}>Sort Alphabetically</MenuItem>
                     <MenuItem onPress={() => onMenuOption('Sort by Colour')}>Sort by Colour</MenuItem>
-                </Menu>
-                
-                {/* Add project button */}
-                <View style={tw`ml-3`}>
-                    <AddProjectButton onPress={onAddProjectPress} label="Add Project" />
+                </Menu> */}
+                <View style={tw`flex-row items-center ml-2`}>
+                    {/* Tutorial icon */}
+                    <TouchableOpacity onPress={onTutorialPress} style={tw`mx-2`}>
+                        <Ionicons name="help-circle-outline" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
+                    </TouchableOpacity>
+
+                    {/* Toggle view icon (List or Kanban)
+                    <TouchableOpacity style={tw`mx-2`} onPress={handleTogglePress}>
+                        {viewMode === 'list' ? (
+                            <Ionicons name="copy-outline" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : textPrimary} />
+                        ) : (
+                            <Ionicons name="list-outline" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : textPrimary} />
+                        )}
+                    </TouchableOpacity> */}
+
+                    {/* Menu icon for sorting/grouping */}
+                    <Menu
+                        ref={menuRef}
+                        anchor={
+                            <TouchableOpacity onPress={showMenu} style={tw`mx-2`}>
+                                <Ionicons name="ellipsis-horizontal" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
+                            </TouchableOpacity>
+                        }
+                        onRequestClose={hideMenu}
+                    >
+                        {/* <MenuItem onPress={() => onMenuOption('List View')}>List View</MenuItem>
+                        <MenuItem onPress={() => onMenuOption('Kanban View')}>Kanban View</MenuItem> */}
+                        <MenuItem onPress={() => onMenuOption('Sort by Project')}>Group by Project</MenuItem>
+                        <MenuItem onPress={() => onMenuOption('Sort by Priority')}>Group by Priority</MenuItem>
+                        <MenuItem onPress={() => onMenuOption('Sort by Date')}>Sort by Date</MenuItem>
+                        <MenuItem onPress={() => onMenuOption('Sort Alphabetically')}>Sort Alphabetically</MenuItem>
+                        <MenuItem onPress={() => onMenuOption('Sort by Colour')}>Sort by Colour</MenuItem>
+                    </Menu>
                 </View>
+            </View>
+            {/* Add project button */}
+            <View style={tw`mt-4 flex-row justify-between items-center`}>
+                {/* View toggle */}
+                <TouchableOpacity onPress={handleTogglePress} style={tw`mx-2 flex-row items-center`}>
+                    {viewMode === 'list' ? (
+                        <MaterialCommunityIcons name="format-list-bulleted" size={theme.fontSize.xl2} color={toggleColor} />
+                    ) : (
+                        <MaterialCommunityIcons name="view-grid-outline" size={theme.fontSize.xl2} color={toggleColor} />
+                    )}
+                    <ThemedText variant="sm" style={tw`ml-1`} color={toggleColor}>
+                        {viewMode === 'list' ? "List View" : "Kanban View"}
+                    </ThemedText>
+                </TouchableOpacity>
+                <AddProjectButton onPress={onAddProjectPress} label="Add Project" />
             </View>
         </View>
     );
