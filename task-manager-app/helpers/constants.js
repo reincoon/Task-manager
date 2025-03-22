@@ -1,3 +1,5 @@
+import { theme } from "../twrnc";
+
 export const NOTIFICATION_OPTIONS = [
     'None',
     'At Due Time',
@@ -26,6 +28,13 @@ export const PRIORITY_ORDER = {
     High: 2,
     Moderate: 3,
     Low: 4,
+};
+
+export const PRIORITY_COLOURS = {
+    Low: theme.colors.forest,
+    Moderate: theme.colors.gold,
+    High: theme.colors.cinnabar,
+    Critical: theme.colors.violet,
 };
 
 export const COLOURS = [

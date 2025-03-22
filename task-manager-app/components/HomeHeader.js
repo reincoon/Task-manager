@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, Entypo, MaterialIcons } from '@expo/vector-icons';
 import { Menu, MenuItem } from 'react-native-material-menu';
 import AddProjectButton from './AddProjectButton';
 import tw, { theme } from '../twrnc';
@@ -60,8 +60,8 @@ export default function HomeHeader({ menuRef, showMenu, hideMenu, onMenuOption, 
                 </Menu> */}
                 <View style={tw`flex-row items-center ml-2`}>
                     {/* Tutorial icon */}
-                    <TouchableOpacity onPress={onTutorialPress} style={tw`mx-2`}>
-                        <Ionicons name="help-circle-outline" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
+                    <TouchableOpacity onPress={onTutorialPress} style={tw`mx-3`}>
+                        <Entypo name="info-with-circle" size={theme.fontSize.xl3} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
                     </TouchableOpacity>
 
                     {/* Toggle view icon (List or Kanban)
@@ -78,7 +78,7 @@ export default function HomeHeader({ menuRef, showMenu, hideMenu, onMenuOption, 
                         ref={menuRef}
                         anchor={
                             <TouchableOpacity onPress={showMenu} style={tw`mx-2`}>
-                                <Ionicons name="ellipsis-horizontal" size={theme.fontSize.xl2} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
+                                <Ionicons name="ellipsis-horizontal" size={theme.fontSize.xl3} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
                             </TouchableOpacity>
                         }
                         onRequestClose={hideMenu}
@@ -96,11 +96,11 @@ export default function HomeHeader({ menuRef, showMenu, hideMenu, onMenuOption, 
             {/* Add project button */}
             <View style={tw`mt-4 flex-row justify-between items-center`}>
                 {/* View toggle */}
-                <TouchableOpacity onPress={handleTogglePress} style={tw`mx-2 flex-row items-center`}>
+                <TouchableOpacity onPress={handleTogglePress} style={tw`flex-row items-center`}>
                     {viewMode === 'list' ? (
-                        <MaterialCommunityIcons name="format-list-bulleted" size={theme.fontSize.xl2} color={toggleColor} />
+                        <MaterialIcons name="view-list" size={theme.fontSize.xl2} color={toggleColor} />
                     ) : (
-                        <MaterialCommunityIcons name="view-grid-outline" size={theme.fontSize.xl2} color={toggleColor} />
+                        <MaterialIcons name="view-kanban" size={theme.fontSize.xl2} color={toggleColor} />
                     )}
                     <ThemedText variant="sm" style={tw`ml-1`} color={toggleColor}>
                         {viewMode === 'list' ? "List View" : "Kanban View"}

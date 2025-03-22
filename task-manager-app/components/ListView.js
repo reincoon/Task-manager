@@ -1,4 +1,3 @@
-import { useAnimatedStyle } from 'react-native-reanimated';
 import { useEffect, useState, useCallback } from "react";
 import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
@@ -12,6 +11,7 @@ import useProjectNameEdit from "../hooks/useProjectNameEdit";
 import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
 import ThemedText from './ThemedText';
+import { PRIORITY_COLOURS } from '../helpers/constants';
 
 const ListView = ({
     userId,
@@ -61,20 +61,23 @@ const ListView = ({
     const renderItem = useCallback(({ item, drag }) => {
         if (item.type === 'projectHeader') {
             const project = projects.find(p => p.id === item.pName);
-            const projectColour = project?.color || '#BBB';
-            const animatedStyle = useAnimatedStyle(() => ({
-                borderLeftColor: projectColour,
-            }));
+            // const projectColour = project?.color || theme.colors.sky;
+            const isProjectView = grouping === 'project';
+            const projectColour = isProjectView 
+                ? project?.color || theme.colors.sky 
+                : theme.colors.sky;
+            
 
             return (
                 <View 
                     style={[
                         tw`px-3 py-2 mx-4 mt-3 rounded-md`,
                         {
-                            backgroundColor: isDarkMode ? theme.colors.textSecondary : '#BBB',
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.grayHd,
                             borderLeftWidth: 4,
+                            borderLeftColor: projectColour,
                         },
-                        animatedStyle
+                        
                     ]}
                 >
                     <ThemedText variant="lg" style={tw`font-bold`}>
@@ -90,17 +93,17 @@ const ListView = ({
                     </TouchableOpacity> */}
                     <Ionicons
                         name="create-outline"
-                        size={theme.fontSize.xl}
-                        style={tw`absolute right-10 top-2`}
-                        color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary}
+                        size={theme.fontSize.xl2}
+                        style={tw`absolute right-14 top-2`}
+                        color={isDarkMode ? theme.colors.darkMint : theme.colors.forest}
                         onPress={() => openEditProjectModal(item.pName, item.projectName)}
                     />
                     {/* Delete Button */}
                     <Ionicons
-                        name="trash-outline"
-                        size={theme.fontSize.xl}
-                        style={tw`absolute right-2 top-2`}
-                        color={tw`${isDarkMode ? theme.colors.cinnabar : theme.colors.darkCinnabar}`}
+                        name="trash-sharp"
+                        size={theme.fontSize.xl2}
+                        style={tw`absolute right-4 top-2`}
+                        color={isDarkMode ? theme.colors.cinnabar : theme.colors.darkCinnabar}
                         onPress={() => {
                             Alert.alert('Confirm', 'Are you sure you want to delete this project?', [
                                 { text: 'Cancel', style: 'cancel' },
@@ -124,20 +127,14 @@ const ListView = ({
             );
         }
         if (item.type === 'priorityHeader') {
-            const priorityColors = {
-                Low: theme.colors.forest,
-                Moderate: theme.colors.gold,
-                High: theme.colors.cinnabar,
-                Critical: theme.colors.violet,
-            };
             return (
                 <View
                     style={[
                         tw`px-3 py-2 mx-4 mt-3 rounded-md`,
                         {
-                            backgroundColor: isDarkMode ? theme.colors.textSecondary : '#BBB',
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.grayHd,
                             borderLeftWidth: 4,
-                            borderLeftColor: priorityColors[item.priority] || theme.colors.forest,
+                            borderLeftColor: PRIORITY_COLOURS[item.priority] || theme.colors.forest,
                         },
                     ]}
                 >
@@ -153,7 +150,7 @@ const ListView = ({
                     style={[
                         tw`px-3 py-2 mx-4 mt-3 rounded-md`,
                         {
-                            backgroundColor: isDarkMode ? theme.colors.textSecondary : '#BBB',
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.grayHd,
                             borderLeftWidth: 4,
                             borderLeftColor: isDarkMode ? theme.colors.darkSky : theme.colors.sky,
                         },
@@ -313,7 +310,7 @@ const ListView = ({
     }
 
     return (
-        <View style={tw`flex-1`}>
+        <View style={tw`flex-1 pb-8`}>
             <ThemedText variant="sm" style={tw`text-center my-3 mx-2 text-gray-400`}>
                 {'\n'}- Drag a to-do list under a project header or on a task in that project to move it into the project.
                 {'\n'}- Drag a task to the 'Unassigned to-do lists' section to remove it from a project.

@@ -5,7 +5,7 @@ import { useTheme } from '../helpers/ThemeContext';
 
 export default function FloatingActionButton({ onPress }) {
     const { isDarkMode, fontScale } = useTheme();
-    const bgColor = isDarkMode ? theme.colors.darkMagenta : theme.colors.magenta;
+    const bgColor = isDarkMode ? theme.colors.lavender : theme.colors.magenta;
 
     return (
         <TouchableOpacity 
@@ -21,7 +21,7 @@ export default function FloatingActionButton({ onPress }) {
                 }]} 
             onPress={onPress}
         >
-            <Ionicons name="add" size={theme.fontSize.xl3 * fontScale} color={theme.colors.white} />
+            <Ionicons name="add" size={theme.fontSize.xl3 * fontScale} color={isDarkMode ? theme.colors.darkMagenta : theme.colors.lavender} />
         </TouchableOpacity>
     );
 };

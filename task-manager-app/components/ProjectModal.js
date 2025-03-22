@@ -8,9 +8,9 @@ const ProjectModal = ({ visible, onCancel, onCreate }) => {
     const [projectName, setProjectName] = useState('');
     const { isDarkMode, fontScale } = useTheme();
 
-    const modalBg = isDarkMode ? theme.colors.darkBg : theme.colors.white;
-    const overlayBg = 'rgba(0,0,0,0.5)';
-    const inputBg = isDarkMode ? theme.colors.darkEvergreen : theme.colors.light;
+    const modalBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.white;
+    const overlayBg = 'rgba(0,0,0,0.4)';
+    const inputBg = isDarkMode ? theme.colors.darkBg : theme.colors.light;
     const borderColor = isDarkMode ? theme.colors.darkTextSecondary : theme.colors.textSecondary;
     const buttonBgCreate = isDarkMode ? theme.colors.darkSky : theme.colors.sky;
     const buttonBgCancel = isDarkMode ? theme.colors.darkCinnabar : theme.colors.cinnabar;
@@ -77,7 +77,7 @@ const ProjectModal = ({ visible, onCancel, onCreate }) => {
                             style={[tw`px-4 py-2 rounded-md`, { backgroundColor: buttonBgCreate }]} 
                             onPress={handleCreate}
                         >
-                            <ThemedText variant="base" style={tw`text-white font-bold`}>
+                            <ThemedText variant="base" fontFamily="poppins-semibold" color={theme.colors.textSecondary}>
                                 Create
                             </ThemedText>
                         </TouchableOpacity>
@@ -85,7 +85,7 @@ const ProjectModal = ({ visible, onCancel, onCreate }) => {
                             style={[tw`px-4 py-2 rounded-md`, { backgroundColor: buttonBgCancel }]}
                             onPress={handleCancel}
                         >
-                            <ThemedText variant="base" style={tw`text-white font-bold`}>
+                            <ThemedText variant="base" fontFamily="poppins-semibold" color={theme.colors.white}>
                                 Cancel
                             </ThemedText>
                         </TouchableOpacity>

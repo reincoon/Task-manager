@@ -1,16 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Modal, TextInput, Button } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { PRIORITIES } from '../helpers/priority';
 import MoveToModal from '../components/MoveToModal';
-import ProjectModal from '../components/ProjectModal';
+// import ProjectModal from '../components/ProjectModal';
 import { groupTasksByProject } from '../helpers/projects';
 import { updateTasksProject, createProject, updateTasksPriority, deleteProject, updateProjectName, reorderTasks  } from '../helpers/firestoreHelpers';
-import AddProjectButton from './AddProjectButton';
+// import AddProjectButton from './AddProjectButton';
 import { deleteTask } from '../helpers/taskActions';
 import TodoCard from '../components/TodoCard';
 import ProjectNameEditModal from './ProjectNameEditModal';
 import useProjectNameEdit from '../hooks/useProjectNameEdit';
+import { useTheme } from '../helpers/ThemeContext';
+import ThemedText from '../components/ThemedText';
+import tw, { theme } from '../twrnc';
+import { PRIORITY_COLOURS } from '../helpers/constants';
 
 // Helper function to check if a task is due within the next 48 hours
 const isDueSoon = (dueDate) => {
@@ -19,8 +24,8 @@ const isDueSoon = (dueDate) => {
     return dueTime > now && dueTime - now <= 48 * 60 * 60 * 1000;
 };
 
-const COLUMN_WIDTH = 250;
-const COLUMN_MARGIN = 10;
+const COLUMN_WIDTH = 270;
+const COLUMN_MARGIN = 12;
 
 const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDraggingTask, setHoveredTask }) => {
     const [columns, setColumns] = useState([]);
@@ -34,6 +39,8 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     // const [isProjectModalVisible, setIsProjectModalVisible] = useState(false);
     // const [projectModalTasks, setProjectModalTasks] = useState([]);
 
+    const { isDarkMode, fontScale } = useTheme();
+    
     // Hook for handling project name updates
     const {
         isEditModalVisible,
@@ -46,9 +53,9 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         setEditingProjId,
     } = useProjectNameEdit(userId);
 
-    // Initialize columns based on grouping
+    // Initialise columns based on grouping
     useEffect(() => {
-        const initializeColumns = () => {
+        const initialiseColumns = () => {
             let updatedColumns = [];
             if (grouping === 'priority') {
                 updatedColumns = PRIORITIES.map((priority) => {
@@ -100,12 +107,12 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
             setColumns(updatedColumns);
         };
 
-        initializeColumns();
+        initialiseColumns();
     }, [rawTasks, grouping, projects, dueSoonFilters]);
 
-    // Initialize 'dueSoonFilters' based on grouping and columns
+    // Initialise 'dueSoonFilters' based on grouping and columns
     useEffect(() => {
-        const initializeDueSoonFilters = () => {
+        const initialiseDueSoonFilters = () => {
             let initialFilters = {};
             if (grouping === 'priority') {
                 PRIORITIES.forEach(priority => {
@@ -122,7 +129,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
             setDueSoonFilters(initialFilters);
         };
 
-        initializeDueSoonFilters();
+        initialiseDueSoonFilters();
     }, [grouping, rawTasks, projects]);
 
     // Handle 'add' project action from Kanban view
@@ -272,12 +279,20 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 task={item}
                 projectName={projectName}
                 onLongPress={() => {
-                    setDraggingItem(item);
-                    setSourceColumnKey(
-                        grouping === 'project'
-                            ? item.projectId || 'No Project'
-                            : item.priority
-                    );
+                    // setDraggingItem(item);
+                    // setSourceColumnKey(
+                    //     grouping === 'project'
+                    //         ? item.projectId || 'No Project'
+                    //         : item.priority
+                    // );
+                    requestAnimationFrame(() => {
+                        setDraggingItem(item);
+                        setSourceColumnKey(
+                            grouping === 'project'
+                                ? item.projectId || 'No Project'
+                                : item.priority
+                        );
+                    });
                     drag();
                 }}
                 onPress={() => {
@@ -293,9 +308,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                             onPress: async () => {
                                 try {
                                     await deleteTask(userId, item, navigation, false);
-                                    // Alert.alert('Deleted', 'Task deleted successfully');
                                 } catch (err) {
-                                    console.error('Error deleting task:', err);
                                     Alert.alert('Error', 'Could not delete task');
                                 }
                             },
@@ -316,41 +329,80 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     }, [grouping, userId, navigation, setHoveredTask]);
 
     const renderColumn = (column) => {
+        const isProjectView = grouping === 'project';
         const project = projects.find(p => p.id === column.key);
-        const projectColour = project?.color || '#BBB';
+        const projectColour = isProjectView 
+            ? project?.color || theme.colors.sky 
+            : PRIORITY_COLOURS[column.key] || theme.colors.sky;
+
+        const headerBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.grayHd;
 
         return (
-            <View key={column.key} style={styles.column}>
-                <View style={[styles.columnHeader, { borderLeftColor: projectColour }]}>
-                    <Text style={styles.columnTitle}>{column.title}</Text>
-                    {grouping === 'project' && column.key !== 'No Project' && (
-                        <>
-                            <TouchableOpacity
-                                style={styles.editButton}
-                                onPress={() => openEditProjectModal(column.key, column.title)} // Open edit modal when clicked
-                            >
-                                <Text style={styles.editButtonText}>Edit</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.deleteButton}
-                                onPress={() => handleDeleteProject(column.key)} // Delete project when clicked
-                            >
-                                <Text style={styles.deleteButtonText}>Delete</Text>
-                            </TouchableOpacity>
-                        </>
-                    )}
+            <View 
+                key={column.key} 
+                style={[
+                    tw`rounded-2xl p-3 mr-4`, 
+                    { 
+                        width: COLUMN_WIDTH, 
+                        backgroundColor: isDarkMode ? theme.colors.textPrimary : theme.colors.columnBg,
+                        flexGrow: 1,
+                        minHeight: '100%',
+                    }
+                ]}
+            >
+                {/* Column Header */}
+                <View 
+                    style={[
+                        tw`p-3 bg-${isDarkMode ? theme.colors.darkCardBg : theme.colors.grayHd} rounded-md`, 
+                        { 
+                            borderLeftWidth: 5, 
+                            borderLeftColor: projectColour,
+                            borderBottomColor: isDarkMode ? '#555' : '#DDD', 
+                            backgroundColor: headerBg,
+                        }
+                    ]}
+                >
+                    <ThemedText variant="xl" fontFamily="poppins-bold">{column.title}</ThemedText>
                     
-                    <TouchableOpacity
-                        style={[
-                            styles.filterButton,
-                            { backgroundColor: dueSoonFilters[column.key] ? '#28a745' : '#007bff' },
-                        ]}
-                        onPress={() => toggleDueSoonFilter(column.key)}
-                    >
-                        <Text style={styles.filterButtonText}>
-                            {dueSoonFilters[column.key] ? 'Show All' : 'Due Soon'}
-                        </Text>
-                    </TouchableOpacity>
+                    <View style={tw`mt-2 flex-row items-center justify-between`}>
+                        <View style={tw`flex-row items-center`}>
+                            {isProjectView && column.key !== 'No Project' && (
+                                <>
+                                    <TouchableOpacity
+                                        onPress={() => openEditProjectModal(column.key, column.title)} // Open edit modal when clicked
+                                        style={tw`mr-3`}
+                                    >
+                                        <Ionicons
+                                            name="create-outline"
+                                            size={theme.fontSize.xl3 * fontScale}
+                                            color={isDarkMode ? theme.colors.darkForest : theme.colors.forest}
+                                        />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => handleDeleteProject(column.key)} // Delete project when clicked
+                                        style={tw`mr-3`}
+                                    >
+                                        <Ionicons
+                                            name="trash-sharp"
+                                            size={theme.fontSize.xl3 * fontScale}
+                                            color={isDarkMode ? theme.colors.darkCinnabar : theme.colors.cinnabar}
+                                        />
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </View>
+                        <TouchableOpacity
+                            style={[
+                                tw`rounded px-3 py-1`,
+                                { backgroundColor: dueSoonFilters[column.key] ? theme.colors.greenCyan : theme.colors.neon },
+                            ]}
+                            onPress={() => toggleDueSoonFilter(column.key)}
+                        >
+                            <ThemedText variant="sm" color={theme.colors.white}>
+                                {dueSoonFilters[column.key] ? 'Show All' : 'Due Soon'}
+                            </ThemedText>
+                        </TouchableOpacity>
+                    </View>
                 </View>
                 <DraggableFlatList
                     data={column.data}
@@ -358,7 +410,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                     renderItem={renderTask}
                     onDragEnd={({ data }) => handleDragEnd(column.key, data)}
                     activationDistance={5}
-                    contentContainerStyle={styles.tasksContainer}
+                    contentContainerStyle={tw`py-3 pb-24`}
                     canDrag={({ item }) => !!item.id}
                 />
             </View>
@@ -366,16 +418,21 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     };
 
     return (
-        <View style={styles.container}>
+        <View style={tw`flex-1 bg-${isDarkMode ? theme.colors.darkBg : theme.colors.light}`}>
             {/* Kanban Header */}
-            <View style={styles.kanbanHeader}>
-                <Text style={styles.kanbanTitle}>Kanban Board</Text>
+            {/* <View style={styles.kanbanHeader}>
+                <Text style={styles.kanbanTitle}>Kanban Board</Text> */}
                 {/* <AddProjectButton
                     onPress={handleAddProject}
                     label="Add Project"
                 /> */}
-            </View>
-            <ScrollView horizontal contentContainerStyle={styles.columnsContainer}>
+            {/* </View> */}
+            <ScrollView 
+                horizontal 
+                contentContainerStyle={tw`py-2 px-3`}
+                showsHorizontalScrollIndicator
+                indicatorStyle={isDarkMode ? 'white' : 'black'}
+            >
                 {columns.map(column => renderColumn(column))}
             </ScrollView>
             <MoveToModal
@@ -391,6 +448,8 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                         : PRIORITIES.map(pr => ({ key: pr, title: pr }))
                 }
                 currentColumnKey={grouping === 'project' ? draggingItem?.projectId || 'No Project' : draggingItem?.priority}
+                grouping={grouping}
+                projects={projects}
             />
             {/* <ProjectModal
                 visible={isProjectModalVisible}
@@ -419,176 +478,176 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: COLUMN_MARGIN,
-        backgroundColor: '#f5f5f5',
-    },
-    columnsContainer: {
-        flexGrow: 1,
-        alignItems: 'flex-start',
-        justifyContent: 'flex-start',
-    },
-    column: {
-        width: COLUMN_WIDTH,
-        marginRight: COLUMN_MARGIN,
-        backgroundColor: '#eee',
-        borderRadius: 10,
-        padding: 10,
-    },
-    columnHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    columnTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        textAlign: 'center',
-        color: '#333',
-    },
-    filterButton: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 5,
-    },
-    filterButtonText: {
-        color: '#fff',
-        fontSize: 12,
-    },
-    moveIconContainer: {
-        marginLeft: 10,
-        paddingHorizontal: 5,
-        paddingVertical: 2,
-    },
-    tasksContainer: {
-        paddingBottom: 100,
-    },
-    taskItem: {
-        padding: 8,
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 2,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: '#ddd',
-    },
-    cardHeaderRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    cardBodyRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignSelf: 'flex-end',
-        marginTop: 6,
-    },
-    detailsLeftSide: {
-        flex: 1,
-        paddingRight: 8,
-    },
-    deleteIconContainer: {
-        paddingHorizontal: 8,
-        alignSelf: 'flex-end',
-    },
-    taskTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-        flexShrink: 1,
-    },
-    taskDetails: {
-        fontSize: 12,
-        color: '#555',
-        marginTop: 4,
-    },
-    menuIconContainer: {
-        padding: 5,
-    },
-    kanbanHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingTop: 10,
-        marginBottom: 10,
-    },
-    kanbanTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    addProjectButton: {
-        padding: 5,
-    },
-    toggleButton: {
-        backgroundColor: '#28a745',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 5,
-        marginRight: 10,
-    },
-    toggleButtonText: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    columnActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    editButton: {
-        backgroundColor: '#4CAF50',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 5,
-        marginRight: 10,
-    },
-    deleteButton: {
-        backgroundColor: '#f44336',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 5,
-        marginRight: 10,
-    },
-    editButtonText: {
-        color: 'white',
-        fontSize: 14,
-    },
-    deleteButtonText: {
-        color: 'white',
-        fontSize: 14,
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    modalContent: {
-        width: '80%',
-        backgroundColor: 'white',
-        padding: 20,
-        borderRadius: 10,
-    },
-    input: {
-        height: 40,
-        borderColor: 'gray',
-        borderWidth: 1,
-        marginBottom: 10,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 4,
-    },
-});
+// const styles = StyleSheet.create({
+//     container: {
+//         flex: 1,
+//         padding: COLUMN_MARGIN,
+//         backgroundColor: '#f5f5f5',
+//     },
+//     columnsContainer: {
+//         flexGrow: 1,
+//         alignItems: 'flex-start',
+//         justifyContent: 'flex-start',
+//     },
+//     column: {
+//         width: COLUMN_WIDTH,
+//         marginRight: COLUMN_MARGIN,
+//         backgroundColor: '#eee',
+//         borderRadius: 10,
+//         padding: 10,
+//     },
+//     columnHeader: {
+//         flexDirection: 'row',
+//         justifyContent: 'space-between',
+//         alignItems: 'center',
+//         marginBottom: 10,
+//     },
+//     columnTitle: {
+//         fontSize: 18,
+//         fontWeight: 'bold',
+//         marginBottom: 10,
+//         textAlign: 'center',
+//         color: '#333',
+//     },
+//     filterButton: {
+//         paddingHorizontal: 8,
+//         paddingVertical: 4,
+//         borderRadius: 5,
+//     },
+//     filterButtonText: {
+//         color: '#fff',
+//         fontSize: 12,
+//     },
+//     moveIconContainer: {
+//         marginLeft: 10,
+//         paddingHorizontal: 5,
+//         paddingVertical: 2,
+//     },
+//     tasksContainer: {
+//         paddingBottom: 100,
+//     },
+//     taskItem: {
+//         padding: 8,
+//         backgroundColor: '#fff',
+//         borderRadius: 8,
+//         shadowColor: '#000',
+//         shadowOpacity: 0.1,
+//         shadowOffset: { width: 0, height: 2 },
+//         shadowRadius: 4,
+//         elevation: 2,
+//         marginBottom: 10,
+//         borderWidth: 1,
+//         borderColor: '#ddd',
+//     },
+//     cardHeaderRow: {
+//         flexDirection: 'row',
+//         justifyContent: 'space-between',
+//         alignItems: 'center',
+//     },
+//     cardBodyRow: {
+//         flexDirection: 'row',
+//         justifyContent: 'space-between',
+//         alignSelf: 'flex-end',
+//         marginTop: 6,
+//     },
+//     detailsLeftSide: {
+//         flex: 1,
+//         paddingRight: 8,
+//     },
+//     deleteIconContainer: {
+//         paddingHorizontal: 8,
+//         alignSelf: 'flex-end',
+//     },
+//     taskTitle: {
+//         fontSize: 16,
+//         fontWeight: '600',
+//         color: '#333',
+//         flexShrink: 1,
+//     },
+//     taskDetails: {
+//         fontSize: 12,
+//         color: '#555',
+//         marginTop: 4,
+//     },
+//     menuIconContainer: {
+//         padding: 5,
+//     },
+//     kanbanHeader: {
+//         flexDirection: 'row',
+//         justifyContent: 'space-between',
+//         alignItems: 'center',
+//         paddingHorizontal: 10,
+//         paddingTop: 10,
+//         marginBottom: 10,
+//     },
+//     kanbanTitle: {
+//         fontSize: 24,
+//         fontWeight: 'bold',
+//         color: '#333',
+//     },
+//     addProjectButton: {
+//         padding: 5,
+//     },
+//     toggleButton: {
+//         backgroundColor: '#28a745',
+//         paddingHorizontal: 10,
+//         paddingVertical: 5,
+//         borderRadius: 5,
+//         marginRight: 10,
+//     },
+//     toggleButtonText: {
+//         color: '#fff',
+//         fontSize: 12,
+//         fontWeight: 'bold',
+//     },
+//     columnActions: {
+//         flexDirection: 'row',
+//         alignItems: 'center',
+//         marginTop: 10,
+//     },
+//     editButton: {
+//         backgroundColor: '#4CAF50',
+//         paddingHorizontal: 8,
+//         paddingVertical: 4,
+//         borderRadius: 5,
+//         marginRight: 10,
+//     },
+//     deleteButton: {
+//         backgroundColor: '#f44336',
+//         paddingHorizontal: 8,
+//         paddingVertical: 4,
+//         borderRadius: 5,
+//         marginRight: 10,
+//     },
+//     editButtonText: {
+//         color: 'white',
+//         fontSize: 14,
+//     },
+//     deleteButtonText: {
+//         color: 'white',
+//         fontSize: 14,
+//     },
+//     modalContainer: {
+//         flex: 1,
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//         backgroundColor: 'rgba(0,0,0,0.5)',
+//     },
+//     modalContent: {
+//         width: '80%',
+//         backgroundColor: 'white',
+//         padding: 20,
+//         borderRadius: 10,
+//     },
+//     input: {
+//         height: 40,
+//         borderColor: 'gray',
+//         borderWidth: 1,
+//         marginBottom: 10,
+//         paddingHorizontal: 10,
+//         paddingVertical: 5,
+//         borderRadius: 4,
+//     },
+// });
 
 export default KanbanBoard;

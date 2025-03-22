@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from "../helpers/ThemeContext";
 import ThemedText from "./ThemedText";
 
-const ActionButton = ({ title, onPress, bgColor, shadowColor, iconName, textColor, width = '80%' }) => {
+const ActionButton = ({ title, onPress, bgColor, shadowColor, iconName, textColor, width = '80%', size = "lg" }) => {
     const { fontScale } = useTheme();
 
     const baseStyle = {
@@ -25,7 +25,7 @@ const ActionButton = ({ title, onPress, bgColor, shadowColor, iconName, textColo
                     <Ionicons name={iconName} size={theme.fontSize.xl * fontScale} color={textColor} />
                 </View>
             )}
-            <ThemedText variant="lg" style={{ color: textColor, textAlign: 'center' }}>
+            <ThemedText variant={size} style={{ color: textColor, textAlign: 'center' }}>
                 {title}
             </ThemedText>
         </TouchableOpacity>

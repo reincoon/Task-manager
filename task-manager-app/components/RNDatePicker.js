@@ -31,6 +31,7 @@ export default function RNDatePicker({ date, onConfirm, mode = 'date', label = '
                 bgColor={buttonBgColor}
                 textColor={theme.colors.textPrimary}
                 iconName="calendar-outline"
+                size="base"
             />
         
             {show && (

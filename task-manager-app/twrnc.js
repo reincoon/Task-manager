@@ -15,8 +15,10 @@ export const theme = {
     colors: {
         white: '#FFFFFF',       // White
         light: '#FAFAFA',       // Light Gray for background 
-        gold: '#FFBF00',
-        greenCyan: '#48BB78',
+        columnBg: '#F2F2F2',    // Light Gray for Kanban columns
+        grayHd: '#CCCCCC',      // Gray for header
+        gold: '#FFBF00',        // Dark Golden Yellow
+        greenCyan: '#48BB78',   // Green Success
         mint: '#A4FCB4',       // Fresh Mint Green
         sky: '#9EE1F0',        // Soft Sky Blue
         forest: '#5D8765',     // Muted Forest Green
