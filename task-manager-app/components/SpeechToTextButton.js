@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { transcribeAudio } from "../helpers/transcriptionHelpers";
+import tw, { theme } from '../twrnc';
 
 // A button that records audio using expo-av, uploads to Supabase, transcribes via AssemblyAI, calls onTranscribedText once recognised
 export default function SpeechToTextButton({ onTranscribedText }) {
@@ -66,18 +68,22 @@ export default function SpeechToTextButton({ onTranscribedText }) {
         }
     };
 
+    const bgColour = (isRecording || isTranscribing) ? tw`bg-cinnabar` : tw`bg-teal`;
+
     return (
         <TouchableOpacity
-            style={[styles.button, isTranscribing && styles.recording ]}
+            style={[
+                tw`ml-1 rounded-full p-2 justify-center items-center`, 
+                bgColour ]}
             onPress={onPressButton}
             disabled={isTranscribing}
         >
             {isTranscribing ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.colors.white} />
+            ) : isRecording ? (
+                <Ionicons name="stop-circle" size={theme.fontSize.xl2} color={theme.colors.white} />
             ) : (
-                <Text style={styles.buttonText}>
-                    {isRecording ? 'Stop' : 'Record'}
-                </Text>
+                <Ionicons name="mic-outline" size={theme.fontSize.xl2} color={theme.colors.white} />
             )}
         </TouchableOpacity>
     );
