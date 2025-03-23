@@ -10,6 +10,8 @@ import { addAttachmentOfflineAndOnline, removeAttachment, deleteAllAttachmentsFr
 import ColourPicker from '../components/ColourPicker';
 import SpeechToTextButton from '../components/SpeechToTextButton';
 import { useTaskCreation } from '../hooks/useTaskCreation';
+import tw, { theme } from '../twrnc';
+import { useTheme } from '../helpers/ThemeContext';import ThemedText from '../components/ThemedText';
 
 export default function TaskCreationScreen ({ navigation }) {
     const {
@@ -45,43 +47,51 @@ export default function TaskCreationScreen ({ navigation }) {
         addSubtaskToCalendarHandler,
         handleCancel,
     } = useTaskCreation(navigation);
+
+    const { isDarkMode, fontScale } = useTheme();
     
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={tw`flex-1 bg-light p-5`}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={tw`flex-row justify-between items-center border-b border-grayHd pb-3`}>
                 <TouchableOpacity onPress={handleCancel} disabled={isCancelling || isUploadingAttachment}>
-                    <Ionicons name="arrow-back" size={24} color="black" />
+                    <Ionicons name="arrow-back" size={theme.fontSize.xl2 * fontScale} color={theme.colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.title}>Create To-Do List</Text>
+                <ThemedText variant="xl" fontFamily="poppins-bold" style={tw`flex-1 text-center`}>
+                    Create To-Do List
+                </ThemedText>
                 <TouchableOpacity 
                     onPress={handleSaveTask}
                     disabled={isSaving || isUploadingAttachment}
                 >
-                    <Ionicons name="save" size={24} color="black" />
+                    <Ionicons name="save" size={theme.fontSize.xl2 * fontScale} color={theme.colors.textPrimary} />
                 </TouchableOpacity>
             </View>
 
             {/* Main to-do list form */}
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                contentContainerStyle={tw`p-5 pb-10`}
+            >
                 {/* Title */}
-                <View style={styles.titleContainer}>
+                <View style={tw`flex-row items-center mb-5`}>
                     <TextInput
-                        style={styles.input}
+                        style={tw`flex-1 border border-grayHd p-3 rounded-lg bg-white text-textPrimary`}
                         value={taskTitle}
                         onChangeText={setTaskTitle}
                         placeholder="To-Do List Title"
+                        placeholderTextColor={theme.colors.grayHd}
                     />
                     {/* Microphone button */}
                     <SpeechToTextButton onTranscribedText={(text) => setTaskTitle(text)}/>
                 </View>
                 {/* Notes */}
-                <View style={styles.notesContainer}>
+                <View style={tw`flex-row items-start mb-5`}>
                     <TextInput
-                        style={[styles.input, styles.notesInput, { flex: 1, marginRight: 10 }]}
+                        style={tw`flex-1 border border-grayHd p-3 rounded-lg bg-white text-textPrimary h-24`}
                         value={notes}
                         onChangeText={setNotes}
                         placeholder="Notes"
+                        placeholderTextColor={theme.colors.grayHd}
                         multiline
                     />
                     <SpeechToTextButton
@@ -91,8 +101,10 @@ export default function TaskCreationScreen ({ navigation }) {
                 
 
                 {/* Color Picker */}
-                <View style={{ marginBottom: 20 }}>
-                    <Text style={{ marginBottom: 10, fontWeight: '600' }}>Category Colour:</Text>
+                <View style={tw`mb-5`}>
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                        Category Colour:
+                    </ThemedText>
                     <ColourPicker
                         selectedColour={selectedColour}
                         onSelectColour={setSelectedColour}
@@ -100,11 +112,17 @@ export default function TaskCreationScreen ({ navigation }) {
                 </View>
 
                 {/* Due date selector */}
-                <DateTimeSelector date={dueDate} onDateChange={setDueDate} />
-
+                <View style={tw`mb-5`}>
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                        Due Date:
+                    </ThemedText>
+                    <DateTimeSelector date={dueDate} onDateChange={setDueDate} />
+                </View>
                 {/* Notification picker */}
-                <View style={{ marginBottom: 20 }}>
-                    <Text style={{ marginBottom: 10, fontWeight: '600' }}>Reminder:</Text>
+                <View style={tw`mb-5`}>
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                        Reminder:
+                    </ThemedText>
                     <NotificationPicker
                         selectedValue={notification}
                         onValueChange={setNotification}
@@ -114,15 +132,17 @@ export default function TaskCreationScreen ({ navigation }) {
 
                 {/* Priority button */}
                 <TouchableOpacity 
-                    style={styles.button}
+                    style={tw`flex-row items-center justify-center bg-sky p-3 rounded-lg mb-5`}
                     onPress={() => setPriority(priority)}
                 >
-                    <Text style={styles.buttonText}>Priority: {priority}</Text>
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`text-white`}>
+                        Priority: {priority}
+                    </ThemedText>
                 </TouchableOpacity>
 
                 {/* Add subtask button */}
                 <TouchableOpacity
-                    style={[styles.button, { backgroundColor: '#28a745' }]}
+                    style={tw`flex-row items-center justify-center bg-greenCyan p-3 rounded-lg mb-5`}
                     onPress={() => {
                         setShowSubtaskForm(true);
                         setCurrentSubtask({
@@ -136,8 +156,10 @@ export default function TaskCreationScreen ({ navigation }) {
                         });
                     }}
                 >
-                    <Ionicons name="add-circle-outline" size={20} color="white" />
-                    <Text style={styles.buttonText}>Add Subtask</Text>
+                    <Ionicons name="add-circle-outline" size={theme.fontSize.xl * fontScale} color={theme.colors.white} />
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`text-white`}>
+                        Add Subtask
+                    </ThemedText>
                 </TouchableOpacity>
 
                 {/* Subtasks list */}
@@ -153,11 +175,13 @@ export default function TaskCreationScreen ({ navigation }) {
                 />
                 {/* Add to-do list to calendar */}
                 <TouchableOpacity
-                    style={[styles.button, { backgroundColor: '#FFA726' }]}
+                    style={tw`flex-row items-center justify-center bg-orange p-3 rounded-lg mb-5`}
                     onPress={addMainTaskToCalendar}
                 >
-                    <Ionicons name="calendar-outline" size={20} color="white" />
-                    <Text style={styles.buttonText}>Add To-Do List to Calendar</Text>
+                    <Ionicons name="calendar-outline" size={theme.fontSize.xl * fontScale} color={theme.colors.white} style={tw`mr-2`} />
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`text-white`}>
+                        Add To-Do List to Calendar
+                    </ThemedText>
                 </TouchableOpacity>
                 {/* Attachments list*/}
                 <AttachmentsList 

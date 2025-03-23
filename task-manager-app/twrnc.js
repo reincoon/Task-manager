@@ -31,6 +31,10 @@ export const theme = {
         neon: '#1F51FF',       // Neon Blue
         cerise: '#DE3163',     // Cerise Pink
         lime: '#DAF7A6',       //Soft Green
+        teal: '#1ABC9C' ,
+        pink: '#FF69B4',
+        gray: '#95A5A6',
+        brown: '#8B4513',
         textPrimary: '#212529',   // Dark text for optimal readability
         textSecondary: '#333333', // Deeper gray for contrast
         // Dark Theme Colours

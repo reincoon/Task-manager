@@ -38,16 +38,24 @@ export const PRIORITY_COLOURS = {
 };
 
 export const COLOURS = [
-    { name: 'Red', value: '#FF5733' },
-    { name: 'Blue', value: '#3498DB' },
-    { name: 'Green', value: '#2ECC71' },
-    { name: 'Yellow', value: '#F1C40F' },
-    { name: 'Purple', value: '#9B59B6' },
-    { name: 'Orange', value: '#E67E22' },
-    { name: 'Teal', value: '#1ABC9C' },
-    { name: 'Pink', value: '#FF69B4' },
-    { name: 'Gray', value: '#95A5A6' },
-    { name: 'Brown', value: '#8B4513' },
+    { name: 'gold', value: theme.colors.gold },
+    { name: 'greenCyan', value: theme.colors.greenCyan },
+    { name: 'mint', value: theme.colors.mint },
+    { name: 'sky', value: theme.colors.sky },
+    { name: 'forest', value: theme.colors.forest },
+    { name: 'evergreen', value: theme.colors.evergreen },
+    { name: 'magenta', value: theme.colors.magenta },
+    { name: 'cinnabar', value: theme.colors.cinnabar },
+    { name: 'lavender', value: theme.colors.lavender },
+    { name: 'orange', value: theme.colors.orange },
+    { name: 'violet', value: theme.colors.violet },
+    { name: 'neon', value: theme.colors.neon },
+    { name: 'cerise', value: theme.colors.cerise },
+    { name: 'lime', value: theme.colors.lime },
+    { name: 'teal', value: theme.colors.teal },
+    { name: 'pink', value: theme.colors.pink },
+    { name: 'gray', value: theme.colors.gray },
+    { name: 'brown', value: theme.colors.brown },
 ];
 
 export const COLOUR_ORDER = COLOURS.reduce((acc, color, index) => {

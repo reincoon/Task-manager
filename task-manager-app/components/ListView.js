@@ -303,7 +303,7 @@ const ListView = ({
 
     if (data.length === 0) {
         return (
-            <ThemedText variant="xl2" style={tw`text-center mt-5 text-gray-500`}>
+            <ThemedText variant="xl2" style={tw`text-center mt-5`}>
                 No tasks available. Create a new to-do list!
             </ThemedText>
         );
@@ -311,7 +311,7 @@ const ListView = ({
 
     return (
         <View style={tw`flex-1 pb-8`}>
-            <ThemedText variant="sm" style={tw`text-center my-3 mx-2 text-gray-400`}>
+            <ThemedText variant="sm" style={tw`text-center my-3 mx-2`} color={isDarkMode ? theme.colors.darkTextSecondary : theme.colors.textSecondary}>
                 {'\n'}- Drag a to-do list under a project header or on a task in that project to move it into the project.
                 {'\n'}- Drag a task to the 'Unassigned to-do lists' section to remove it from a project.
             </ThemedText>
