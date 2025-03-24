@@ -53,7 +53,7 @@ const DateTimeSelector = ({ date, onDateChange }) => {
     return (
         <View style={tw` ${isDarkMode ? 'bg-grayHd' : 'bg-columnBg'} rounded-lg px-1 py-2 items-center`}>
             <TouchableOpacity 
-                style={tw`bg-forest px-3 py-2 rounded-lg mb-5`} 
+                style={tw`${isDarkMode ? 'bg-darkForest' : 'bg-forest'} px-3 py-2 rounded-lg mb-5`} 
                 onPress={openPicker}
             >
                 <ThemedText variant="lg" color={theme.colors.darkTextPrimary}>
