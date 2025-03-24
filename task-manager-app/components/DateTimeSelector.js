@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Platform, TouchableOpacity, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateTime } from '../helpers/date';
+import tw, { theme } from '../twrnc';
+import ThemedText from './ThemedText';
 
 const DateTimeSelector = ({ date, onDateChange }) => {
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -48,17 +50,12 @@ const DateTimeSelector = ({ date, onDateChange }) => {
     return (
         <View>
             <TouchableOpacity 
-                style={{
-                    backgroundColor: '#007bff',
-                    padding: 10,
-                    marginBottom: 20,
-                    borderRadius: 5,
-                }} 
+                style={tw`bg-forest px-3 py-2 rounded-lg mb-5`} 
                 onPress={openPicker}
             >
-                <Text style={{ color: '#fff', textAlign: 'center' }}>
-                    Set Due Date: {formatDateTime(safeDate)}
-                </Text>
+                <ThemedText variant="lg" color={theme.colors.darkTextPrimary}>
+                    {formatDateTime(safeDate)}
+                </ThemedText>
             </TouchableOpacity>
     
             {/* iOS combined datetime picker */}

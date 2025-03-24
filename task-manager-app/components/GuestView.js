@@ -9,7 +9,7 @@ const GuestView = ({ onLogIn, onSignUp }) => {
     const { isDarkMode, fontScale } = useTheme();
 
     return (
-        <View style={tw`p-6 rounded-xl shadow self-center w-4/5 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+        <View style={tw`p-6 rounded-xl shadow self-center w-4/5 ${isDarkMode ? 'bg-darkCardBg' : 'bg-white'}`}>
             <ThemedText variant="base" style={tw`text-center mb-4`}>
                 You are logged in as a guest. To save your data, please log in or sign up.
             </ThemedText>
