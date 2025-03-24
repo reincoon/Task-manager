@@ -42,7 +42,7 @@ const LoginScreen = ({ navigation }) => {
                     {/* Email field */}
                     <View
                         style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                        isDarkMode ? 'border-darkTextSecondary' : 'border-gray-300'
+                        isDarkMode ? 'border-darkTextSecondary' : 'border-grayHd'
                         }`}
                     >
                         <Ionicons
@@ -72,7 +72,7 @@ const LoginScreen = ({ navigation }) => {
                     {/* Password Field */}
                     <View
                         style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                            isDarkMode ? 'border-darkTextSecondary' : 'border-gray-300'
+                            isDarkMode ? 'border-darkTextSecondary' : 'border-grayHd'
                         }`}
                     >
                         <Ionicons

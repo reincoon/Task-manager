@@ -50,7 +50,7 @@ const SignUpScreen = ({ navigation, route }) => {
                             {/* Name Field */}
                             <View
                                 style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                                    isDarkMode ? 'border-darkTextSecondary' : 'border-gray-300'
+                                    isDarkMode ? 'border-darkTextSecondary' : 'border-grayHd'
                                 }`}
                             >
                                 <Ionicons
@@ -83,7 +83,7 @@ const SignUpScreen = ({ navigation, route }) => {
                             {/* Email Field */}
                             <View
                                 style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                                    isDarkMode ? 'border-darkTextSecondary' : 'border-gray-300'
+                                    isDarkMode ? 'border-darkTextSecondary' : 'border-grayHd'
                                 }`}
                             >
                                 <Ionicons
@@ -119,7 +119,7 @@ const SignUpScreen = ({ navigation, route }) => {
                             {/* Password Field */}
                             <View
                                 style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                                    isDarkMode ? 'border-darkTextSecondary' : 'border-gray-300'
+                                    isDarkMode ? 'border-darkTextSecondary' : 'border-grayHd'
                                 }`}
                             >
                                 <Ionicons
@@ -154,7 +154,7 @@ const SignUpScreen = ({ navigation, route }) => {
                             {/* Confirm Password Field */}
                             <View
                                 style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                                    isDarkMode ? 'border-darkTextSecondary' : 'border-gray-300'
+                                    isDarkMode ? 'border-darkTextSecondary' : 'border-grayHd'
                                 }`}
                             >
                                 <Ionicons

@@ -57,6 +57,12 @@ const NotificationPicker = ({ selectedValue, onValueChange, options }) => {
                             onValueChange={(itemValue) => {
                                 onValueChange(itemValue);
                             }}
+                            style={{ color: textColour }}
+                            dropdownIconColor={textColour}
+                            itemStyle={{
+                                color: textColour,
+                                fontSize: theme.fontSize.xl,
+                            }}
                         >
                             {options.map((option) => (
                                 <Picker.Item key={option} label={option} value={option} />

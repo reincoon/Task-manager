@@ -4,10 +4,13 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateTime } from '../helpers/date';
 import tw, { theme } from '../twrnc';
 import ThemedText from './ThemedText';
+import { useTheme } from '../helpers/ThemeContext';
 
 const DateTimeSelector = ({ date, onDateChange }) => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
+
+    const { isDarkMode } = useTheme();
 
     const onDateSelected = (event, selectedDate) => {
         setShowDatePicker(false);
@@ -48,7 +51,7 @@ const DateTimeSelector = ({ date, onDateChange }) => {
     const safeDate = (date instanceof Date && !isNaN(date.getTime())) ? date : new Date();
 
     return (
-        <View>
+        <View style={tw` ${isDarkMode ? 'bg-grayHd' : 'bg-columnBg'} rounded-lg px-1 py-2 items-center`}>
             <TouchableOpacity 
                 style={tw`bg-forest px-3 py-2 rounded-lg mb-5`} 
                 onPress={openPicker}
@@ -65,6 +68,7 @@ const DateTimeSelector = ({ date, onDateChange }) => {
                     mode="datetime"
                     display="default"
                     onChange={onDateSelected}
+                    preferredDatePickerStyle={isDarkMode ? 'compact' : 'wheels'}
                 />
             )}
     
@@ -75,6 +79,7 @@ const DateTimeSelector = ({ date, onDateChange }) => {
                     mode="date"
                     display="default"
                     onChange={onDateSelected}
+                    themeVariant={isDarkMode ? 'dark' : 'light'}
                 />
             )}
     
@@ -85,6 +90,7 @@ const DateTimeSelector = ({ date, onDateChange }) => {
                     mode="time"
                     display="default"
                     onChange={onTimeSelected}
+                    themeVariant={isDarkMode ? 'dark' : 'light'}
                 />
             )}
         </View>

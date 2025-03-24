@@ -144,7 +144,7 @@ export default function TaskCreationScreen ({ navigation }) {
                 
 
                 {/* Colour Picker */}
-                <View style={tw`mb-5`}>
+                <View style={tw`mb-3`}>
                     <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
                         Category Colour:
                     </ThemedText>
@@ -154,9 +154,9 @@ export default function TaskCreationScreen ({ navigation }) {
                     />
                 </View>
 
-                <View style={tw`mb-4 flex-row`}>
+                <View style={tw`mb-1 flex-row`}>
                     {/* Due date selector */}
-                    <View style={tw`flex-1 mr-2 mb-5`}>
+                    <View style={tw`flex-2 mr-2 mb-5`}>
                         <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
                             Due Date:
                         </ThemedText>
@@ -184,7 +184,7 @@ export default function TaskCreationScreen ({ navigation }) {
                 
                 {/* Add to-do list to calendar */}
                 <TouchableOpacity
-                    style={tw`mt-2 mb-6 flex-row items-center justify-center p-3 rounded-lg ${isDarkMode ? 'bg-darkSky' : 'bg-sky'}`}
+                    style={tw`mb-6 flex-row items-center justify-center p-3 rounded-lg ${isDarkMode ? 'bg-gold' : 'bg-gold'}`}
                     onPress={addMainTaskToCalendar}
                 >
                     <Ionicons name="calendar-outline" size={theme.fontSize.xl * fontScale} color={theme.colors.textPrimary} style={tw`mr-2`} />
