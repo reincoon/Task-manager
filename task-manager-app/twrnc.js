@@ -16,7 +16,6 @@ export const theme = {
         white: '#FFFFFF',       // White
         light: '#FAFAFA',       // Light Gray for background 
         columnBg: '#F2F2F2',    // Light Gray for Kanban columns
-        grayHd: '#CCCCCC',      // Gray for header
         gold: '#FFBF00',        // Dark Golden Yellow
         greenCyan: '#48BB78',   // Green Success
         mint: '#A4FCB4',       // Fresh Mint Green

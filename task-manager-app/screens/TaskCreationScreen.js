@@ -55,7 +55,6 @@ export default function TaskCreationScreen ({ navigation }) {
     // Colours
     const screenBg = isDarkMode ? theme.colors.darkBg : theme.colors.light;
     const headerColour = isDarkMode ? theme.colors.darkBg : theme.colors.white;
-    const borderColour = isDarkMode ? theme.colors.darkTextSecondary : theme.colors.grayHd;
     const inputBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.white;
     const inputTextColour = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
     
@@ -64,9 +63,8 @@ export default function TaskCreationScreen ({ navigation }) {
             {/* Header */}
             <View 
                 style={[
-                    tw`flex-row items-center border-b px-4 py-3`, 
+                    tw`flex-row items-center border-b border-darkTextSecondary px-4 py-3`, 
                     { 
-                        borderColor: borderColour, 
                         backgroundColor: headerColour 
                     }
                 ]}
@@ -95,6 +93,7 @@ export default function TaskCreationScreen ({ navigation }) {
 
             {/* Main to-do list form */}
             <ScrollView 
+                indicatorStyle={isDarkMode ? 'white' : 'black'}
                 contentContainerStyle={tw`px-6 py-6 pb-16`}
                 keyboardShouldPersistTaps="handled"
             >
@@ -102,10 +101,9 @@ export default function TaskCreationScreen ({ navigation }) {
                 <View style={tw`flex-row items-center mb-4`}>
                     <TextInput
                         style={[
-                            tw`flex-1 border px-3 py-2 rounded-lg`, 
+                            tw`flex-1 border px-3 py-2 rounded-lg border-darkTextSecondary`, 
                             {
                                 backgroundColor: inputBg,
-                                borderColor: borderColour,
                                 color: inputTextColour,
                                 fontSize: theme.fontSize.base * fontScale,
                             }
@@ -113,7 +111,7 @@ export default function TaskCreationScreen ({ navigation }) {
                         value={taskTitle}
                         onChangeText={setTaskTitle}
                         placeholder="To-Do List Title"
-                        placeholderTextColor={theme.colors.grayHd}
+                        placeholderTextColor={isDarkMode ? theme.colors.gray : theme.colors.darkTextSecondary}
                     />
                     {/* Microphone button */}
                     <SpeechToTextButton onTranscribedText={(text) => setTaskTitle(text)}/>
@@ -122,10 +120,9 @@ export default function TaskCreationScreen ({ navigation }) {
                 <View style={tw`flex-row items-start mb-5`}>
                     <TextInput
                         style={[
-                            tw`flex-1 border px-3 py-2 rounded-lg h-32`,
+                            tw`flex-1 border px-3 py-2 rounded-lg h-32 border-darkTextSecondary`,
                             {
                                 backgroundColor: inputBg,
-                                borderColor: borderColour,
                                 color: inputTextColour,
                                 fontSize: theme.fontSize.base * fontScale,
                                 textAlignVertical: 'top',
@@ -134,7 +131,7 @@ export default function TaskCreationScreen ({ navigation }) {
                         value={notes}
                         onChangeText={setNotes}
                         placeholder="Notes"
-                        placeholderTextColor={theme.colors.grayHd}
+                        placeholderTextColor={isDarkMode ? theme.colors.gray : theme.colors.darkTextSecondary}
                         multiline
                     />
                     <SpeechToTextButton
@@ -169,8 +166,8 @@ export default function TaskCreationScreen ({ navigation }) {
                         </ThemedText>
                         <View 
                             style={[
-                                tw`rounded-lg border`,
-                                { borderColor: borderColour, backgroundColor: inputBg }
+                                tw`rounded-lg border border-darkTextSecondary`,
+                                { backgroundColor: inputBg }
                             ]}
                         >
                             <NotificationPicker
@@ -184,7 +181,7 @@ export default function TaskCreationScreen ({ navigation }) {
                 
                 {/* Add to-do list to calendar */}
                 <TouchableOpacity
-                    style={tw`mb-6 flex-row items-center justify-center p-3 rounded-lg ${isDarkMode ? 'bg-gold' : 'bg-gold'}`}
+                    style={tw`mb-6 flex-row items-center justify-center p-3 rounded-lg bg-gold`}
                     onPress={addMainTaskToCalendar}
                 >
                     <Ionicons name="calendar-outline" size={theme.fontSize.xl * fontScale} color={theme.colors.textPrimary} style={tw`mr-2`} />

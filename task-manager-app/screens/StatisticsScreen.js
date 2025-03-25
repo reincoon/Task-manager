@@ -249,6 +249,7 @@ export default function StatisticsScreen() {
             {/* Scroll container */}
             <ScrollView 
                 style={tw`flex-1 p-4`}
+                indicatorStyle={isDarkMode ? 'white' : 'black'}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >        
                 {/* Filter Section */}

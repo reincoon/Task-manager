@@ -73,7 +73,7 @@ const ListView = ({
                     style={[
                         tw`px-3 py-2 mx-4 mt-3 rounded-md`,
                         {
-                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.grayHd,
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.darkTextSecondary,
                             borderLeftWidth: 4,
                             borderLeftColor: projectColour,
                         },
@@ -92,7 +92,7 @@ const ListView = ({
                         <Text>Edit</Text>
                     </TouchableOpacity> */}
                     <Ionicons
-                        name="create-outline"
+                        name="create"
                         size={theme.fontSize.xl2}
                         style={tw`absolute right-14 top-2`}
                         color={isDarkMode ? theme.colors.darkMint : theme.colors.forest}
@@ -132,7 +132,7 @@ const ListView = ({
                     style={[
                         tw`px-3 py-2 mx-4 mt-3 rounded-md`,
                         {
-                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.grayHd,
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.darkTextSecondary,
                             borderLeftWidth: 4,
                             borderLeftColor: PRIORITY_COLOURS[item.priority] || theme.colors.forest,
                         },
@@ -150,7 +150,7 @@ const ListView = ({
                     style={[
                         tw`px-3 py-2 mx-4 mt-3 rounded-md`,
                         {
-                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.grayHd,
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.darkTextSecondary,
                             borderLeftWidth: 4,
                             borderLeftColor: isDarkMode ? theme.colors.darkSky : theme.colors.sky,
                         },
@@ -310,11 +310,11 @@ const ListView = ({
     }
 
     return (
-        <View style={tw`flex-1 pb-8`}>
-            <ThemedText variant="sm" style={tw`text-center my-3 mx-2`} color={isDarkMode ? theme.colors.darkTextSecondary : theme.colors.textSecondary}>
+        <View style={tw`flex-1 pb-32`}>
+            {/* <ThemedText variant="sm" style={tw`text-center my-3 mx-2`} color={isDarkMode ? theme.colors.darkTextSecondary : theme.colors.textSecondary}>
                 {'\n'}- Drag a to-do list under a project header or on a task in that project to move it into the project.
                 {'\n'}- Drag a task to the 'Unassigned to-do lists' section to remove it from a project.
-            </ThemedText>
+            </ThemedText> */}
             <DraggableFlatList
                 data={data}
                 keyExtractor={keyExtractor}
@@ -338,47 +338,6 @@ const ListView = ({
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    projectHeader: {
-        padding: 8,
-        backgroundColor: '#ddd',
-        marginHorizontal: 16,
-        marginTop: 10,
-        borderRadius: 5,
-        borderLeftWidth: 4,
-        borderLeftColor: '#007bff',
-    },
-    projectHeaderText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    priorityHeader: {
-        padding: 8,
-        backgroundColor: '#bbb',
-        marginHorizontal: 16,
-        marginTop: 10,
-        borderRadius: 5,
-        borderLeftWidth: 4,
-        borderLeftColor: '#28a745',
-    },
-    priorityHeaderText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    noTasksText: {
-        textAlign: 'center',
-        marginTop: 20,
-        fontSize: 16,
-        color: '#999',
-    },
-    instructionsText: {
-        textAlign: 'center',
-        margin: 10,
-        fontSize: 14,
-        color: '#666',
-    },
-});
 
 export default ListView;
 

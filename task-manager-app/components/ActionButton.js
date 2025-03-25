@@ -4,7 +4,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from "../helpers/ThemeContext";
 import ThemedText from "./ThemedText";
 
-const ActionButton = ({ title, onPress, bgColor, shadowColor, iconName, textColor, width = '80%', size = "lg" }) => {
+export default function ActionButton({ 
+    title, 
+    onPress, 
+    bgColor, 
+    shadowColor, 
+    iconName, 
+    textColor, 
+    width = '80%', 
+    size = "lg" 
+}) {
     const { fontScale } = useTheme();
 
     const baseStyle = {
@@ -12,7 +21,7 @@ const ActionButton = ({ title, onPress, bgColor, shadowColor, iconName, textColo
         backgroundColor: bgColor,
         alignSelf: 'center',
         width: width,
-        shadowColor: shadowColor || '#000',
+        shadowColor: shadowColor || theme.colors.darkBg,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 6,
@@ -31,5 +40,3 @@ const ActionButton = ({ title, onPress, bgColor, shadowColor, iconName, textColo
         </TouchableOpacity>
     );
 };
-
-export default ActionButton;

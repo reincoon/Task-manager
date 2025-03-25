@@ -6,7 +6,7 @@ import tw, { theme } from '../twrnc';
 import ThemedText from './ThemedText';
 import { useTheme } from '../helpers/ThemeContext';
 
-const DateTimeSelector = ({ date, onDateChange }) => {
+export default function DateTimeSelector({ date, onDateChange }) {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
 
@@ -51,7 +51,7 @@ const DateTimeSelector = ({ date, onDateChange }) => {
     const safeDate = (date instanceof Date && !isNaN(date.getTime())) ? date : new Date();
 
     return (
-        <View style={tw` ${isDarkMode ? 'bg-grayHd' : 'bg-columnBg'} rounded-lg px-1 py-2 items-center`}>
+        <View style={tw` ${isDarkMode ? 'bg-darkTextSecondary' : 'bg-columnBg'} rounded-lg px-1 py-2 items-center`}>
             <TouchableOpacity 
                 style={tw`${isDarkMode ? 'bg-darkForest' : 'bg-forest'} px-3 py-2 rounded-lg mb-5`} 
                 onPress={openPicker}
@@ -68,7 +68,6 @@ const DateTimeSelector = ({ date, onDateChange }) => {
                     mode="datetime"
                     display="default"
                     onChange={onDateSelected}
-                    preferredDatePickerStyle={isDarkMode ? 'compact' : 'wheels'}
                 />
             )}
     
@@ -79,7 +78,6 @@ const DateTimeSelector = ({ date, onDateChange }) => {
                     mode="date"
                     display="default"
                     onChange={onDateSelected}
-                    themeVariant={isDarkMode ? 'dark' : 'light'}
                 />
             )}
     
@@ -96,5 +94,3 @@ const DateTimeSelector = ({ date, onDateChange }) => {
         </View>
     );
 };
-    
-export default DateTimeSelector;

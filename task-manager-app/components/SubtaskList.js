@@ -36,7 +36,7 @@ const SubtaskList = ({
             <ThemedText variant="xl" fontFamily="poppins-bold" style={tw`mb-3`}>Subtasks</ThemedText>
             {subtasks && subtasks.length > 0 ? (
                 subtasks.map((item, index) => (
-                    <View key={index} style={tw`border rounded-lg ${isDarkMode ? 'border-darkTextPrimary bg-darkCardBg' : 'border-grayHd bg-white'} p-4 mb-3`}>
+                    <View key={index} style={tw`border rounded-lg ${isDarkMode ? 'border-darkTextPrimary bg-darkCardBg' : 'border-darkTextSecondary bg-white'} p-4 mb-3`}>
                         <View style={tw`flex-row items-center`}>
                             <TouchableOpacity onPress={() => handleToggleCompletion(index)} style={tw`mr-4`}>
                                 {item.isCompleted ? (
@@ -52,7 +52,7 @@ const SubtaskList = ({
                                 <ThemedText 
                                     variant="xs"
                                     style={
-                                        item.isCompleted ? tw`line-through text-darkTextSecondary` : tw`text-grayHd`
+                                        item.isCompleted ? tw`line-through text-darkTextSecondary` : tw`text-darkTextSecondary`
                                     }
                                 >
                                     Due: {formatDateTime(item.dueDate)}
@@ -60,7 +60,7 @@ const SubtaskList = ({
                                 <ThemedText
                                     variant="xs"
                                     style={
-                                        item.isCompleted ? tw`line-through text-darkTextSecondary` : tw`text-grayHd`
+                                        item.isCompleted ? tw`line-through text-darkTextSecondary` : tw`text-darkTextSecondary`
                                     }
                                 >
                                     Reminder: {item.reminder}
@@ -69,7 +69,7 @@ const SubtaskList = ({
                                     <ThemedText
                                         variant="xs"
                                         style={
-                                            item.isCompleted ? tw`line-through text-darkTextSecondary` : tw`text-grayHd`
+                                            item.isCompleted ? tw`line-through text-darkTextSecondary` : tw`text-darkTextSecondary`
                                         }
                                     >
                                         Recurrent: Yes
@@ -85,27 +85,28 @@ const SubtaskList = ({
                         </View>
 
                         {/* Action row */}
-                        <View style={tw`flex-row mt-3 justify-end`}>
-                            <TouchableOpacity
-                                style={tw`mr-4`}
-                                onPress={() => onEditSubtask(index)}
-                            >
-                                <Ionicons name="create" size={theme.fontSize.xl2 * fontScale} color={isDarkMode ? theme.colors.darkForest : theme.colors.forest} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={tw`mr-4`} 
-                                onPress={() => onDeleteSubtask(index)}
-                            >
-                                <Ionicons name="trash" size={theme.fontSize.xl2 * fontScale} color={isDarkMode ? theme.colors.darkCinnabar : theme.colors.cinnabar} />
-                            </TouchableOpacity>
+                        <View style={tw`flex-row mt-3 justify-between`}>
                             {onAddSubtaskToCalendar && (
                                 <TouchableOpacity
-                                    style={tw`mr-4`}
+                                    style={tw`mr-6 ml-2`}
                                     onPress={() => onAddSubtaskToCalendar(item, index)}
                                 >
-                                    <Ionicons name="calendar" size={theme.fontSize.xl2 * fontScale} color={isDarkMode ? theme.colors.darkSky : theme.colors.teal} />
+                                    <Ionicons name="calendar" size={theme.fontSize.xl3 * fontScale} color={isDarkMode ? theme.colors.darkSky : theme.colors.teal} />
                                 </TouchableOpacity>
                             )}
+                            <TouchableOpacity
+                                style={tw`mr-6`}
+                                onPress={() => onEditSubtask(index)}
+                            >
+                                <Ionicons name="create" size={theme.fontSize.xl3 * fontScale} color={isDarkMode ? theme.colors.darkForest : theme.colors.forest} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={tw`mr-2`} 
+                                onPress={() => onDeleteSubtask(index)}
+                            >
+                                <Ionicons name="trash" size={theme.fontSize.xl3 * fontScale} color={isDarkMode ? theme.colors.darkCinnabar : theme.colors.cinnabar} />
+                            </TouchableOpacity>
+                            
                         </View>
                     </View>
 
@@ -129,7 +130,7 @@ const SubtaskList = ({
                     // </View> */}
                 ))
             ) : (
-                <ThemedText variant="base" fontFamily="poppins-regular" style={tw`text-center text-gray-500`}>
+                <ThemedText variant="base" fontFamily="poppins-regular" style={tw`text-center`}>
                     No subtasks added yet.
                 </ThemedText>
             )}

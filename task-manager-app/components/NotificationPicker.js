@@ -13,7 +13,7 @@ const NotificationPicker = ({ selectedValue, onValueChange, options }) => {
     // Colours
     const textColour = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
     const bgColour   = isDarkMode ? theme.colors.darkCardBg : theme.colors.white;
-    const borderColour = isDarkMode ? theme.colors.darkTextSecondary : theme.colors.grayHd;
+    const borderColour = isDarkMode ? theme.colors.darkTextSecondary : theme.colors.darkTextSecondary;
 
     const handlePress = () => {
         setShowPicker(true);

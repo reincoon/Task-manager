@@ -23,6 +23,7 @@ export const addAttachmentOfflineAndOnline = async ({ attachments, setAttachment
             });
 
             if (result.canceled) {
+                resolve();
                 return;
             }
 
@@ -30,6 +31,7 @@ export const addAttachmentOfflineAndOnline = async ({ attachments, setAttachment
 
             if (!asset) {
                 Alert.alert('Error', 'No file selected.');
+                resolve();
                 return;
             }
 
@@ -38,6 +40,7 @@ export const addAttachmentOfflineAndOnline = async ({ attachments, setAttachment
 
             if (!uri) {
                 Alert.alert('Error', 'No file URI found.');
+                resolve();
                 return;
             }
 
@@ -57,6 +60,7 @@ export const addAttachmentOfflineAndOnline = async ({ attachments, setAttachment
                     });
                 } catch (base64Err) {
                     Alert.alert('Error', 'Failed to load the file. Please try a different file type or location.');
+                    resolve();
                     return;
                 }
             }

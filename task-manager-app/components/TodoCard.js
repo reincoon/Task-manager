@@ -135,7 +135,7 @@ const TodoCard = ({
                 {subtaskCount > 0 && (
                     <>
                         <View style={tw`mt-2`}>
-                            <View style={[tw`w-full h-2 bg-grayHd rounded-md overflow-hidden`]}>
+                            <View style={[tw`w-full h-2 bg-darkTextSecondary rounded-md overflow-hidden`]}>
                                 <View
                                     style={[
                                         tw`h-full bg-greenCyan`,

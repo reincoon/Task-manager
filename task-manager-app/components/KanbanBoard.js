@@ -335,7 +335,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
             ? project?.color || theme.colors.sky 
             : PRIORITY_COLOURS[column.key] || theme.colors.sky;
 
-        const headerBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.grayHd;
+        const headerBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.darkTextSecondary;
 
         return (
             <View 
@@ -353,7 +353,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 {/* Column Header */}
                 <View 
                     style={[
-                        tw`p-3 bg-${isDarkMode ? theme.colors.darkCardBg : theme.colors.grayHd} rounded-md`, 
+                        tw`p-3 bg-${isDarkMode ? theme.colors.darkCardBg : theme.colors.darkTextSecondary} rounded-md`, 
                         { 
                             borderLeftWidth: 5, 
                             borderLeftColor: projectColour,
@@ -373,7 +373,7 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                                         style={tw`mr-3`}
                                     >
                                         <Ionicons
-                                            name="create-outline"
+                                            name="create"
                                             size={theme.fontSize.xl3 * fontScale}
                                             color={isDarkMode ? theme.colors.darkForest : theme.colors.forest}
                                         />

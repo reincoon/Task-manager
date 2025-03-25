@@ -6,9 +6,9 @@ import ThemedText from './ThemedText';
 export default function ProjectNameEditModal({ visible, onClose, onSave, projectName, projectId, onChangeProjectName }) {
     const { isDarkMode, fontScale } = useTheme();
     const overlayBg = 'rgba(0, 0, 0, 0.5)';
-    const modalBg = isDarkMode ? theme.colors.darkBg : theme.colors.white;
+    const modalBg = isDarkMode ? theme.colors.textPrimary : theme.colors.white;
     const borderColor = isDarkMode ? theme.colors.darkTextSecondary : theme.colors.textSecondary;
-    const inputBg = isDarkMode ? theme.colors.darkEvergreen : theme.colors.light;
+    const inputBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.light;
     
     return (
         <Modal visible={visible} animationType="slide" transparent>
@@ -36,7 +36,7 @@ export default function ProjectNameEditModal({ visible, onClose, onSave, project
                         value={projectName}
                         onChangeText={onChangeProjectName}
                         placeholder="Enter new project name"
-                        placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : '#777'}
+                        placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : theme.colors.darkTextSecondary}
                     />
                     {/* <Button title="Save" onPress={() => onSave(projectId, projectName)} />
                     <Button title="Cancel" onPress={onClose} /> */}
@@ -45,7 +45,7 @@ export default function ProjectNameEditModal({ visible, onClose, onSave, project
                             style={[tw`px-4 py-2 rounded-md`, { backgroundColor: theme.colors.sky }]}
                             onPress={() => onSave(projectId, projectName)}
                         >
-                            <ThemedText variant="base" style={tw`text-white font-bold`}>
+                            <ThemedText variant="base" style={tw`text-textPrimary font-bold`}>
                                 Save
                             </ThemedText>
                         </TouchableOpacity>

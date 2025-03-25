@@ -95,16 +95,16 @@ const SettingsScreen = ({ navigation }) => {
                                         shadowColor={theme.colors.forest} 
                                         iconName="pencil-outline" 
                                         textColor={theme.colors.textPrimary}
-                                        width="48%"
+                                        width="49%"
                                     />
                                     <ActionButton 
-                                        title="Change Password" 
-                                        onPress={() => handleChangePassword(navigation)} 
-                                        bgColor={theme.colors.sky} 
-                                        shadowColor={theme.colors.evergreen} 
-                                        iconName="key-outline"
-                                        textColor={theme.colors.textPrimary}
-                                        width="51%"
+                                        title="Log Out" 
+                                        onPress={() => handleLogOut(auth, setLoading, setUser, setName, setIsAnonymous, navigation, setTasks = () => {})} 
+                                        bgColor={theme.colors.evergreen} 
+                                        shadowColor={theme.colors.darkMint} 
+                                        iconName="log-out-outline" 
+                                        textColor={theme.colors.white}
+                                        width="49%"
                                     />
                                 </View>
                                 
@@ -147,21 +147,21 @@ const SettingsScreen = ({ navigation }) => {
                 <View style={tw`mt-8 px-5`}>
                     <View style={tw`flex-row justify-between`}>                       
                         <ActionButton 
-                            title="Log Out" 
-                            onPress={() => handleLogOut(auth, setLoading, setUser, setName, setIsAnonymous, navigation, setTasks = () => {})} 
-                            bgColor={theme.colors.evergreen} 
-                            shadowColor={theme.colors.darkMint} 
-                            iconName="log-out-outline" 
-                            textColor={theme.colors.white}
-                            width="49%"
-                        />
-                        <ActionButton 
                             title="Delete Account" 
                             onPress={() => handleDeleteAccount(auth, setLoading, setUser, setName, setIsAnonymous, navigation)} 
                             bgColor={theme.colors.darkCinnabar} 
                             shadowColor={theme.colors.darkCinnabar} 
                             iconName="trash-outline"
                             textColor={theme.colors.white}
+                            width="49%"
+                        />
+                        <ActionButton 
+                            title="Change Password" 
+                            onPress={() => handleChangePassword(navigation)} 
+                            bgColor={theme.colors.sky} 
+                            shadowColor={theme.colors.evergreen} 
+                            iconName="key-outline"
+                            textColor={theme.colors.textPrimary}
                             width="49%"
                         />
                     </View>

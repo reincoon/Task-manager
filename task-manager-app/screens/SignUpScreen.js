@@ -39,7 +39,7 @@ const SignUpScreen = ({ navigation, route }) => {
                 style={tw`flex-1 justify-center p-6`}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                <View style={tw`p-6 rounded-lg shadow ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                <View style={tw`p-6 rounded-lg shadow ${isDarkMode ? 'bg-darkCardBg' : 'bg-white'}`}>
                     {/* Header Row */}
                     <SignUpInHeader title="Sign Up" icon="person-add-outline" navigation={navigation} />
                     
@@ -50,7 +50,7 @@ const SignUpScreen = ({ navigation, route }) => {
                             {/* Name Field */}
                             <View
                                 style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                                    isDarkMode ? 'border-darkTextSecondary' : 'border-grayHd'
+                                    isDarkMode ? 'border-darkTextSecondary' : 'border-darkTextSecondary'
                                 }`}
                             >
                                 <Ionicons
@@ -83,7 +83,7 @@ const SignUpScreen = ({ navigation, route }) => {
                             {/* Email Field */}
                             <View
                                 style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                                    isDarkMode ? 'border-darkTextSecondary' : 'border-grayHd'
+                                    isDarkMode ? 'border-darkTextSecondary' : 'border-darkTextSecondary'
                                 }`}
                             >
                                 <Ionicons
@@ -119,7 +119,7 @@ const SignUpScreen = ({ navigation, route }) => {
                             {/* Password Field */}
                             <View
                                 style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                                    isDarkMode ? 'border-darkTextSecondary' : 'border-grayHd'
+                                    isDarkMode ? 'border-darkTextSecondary' : 'border-darkTextSecondary'
                                 }`}
                             >
                                 <Ionicons
@@ -154,7 +154,7 @@ const SignUpScreen = ({ navigation, route }) => {
                             {/* Confirm Password Field */}
                             <View
                                 style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                                    isDarkMode ? 'border-darkTextSecondary' : 'border-grayHd'
+                                    isDarkMode ? 'border-darkTextSecondary' : 'border-darkTextSecondary'
                                 }`}
                             >
                                 <Ionicons

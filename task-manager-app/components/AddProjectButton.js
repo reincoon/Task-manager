@@ -5,7 +5,7 @@ import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
 
 // Open a project creation modal
-const AddProjectButton = ({ onPress, label = 'Add Project' }) => {
+export default function AddProjectButton({ onPress, label = 'Add Project' }) {
     const { isDarkMode } = useTheme();
 
     return (
@@ -25,23 +25,3 @@ const AddProjectButton = ({ onPress, label = 'Add Project' }) => {
         </TouchableOpacity>
     );
 };
-
-export default AddProjectButton;
-
-const styles = StyleSheet.create({
-    buttonContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 10,
-        backgroundColor: '#fff',
-        borderRadius: 5,
-        borderWidth: 1,
-        borderColor: '#007bff',
-    },
-    buttonLabel: {
-        marginLeft: 5,
-        color: '#007bff',
-        fontSize: 16,
-    },
-});
-

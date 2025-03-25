@@ -10,6 +10,8 @@ import StatisticsScreen from '../screens/StatisticsScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import { useTheme } from '../helpers/ThemeContext';
+import tw, { theme } from '../twrnc';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -32,6 +34,7 @@ const SettingsStack = () => (
 );
 
 const AppNavigator = () => {
+    const { isDarkMode } = useTheme();
     return (
         <NavigationContainer>
             <Tab.Navigator 
@@ -44,8 +47,9 @@ const AppNavigator = () => {
                         if (route.name === 'Statistics') iconName = 'stats-chart-outline';
                         return <Ionicons name={iconName} size={size} color={color} />;
                     },
-                    tabBarActiveTintColor: 'blue',
-                    tabBarInactiveTintColor: 'gray',
+                    tabBarActiveTintColor: isDarkMode ? theme.colors.darkMint : theme.colors.teal,
+                    tabBarInactiveTintColor: isDarkMode ? theme.colors.darkTextSecondary : theme.colors.gray,
+                    tabBarStyle: tw`border-t border-darkTextSecondary ${isDarkMode ? 'bg-darkBg' : 'bg-white'}`,
                     headerShown: false,
                 })}
             >

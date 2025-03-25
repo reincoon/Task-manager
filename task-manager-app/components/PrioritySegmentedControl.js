@@ -13,7 +13,7 @@ export default function PrioritySegmentedControl({ selectedPriority, onSelectPri
     // const selectedBg = isDarkMode ? theme.colors.darkCinnabar : theme.colors.cinnabar; 
     // const defaultTextColour = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
     // const selectedTextColour = theme.colors.white;
-    const unselectedBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.grayHd;
+    const unselectedBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.darkTextSecondary;
     const unselectedText = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
 
     return (
