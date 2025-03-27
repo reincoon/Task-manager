@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Alert } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import TodoCard from "./TodoCard";
 import { groupTasksByProject, buildListData, groupTasksByPriority, buildListDataByPriority } from '../helpers/projects';
-import { PRIORITIES } from "../helpers/priority";
-import { updateTasksPriority, updateTasksProject, reorderTasks, updateProjectName, deleteProject } from "../helpers/firestoreHelpers";
+import { PRIORITIES } from "../helpers/constants";
+import { updateTasksPriority, updateTasksProject, reorderTasks, deleteProject } from "../helpers/firestoreHelpers";
 import { Ionicons } from '@expo/vector-icons';
 import ProjectNameEditModal from "./ProjectNameEditModal";
 import useProjectNameEdit from "../hooks/useProjectNameEdit";
@@ -13,7 +13,7 @@ import { useTheme } from '../helpers/ThemeContext';
 import ThemedText from './ThemedText';
 import { PRIORITY_COLOURS } from '../helpers/constants';
 
-const ListView = ({
+export default function ListView({
     userId,
     tasks,
     projects,
@@ -24,7 +24,7 @@ const ListView = ({
     setDraggingTask,
     setHoveredTask,
     grouping,
-}) => {
+}) {
     const [data, setData] = useState([]);
     const { isDarkMode, fontScale } = useTheme();
 
@@ -61,13 +61,11 @@ const ListView = ({
     const renderItem = useCallback(({ item, drag }) => {
         if (item.type === 'projectHeader') {
             const project = projects.find(p => p.id === item.pName);
-            // const projectColour = project?.color || theme.colors.sky;
             const isProjectView = grouping === 'project';
             const projectColour = isProjectView 
                 ? project?.color || theme.colors.sky 
                 : theme.colors.sky;
             
-
             return (
                 <View 
                     style={[
@@ -83,14 +81,7 @@ const ListView = ({
                     <ThemedText variant="lg" style={tw`font-bold`}>
                         {item.projectName}
                     </ThemedText>
-                    {/* Edit button */}
-                    {/* <TouchableOpacity
-                        onPress={() => {
-                            openEditProjectModal(item.pName, item.projectName);
-                        }}
-                    >
-                        <Text>Edit</Text>
-                    </TouchableOpacity> */}
+                    {/* Edit Button */}
                     <Ionicons
                         name="create"
                         size={theme.fontSize.xl2}
@@ -185,7 +176,6 @@ const ListView = ({
                                 onPress: async () => {
                                     try {
                                         await deleteTask(item);
-                                        // Alert.alert('Deleted', 'Task deleted successfully');
                                     } catch (err) {
                                         console.error('Error deleting task:', err);
                                         Alert.alert('Error', 'Could not delete task');
@@ -199,7 +189,6 @@ const ListView = ({
                 />
             );
         }
-
         return null;
     }, [grouping, projects, navigation, setDraggingTask, deleteTask, openEditProjectModal, isDarkMode]);
 
@@ -287,7 +276,6 @@ const ListView = ({
                         (item) => item.type === 'task' && (item.priority || 'Low') === originalPriority
                     );
                     await reorderTasks(userId, tasksInSamePriority, null, originalPriority);
-                    Alert.alert('Success', 'To-Do lists were reordered within same priority.');
                 }
             }
         
@@ -338,6 +326,4 @@ const ListView = ({
         </View>
     );
 };
-
-export default ListView;
 

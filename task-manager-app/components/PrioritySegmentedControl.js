@@ -2,7 +2,7 @@ import { View, TouchableOpacity } from 'react-native';
 import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
 import ThemedText from './ThemedText';
-import { PRIORITIES } from '../helpers/priority';
+import { PRIORITIES } from '../helpers/constants';
 import { PRIORITY_COLOURS } from '../helpers/constants';
 
 export default function PrioritySegmentedControl({ selectedPriority, onSelectPriority }) {

@@ -12,7 +12,6 @@ import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
 import ThemedText from '../components/ThemedText';
 import { NOTIFICATION_OPTIONS } from '../helpers/constants';
-import { cyclePriority } from '../helpers/priority';
 import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/attachmentHelpers';
 import PrioritySegmentedControl from '../components/PrioritySegmentedControl';
 

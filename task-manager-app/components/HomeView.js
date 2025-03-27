@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import HomeHeader from './HomeHeader';
 import KanbanBoard from './KanbanBoard';
 import ListView from './ListView';
@@ -76,7 +76,6 @@ export default function HomeView({
             <ProjectModal
                 visible={showProjectModal}
                 onCancel={() => {
-                    // onAddProjectPress(false);
                     onCloseProjectModal();
                     setDraggingTask(null); 
                     setHoveredTask(null);
@@ -86,9 +85,3 @@ export default function HomeView({
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-});

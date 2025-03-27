@@ -4,7 +4,6 @@ import * as FileSystem from "expo-file-system";
 import { auth, db } from "../firebaseConfig";
 import { requestNotificationPermissions } from "../helpers/notifications";
 import { createTask, addTaskToCalendar, addSubtaskToCalendar } from "../helpers/taskActions";
-// import { cyclePriority } from "../helpers/priority";
 import { COLOURS } from "../helpers/constants";
 import { removeFileFromSupabase } from "../helpers/supabaseStorageHelpers";
 import { scheduleTaskNotification } from '../helpers/notificationsHelpers';

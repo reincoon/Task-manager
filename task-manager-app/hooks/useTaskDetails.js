@@ -2,8 +2,20 @@ import { useState, useEffect } from "react";
 import { Alert } from "react-native";
 import { auth, db } from "../firebaseConfig";
 import { requestNotificationPermissions } from "../helpers/notifications";
-import { fetchTaskDetails, saveTask, cancelTaskChanges, deleteTask, deleteSubtask, addTaskToCalendar, addSubtaskToCalendar } from "../helpers/taskActions";
-import { calculateTaskStatus, toggleTaskCompletion, updateTaskStatusInFirestore } from "../helpers/subtaskCompletionHelpers";
+import { 
+    fetchTaskDetails, 
+    saveTask, 
+    cancelTaskChanges, 
+    deleteTask, 
+    deleteSubtask, 
+    addTaskToCalendar, 
+    addSubtaskToCalendar 
+} from "../helpers/taskActions";
+import { 
+    calculateTaskStatus, 
+    toggleTaskCompletion, 
+    updateTaskStatusInFirestore 
+} from "../helpers/subtaskCompletionHelpers";
 import { safeDate } from "../helpers/date";
 import { COLOURS } from "../helpers/constants";
 import { doc, updateDoc } from "firebase/firestore";
@@ -209,7 +221,6 @@ export function useTaskDetails(taskId, navigation) {
             navigation.goBack();
         } catch (error) {
             Alert.alert("Error", "Failed to cancel task editing.");
-            console.log("Error during cancellation:", error);
         }
     };
 
@@ -268,7 +279,6 @@ export function useTaskDetails(taskId, navigation) {
                         );
                         Alert.alert("Deleted", "Task deleted successfully");
                     } catch (err) {
-                        console.error("Error deleting task:", err);
                         Alert.alert("Error", "Could not delete task");
                     }
                 },
@@ -305,9 +315,7 @@ export function useTaskDetails(taskId, navigation) {
                             index,
                             setSubtasks,
                         });
-                        Alert.alert("Deleted", "Subtask deleted successfully");
                     } catch (err) {
-                        console.error("Error deleting subtask:", err);
                         Alert.alert("Error", "Could not delete subtask");
                     }
                 },
@@ -380,7 +388,6 @@ export function useTaskDetails(taskId, navigation) {
         }
     };
 
-
     // Add a subtask to calendar
     const addSubtaskToCalendarHandler = async (subtask, index) => {
         if (!userId || !taskId) {
@@ -408,7 +415,6 @@ export function useTaskDetails(taskId, navigation) {
             });
             Alert.alert("Success", "Subtask added to calendar");
         } catch (err) {
-            console.error("Error adding subtask to calendar:", err);
             Alert.alert("Error", "Failed to add subtask to calendar.");
         }
     };
@@ -461,7 +467,6 @@ export function useTaskDetails(taskId, navigation) {
         handleDeleteSubtask,
         markTaskAsCompletedLocally,
         markTaskAsUnfinishedLocally,
-        // addMainTaskToCalendarHandler: addTaskToCalendar,
         addMainTaskToCalendarHandler,
         addSubtaskToCalendarHandler,
     };

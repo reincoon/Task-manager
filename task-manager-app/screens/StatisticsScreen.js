@@ -8,7 +8,7 @@ import { collection, getDocs} from "firebase/firestore";
 import { computeStatistics, prepareBarChartData, prepareTrendLineDataForMetric, prepareClosedSubtasksByPriority, prepareSubtasksOpenVsClosedData, prepareProjectsOpenVsClosedData } from "../helpers/statisticsHelpers";
 import { TREND_OPTIONS } from '../helpers/constants';
 import { db, auth } from '../firebaseConfig';
-import { PRIORITIES } from '../helpers/priority';
+import { PRIORITIES } from '../helpers/constants';
 import { useFocusEffect } from '@react-navigation/native';
 import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';

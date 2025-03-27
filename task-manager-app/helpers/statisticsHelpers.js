@@ -1,4 +1,4 @@
-import { PRIORITIES } from './priority';
+import { PRIORITIES } from './constants';
 
 // Format a duration given in hours as "Xd Yh Zm"
 export function formatDuration(hours) {

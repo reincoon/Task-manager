@@ -1,13 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Modal, TextInput, Button } from 'react-native';
+import { View, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DraggableFlatList from 'react-native-draggable-flatlist';
-import { PRIORITIES } from '../helpers/priority';
+import { PRIORITIES } from '../helpers/constants';
 import MoveToModal from '../components/MoveToModal';
-// import ProjectModal from '../components/ProjectModal';
 import { groupTasksByProject } from '../helpers/projects';
-import { updateTasksProject, createProject, updateTasksPriority, deleteProject, updateProjectName, reorderTasks  } from '../helpers/firestoreHelpers';
-// import AddProjectButton from './AddProjectButton';
+import { updateTasksProject, updateTasksPriority, deleteProject } from '../helpers/firestoreHelpers';
 import { deleteTask } from '../helpers/taskActions';
 import TodoCard from '../components/TodoCard';
 import ProjectNameEditModal from './ProjectNameEditModal';
@@ -25,9 +23,16 @@ const isDueSoon = (dueDate) => {
 };
 
 const COLUMN_WIDTH = 270;
-const COLUMN_MARGIN = 12;
 
-const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDraggingTask, setHoveredTask }) => {
+export default function KanbanBoard({ 
+    userId, 
+    rawTasks, 
+    projects, 
+    navigation, 
+    grouping, 
+    setDraggingTask, 
+    setHoveredTask 
+}) {
     const [columns, setColumns] = useState([]);
     // States for dragging functionality
     const [draggingItem, setDraggingItem] = useState(null);
@@ -35,9 +40,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
     const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
     // State to manage 'Due Soon' filters per column
     const [dueSoonFilters, setDueSoonFilters] = useState({});
-    // Project creation modal
-    // const [isProjectModalVisible, setIsProjectModalVisible] = useState(false);
-    // const [projectModalTasks, setProjectModalTasks] = useState([]);
 
     const { isDarkMode, fontScale } = useTheme();
     
@@ -132,11 +134,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         initialiseDueSoonFilters();
     }, [grouping, rawTasks, projects]);
 
-    // Handle 'add' project action from Kanban view
-    // const handleAddProject = () => {
-    //     setIsProjectModalVisible(true);
-    // };
-
     const handleDragEnd = useCallback(async (columnKey, newData) => {
         setColumns(prevColumns => {
             return prevColumns.map(column => {
@@ -162,11 +159,9 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 Alert.alert('Success', `Tasks reordered in project ${getProjectName(columnKey)}.`);
             } else if (grouping === 'priority') {
                 await updateTasksPriority(userId, tasksInColumn, columnKey);
-                Alert.alert('Success', `Tasks reordered in ${columnKey} priority.`);
             }
         } catch (error) {
             console.error('Error reordering on Kanban Board:', error);
-            Alert.alert('Error', 'Failed to reorder tasks.');
         } finally {
             // Reset dragging state
             setDraggingItem(null);
@@ -185,12 +180,9 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                     [draggingItem],
                     targetKey === 'No Project' ? null : targetKey
                 );
-                Alert.alert('Success', 'Task updated in project view.');
             } else if (grouping === 'priority') {
                 // Assign to new priority
                 await updateTasksPriority(userId, [draggingItem], targetKey);
-                Alert.alert('Success', `Task priority set to "${targetKey}".`);
-            
             }
         } catch (error) {
             console.error('Error updating task:', error);
@@ -218,27 +210,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         }));
     };
 
-    // // Function to handle adding a new project from Kanban view
-    // const handleCreateProject = async (projectName) => {
-    //     if (!userId) {
-    //         Alert.alert('Error', 'User not signed in.');
-    //         setIsProjectModalVisible(false);
-    //         return;
-    //     }
-
-    //     try {
-    //         // Create a new project in Firebase
-    //         await createProject(userId, projectName);
-    //         Alert.alert('Project Created', `Project "${projectName}" created. Assign tasks to it manually.`);
-    //     } catch (err) {
-    //         console.error(err);
-    //         Alert.alert('Error', err.message);
-    //     } finally {
-    //         // Revert data
-    //         setIsProjectModalVisible(false);
-    //     }
-    // };
-
     // A helper to find the project name
     const getProjectName = (projectId) => {
         if (!projectId) return 'Unassigned';
@@ -264,7 +235,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                     await deleteProject(userId, projectId, navigation);
                     Alert.alert('Success', 'Project and its tasks deleted');
                 } catch (err) {
-                    console.error('Error deleting project:', err);
                     Alert.alert('Error', 'Failed to delete project');
                 }
             }},
@@ -279,12 +249,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 task={item}
                 projectName={projectName}
                 onLongPress={() => {
-                    // setDraggingItem(item);
-                    // setSourceColumnKey(
-                    //     grouping === 'project'
-                    //         ? item.projectId || 'No Project'
-                    //         : item.priority
-                    // );
                     requestAnimationFrame(() => {
                         setDraggingItem(item);
                         setSourceColumnKey(
@@ -419,14 +383,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
 
     return (
         <View style={tw`flex-1 bg-${isDarkMode ? theme.colors.darkBg : theme.colors.light}`}>
-            {/* Kanban Header */}
-            {/* <View style={styles.kanbanHeader}>
-                <Text style={styles.kanbanTitle}>Kanban Board</Text> */}
-                {/* <AddProjectButton
-                    onPress={handleAddProject}
-                    label="Add Project"
-                /> */}
-            {/* </View> */}
             <ScrollView 
                 horizontal 
                 contentContainerStyle={tw`py-2 px-3`}
@@ -451,14 +407,6 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
                 grouping={grouping}
                 projects={projects}
             />
-            {/* <ProjectModal
-                visible={isProjectModalVisible}
-                onCancel={() => {
-                    setIsProjectModalVisible(false); 
-                    setProjectModalTasks([]);
-                }}
-                onCreate={handleCreateProject}
-            /> */}
 
             {isEditModalVisible && (
                 <ProjectNameEditModal
@@ -477,177 +425,3 @@ const KanbanBoard = ({ userId, rawTasks, projects, navigation, grouping, setDrag
         </View>
     );
 };
-
-// const styles = StyleSheet.create({
-//     container: {
-//         flex: 1,
-//         padding: COLUMN_MARGIN,
-//         backgroundColor: '#f5f5f5',
-//     },
-//     columnsContainer: {
-//         flexGrow: 1,
-//         alignItems: 'flex-start',
-//         justifyContent: 'flex-start',
-//     },
-//     column: {
-//         width: COLUMN_WIDTH,
-//         marginRight: COLUMN_MARGIN,
-//         backgroundColor: '#eee',
-//         borderRadius: 10,
-//         padding: 10,
-//     },
-//     columnHeader: {
-//         flexDirection: 'row',
-//         justifyContent: 'space-between',
-//         alignItems: 'center',
-//         marginBottom: 10,
-//     },
-//     columnTitle: {
-//         fontSize: 18,
-//         fontWeight: 'bold',
-//         marginBottom: 10,
-//         textAlign: 'center',
-//         color: '#333',
-//     },
-//     filterButton: {
-//         paddingHorizontal: 8,
-//         paddingVertical: 4,
-//         borderRadius: 5,
-//     },
-//     filterButtonText: {
-//         color: '#fff',
-//         fontSize: 12,
-//     },
-//     moveIconContainer: {
-//         marginLeft: 10,
-//         paddingHorizontal: 5,
-//         paddingVertical: 2,
-//     },
-//     tasksContainer: {
-//         paddingBottom: 100,
-//     },
-//     taskItem: {
-//         padding: 8,
-//         backgroundColor: '#fff',
-//         borderRadius: 8,
-//         shadowColor: '#000',
-//         shadowOpacity: 0.1,
-//         shadowOffset: { width: 0, height: 2 },
-//         shadowRadius: 4,
-//         elevation: 2,
-//         marginBottom: 10,
-//         borderWidth: 1,
-//         borderColor: '#ddd',
-//     },
-//     cardHeaderRow: {
-//         flexDirection: 'row',
-//         justifyContent: 'space-between',
-//         alignItems: 'center',
-//     },
-//     cardBodyRow: {
-//         flexDirection: 'row',
-//         justifyContent: 'space-between',
-//         alignSelf: 'flex-end',
-//         marginTop: 6,
-//     },
-//     detailsLeftSide: {
-//         flex: 1,
-//         paddingRight: 8,
-//     },
-//     deleteIconContainer: {
-//         paddingHorizontal: 8,
-//         alignSelf: 'flex-end',
-//     },
-//     taskTitle: {
-//         fontSize: 16,
-//         fontWeight: '600',
-//         color: '#333',
-//         flexShrink: 1,
-//     },
-//     taskDetails: {
-//         fontSize: 12,
-//         color: '#555',
-//         marginTop: 4,
-//     },
-//     menuIconContainer: {
-//         padding: 5,
-//     },
-//     kanbanHeader: {
-//         flexDirection: 'row',
-//         justifyContent: 'space-between',
-//         alignItems: 'center',
-//         paddingHorizontal: 10,
-//         paddingTop: 10,
-//         marginBottom: 10,
-//     },
-//     kanbanTitle: {
-//         fontSize: 24,
-//         fontWeight: 'bold',
-//         color: '#333',
-//     },
-//     addProjectButton: {
-//         padding: 5,
-//     },
-//     toggleButton: {
-//         backgroundColor: '#28a745',
-//         paddingHorizontal: 10,
-//         paddingVertical: 5,
-//         borderRadius: 5,
-//         marginRight: 10,
-//     },
-//     toggleButtonText: {
-//         color: '#fff',
-//         fontSize: 12,
-//         fontWeight: 'bold',
-//     },
-//     columnActions: {
-//         flexDirection: 'row',
-//         alignItems: 'center',
-//         marginTop: 10,
-//     },
-//     editButton: {
-//         backgroundColor: '#4CAF50',
-//         paddingHorizontal: 8,
-//         paddingVertical: 4,
-//         borderRadius: 5,
-//         marginRight: 10,
-//     },
-//     deleteButton: {
-//         backgroundColor: '#f44336',
-//         paddingHorizontal: 8,
-//         paddingVertical: 4,
-//         borderRadius: 5,
-//         marginRight: 10,
-//     },
-//     editButtonText: {
-//         color: 'white',
-//         fontSize: 14,
-//     },
-//     deleteButtonText: {
-//         color: 'white',
-//         fontSize: 14,
-//     },
-//     modalContainer: {
-//         flex: 1,
-//         justifyContent: 'center',
-//         alignItems: 'center',
-//         backgroundColor: 'rgba(0,0,0,0.5)',
-//     },
-//     modalContent: {
-//         width: '80%',
-//         backgroundColor: 'white',
-//         padding: 20,
-//         borderRadius: 10,
-//     },
-//     input: {
-//         height: 40,
-//         borderColor: 'gray',
-//         borderWidth: 1,
-//         marginBottom: 10,
-//         paddingHorizontal: 10,
-//         paddingVertical: 5,
-//         borderRadius: 4,
-//     },
-// });
-
-export default KanbanBoard;

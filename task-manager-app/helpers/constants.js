@@ -23,6 +23,8 @@ export const NOTIFICATION_TIME_OFFSETS = {
     '1 Week Before': -7 * 24 * 60 * 60 * 1000,
 };
 
+export const PRIORITIES = ['Low', 'Moderate', 'High', 'Critical'];
+
 export const PRIORITY_ORDER = {
     Critical: 1,
     High: 2,

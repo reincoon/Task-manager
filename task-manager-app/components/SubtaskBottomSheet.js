@@ -3,7 +3,6 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import NotificationPicker from './NotificationPicker';
 import { NOTIFICATION_OPTIONS } from '../helpers/constants';
-import { cyclePriority } from '../helpers/priority';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import DateTimeSelector from './DateTimeSelector';
 import SpeechToTextButton from './SpeechToTextButton';

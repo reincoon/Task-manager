@@ -2,7 +2,6 @@ import { PRIORITY_ORDER, COLOUR_ORDER } from "./constants";
 // Group to-do lists by projects
 export function groupTasksByProject(tasks, projects) {
     const noProject = tasks.filter(t => !t.projectId);
-        // .sort((a, b) => (a.order || 0) - (b.order || 0));
     const byProject = {};
     projects.forEach((proj) => {
         byProject[proj.id] = [];
@@ -13,13 +12,8 @@ export function groupTasksByProject(tasks, projects) {
         }
     });
 
-    // // Sort each project's tasks by order
-    // for (let pId in byProject) {
-    //     byProject[pId].sort((a, b) => (a.order || 0) - (b.order || 0));
-    // }
-    
     return { noProject, byProject };
-}
+};
 
 // Sort todo lists for different sorting options
 function applySortOption(a, b, sortOption) {
@@ -33,7 +27,7 @@ function applySortOption(a, b, sortOption) {
         return (COLOUR_ORDER[a.colour] || 999) - (COLOUR_ORDER[b.colour] || 999);
     }
     return (a.order || 0) - (b.order || 0);
-}
+};
 
 // Create a flat data structure for DraggableFlatList
 export function buildListData(noProject, byProject, projects, sortOption = null) {
@@ -92,4 +86,4 @@ export function buildListDataByPriority(byPriority, sortOption = null) {
     }
 
     return data;
-}
+};
