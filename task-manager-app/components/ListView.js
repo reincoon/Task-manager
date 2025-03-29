@@ -298,7 +298,7 @@ export default function ListView({
     }
 
     return (
-        <View style={tw`flex-1 pb-32`}>
+        <View style={tw`flex-1 pb-1`}>
             {/* <ThemedText variant="sm" style={tw`text-center my-3 mx-2`} color={isDarkMode ? theme.colors.darkTextSecondary : theme.colors.textSecondary}>
                 {'\n'}- Drag a to-do list under a project header or on a task in that project to move it into the project.
                 {'\n'}- Drag a task to the 'Unassigned to-do lists' section to remove it from a project.

@@ -63,7 +63,7 @@ export default function SubtaskBottomSheet({
                     <View style={tw`flex-row items-center mb-4`}>
                         <TextInput
                             style={tw`flex-1 border rounded-lg px-3 py-2 ${
-                                isDarkMode ? 'bg-darkCardBg border-darkTextSecondary' : 'bg-white border-darkTextSecondary'
+                                isDarkMode ? 'bg-darkCardBg border-darkTextSecondary text-darkTextPrimary' : 'bg-white border-darkTextSecondary'
                             }`}
                             value={currentSubtask.title}
                             onChangeText={(text) => setCurrentSubtask({ ...currentSubtask, title: text })}
