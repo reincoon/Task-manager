@@ -2,7 +2,7 @@ import 'react-native-get-random-values';
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text } from 'react-native';
+import { View, Text } from 'react-native';
 import { auth } from './firebaseConfig';
 import AppNavigator from './navigation/AppNavigator';
 import { useEffect, useState } from 'react';
@@ -66,7 +66,7 @@ const App = () => {
   if (!fontsLoaded) {
     return (
       <View style={tw`flex-1 justify-center items-center bg-light dark:bg-darkBg`}>
-        <Text style={tw`text-2xl font-bold text-darkTextPrimary dark:text-textPrimary`}>
+        <Text style={tw`text-xl2 font-bold text-darkTextPrimary dark:text-textPrimary`}>
           Loading fonts...
         </Text>
       </View>
@@ -84,12 +84,5 @@ const App = () => {
     </ThemeProvider>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-});
 
 export default App;
