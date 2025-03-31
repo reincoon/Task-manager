@@ -1,15 +1,19 @@
 import { useEffect, useState, useCallback } from "react";
-import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Alert } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import TodoCard from "./TodoCard";
 import { groupTasksByProject, buildListData, groupTasksByPriority, buildListDataByPriority } from '../helpers/projects';
-import { PRIORITIES } from "../helpers/priority";
-import { updateTasksPriority, updateTasksProject, reorderTasks, updateProjectName, deleteProject } from "../helpers/firestoreHelpers";
+import { PRIORITIES } from "../helpers/constants";
+import { updateTasksPriority, updateTasksProject, reorderTasks, deleteProject } from "../helpers/firestoreHelpers";
 import { Ionicons } from '@expo/vector-icons';
 import ProjectNameEditModal from "./ProjectNameEditModal";
 import useProjectNameEdit from "../hooks/useProjectNameEdit";
+import tw, { theme } from '../twrnc';
+import { useTheme } from '../helpers/ThemeContext';
+import ThemedText from './ThemedText';
+import { PRIORITY_COLOURS } from '../helpers/constants';
 
-const ListView = ({
+export default function ListView({
     userId,
     tasks,
     projects,
@@ -20,8 +24,9 @@ const ListView = ({
     setDraggingTask,
     setHoveredTask,
     grouping,
-}) => {
+}) {
     const [data, setData] = useState([]);
+    const { isDarkMode, fontScale } = useTheme();
 
     // Hook for handling project name updates
     const {
@@ -53,22 +58,43 @@ const ListView = ({
         return found ? found.name : 'Unassigned';
     };
 
-    const renderItem = useCallback(({ item, drag, isActive }) => {
+    const renderItem = useCallback(({ item, drag }) => {
         if (item.type === 'projectHeader') {
+            const project = projects.find(p => p.id === item.pName);
+            const isProjectView = grouping === 'project';
+            const projectColour = isProjectView 
+                ? project?.color || theme.colors.sky 
+                : theme.colors.sky;
+            
             return (
-                <View style={styles.projectHeader}>
-                    <Text style={[styles.projectHeaderText, { color: '#333' }]}>
+                <View 
+                    style={[
+                        tw`px-3 py-2 mx-4 mt-3 rounded-md`,
+                        {
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.darkTextSecondary,
+                            borderLeftWidth: 4,
+                            borderLeftColor: projectColour,
+                        },
+                        
+                    ]}
+                >
+                    <ThemedText variant="lg" style={tw`font-bold`}>
                         {item.projectName}
-                    </Text>
-                    <TouchableOpacity
-                        onPress={() => {
-                            openEditProjectModal(item.pName, item.projectName);
-                        }}
-                    >
-                        <Text>Edit</Text>
-                    </TouchableOpacity>
+                    </ThemedText>
+                    {/* Edit Button */}
+                    <Ionicons
+                        name="create"
+                        size={theme.fontSize.xl2}
+                        style={tw`absolute right-14 top-2`}
+                        color={isDarkMode ? theme.colors.darkMint : theme.colors.forest}
+                        onPress={() => openEditProjectModal(item.pName, item.projectName)}
+                    />
                     {/* Delete Button */}
-                    <TouchableOpacity
+                    <Ionicons
+                        name="trash-sharp"
+                        size={theme.fontSize.xl2}
+                        style={tw`absolute right-4 top-2`}
+                        color={isDarkMode ? theme.colors.cinnabar : theme.colors.darkCinnabar}
                         onPress={() => {
                             Alert.alert('Confirm', 'Are you sure you want to delete this project?', [
                                 { text: 'Cancel', style: 'cancel' },
@@ -87,25 +113,43 @@ const ListView = ({
                                 }
                             ]);
                         }}
-                    >
-                        <Ionicons name="trash-outline" size={24} color="red" />
-                    </TouchableOpacity>
+                    />
                 </View>
             );
         }
         if (item.type === 'priorityHeader') {
             return (
-                <View style={styles.priorityHeader}>
-                    <Text style={[styles.priorityHeaderText, { color: '#333' }]}>
+                <View
+                    style={[
+                        tw`px-3 py-2 mx-4 mt-3 rounded-md`,
+                        {
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.darkTextSecondary,
+                            borderLeftWidth: 4,
+                            borderLeftColor: PRIORITY_COLOURS[item.priority] || theme.colors.forest,
+                        },
+                    ]}
+                >
+                    <ThemedText variant="lg" fontFamily="poppins-bold">
                         {item.priority} Priority
-                    </Text>
+                    </ThemedText>
                 </View>
             );
         }
         if (item.type === 'noProjectHeader') {
             return (
-                <View style={[styles.projectHeader, { backgroundColor: '#ccc' }]}>
-                    <Text style={styles.projectHeaderText}>Unassigned To-Do Lists</Text>
+                <View 
+                    style={[
+                        tw`px-3 py-2 mx-4 mt-3 rounded-md`,
+                        {
+                            backgroundColor: isDarkMode ? theme.colors.textSecondary : theme.colors.darkTextSecondary,
+                            borderLeftWidth: 4,
+                            borderLeftColor: isDarkMode ? theme.colors.darkSky : theme.colors.sky,
+                        },
+                    ]}
+                >
+                    <ThemedText variant="lg" style={tw`font-bold`}>
+                        Unassigned To-Do Lists
+                    </ThemedText>
                 </View>
             );
         }
@@ -132,9 +176,7 @@ const ListView = ({
                                 onPress: async () => {
                                     try {
                                         await deleteTask(item);
-                                        // Alert.alert('Deleted', 'Task deleted successfully');
                                     } catch (err) {
-                                        console.error('Error deleting task:', err);
                                         Alert.alert('Error', 'Could not delete task');
                                     }
                                 },
@@ -146,9 +188,8 @@ const ListView = ({
                 />
             );
         }
-
         return null;
-    }, [grouping, projects, navigation, setDraggingTask, deleteTask, openEditProjectModal]);
+    }, [grouping, projects, navigation, setDraggingTask, deleteTask, openEditProjectModal, isDarkMode]);
 
     const keyExtractor = (item, index) => {
         if (item.type === 'projectHeader') {
@@ -198,7 +239,7 @@ const ListView = ({
         const originalProjectId = draggedItem.projectId || null;
         const originalPriority = draggedItem.priority || 'Low';
 
-            // Proceed with normal reordering or moving
+        // Proceed with normal reordering or moving
         try {
             if (grouping === 'project') {
                 // If finalProjectId differs from the old project
@@ -210,7 +251,7 @@ const ListView = ({
                     await updateTasksProject(userId, [draggedItem], finalProjectId);
                     Alert.alert(
                         'Success',
-                        finalProjectId ? 'Task moved to the selected project.' : 'Task unassigned.'
+                        finalProjectId ? 'To-Do list moved to the selected project.' : 'To-Do list was unassigned.'
                     );
                 } else {
                     // Reorder within the same project/unassigned
@@ -227,14 +268,13 @@ const ListView = ({
                     // Change the priority
                     draggedItem.priority = finalPriority;
                     await updateTasksPriority(userId, [draggedItem], finalPriority);
-                    Alert.alert('Success', `Task priority set to "${finalPriority}".`);
+                    Alert.alert('Success', `To-Do list's priority is set to "${finalPriority}".`);
                 } else {
                     // Reordering within the same priority
                     const tasksInSamePriority = newData.filter(
                         (item) => item.type === 'task' && (item.priority || 'Low') === originalPriority
                     );
                     await reorderTasks(userId, tasksInSamePriority, null, originalPriority);
-                    Alert.alert('Success', 'Tasks reordered within same priority.');
                 }
             }
         
@@ -250,25 +290,21 @@ const ListView = ({
 
     if (data.length === 0) {
         return (
-            <Text style={styles.noTasksText}>
+            <ThemedText variant="xl2" style={tw`text-center mt-5`}>
                 No tasks available. Create a new to-do list!
-            </Text>
+            </ThemedText>
         );
     }
 
     return (
-        <View style={{ flex: 1 }}>
-            <Text style={styles.instructionsText}>
-                {'\n'}- Drag a to-do list under a project header or on a task in that project to move it into the project.
-                {'\n'}- Drag a task to the 'Unassigned to-do lists' section to remove it from a project.
-            </Text>
+        <View style={tw`flex-1 pb-1`}>
             <DraggableFlatList
                 data={data}
                 keyExtractor={keyExtractor}
                 renderItem={renderItem}
                 onDragEnd={onDragEnd}
                 activationDistance={5}
-                containerStyle={{ paddingBottom: 100 }}
+                contentContainerStyle={tw`pb-24`}
             />
             <ProjectNameEditModal
                 visible={isEditModalVisible}
@@ -285,47 +321,4 @@ const ListView = ({
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    projectHeader: {
-        padding: 8,
-        backgroundColor: '#ddd',
-        marginHorizontal: 16,
-        marginTop: 10,
-        borderRadius: 5,
-        borderLeftWidth: 4,
-        borderLeftColor: '#007bff',
-    },
-    projectHeaderText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    priorityHeader: {
-        padding: 8,
-        backgroundColor: '#bbb',
-        marginHorizontal: 16,
-        marginTop: 10,
-        borderRadius: 5,
-        borderLeftWidth: 4,
-        borderLeftColor: '#28a745',
-    },
-    priorityHeaderText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    noTasksText: {
-        textAlign: 'center',
-        marginTop: 20,
-        fontSize: 16,
-        color: '#999',
-    },
-    instructionsText: {
-        textAlign: 'center',
-        margin: 10,
-        fontSize: 14,
-        color: '#666',
-    },
-});
-
-export default ListView;
 

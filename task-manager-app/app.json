@@ -33,6 +33,9 @@
       },
       "supabaseUrl": "https://zartomebekgriyuxweyb.supabase.co",
       "supabaseKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InphcnRvbWViZWtncml5dXh3ZXliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUxODg5MDksImV4cCI6MjA1MDc2NDkwOX0.TOcxXpdcUDpoiK5qwjdAeXLC9jygrY8jjHrL41rI50I"
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

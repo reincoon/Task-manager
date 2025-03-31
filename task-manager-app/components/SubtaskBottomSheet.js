@@ -1,21 +1,26 @@
-import { useRef, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { useMemo } from 'react';
+import { View, TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import NotificationPicker from './NotificationPicker';
 import { NOTIFICATION_OPTIONS } from '../helpers/constants';
-import { cyclePriority } from '../helpers/priority';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import DateTimeSelector from './DateTimeSelector';
 import SpeechToTextButton from './SpeechToTextButton';
+import ThemedText from './ThemedText';
+import tw, { theme } from '../twrnc';
+import { useTheme } from '../helpers/ThemeContext';
+import PrioritySegmentedControl from './PrioritySegmentedControl';
 
-const SubtaskBottomSheet = ({
+export default function SubtaskBottomSheet({
     visible,
     onClose,
     currentSubtask,
     setCurrentSubtask,
     onSave,
-}) => {
+}) {
+    const { isDarkMode, fontScale } = useTheme();
     const snapPoints = useMemo(() => ['50%', '90%'], []);
+
     if (!visible) {
         return null;
     }
@@ -33,7 +38,7 @@ const SubtaskBottomSheet = ({
         : new Date();
 
     return (
-        <View style={styles.overlay}>
+        <View style={tw`absolute inset-0 bg-darkBg/30`}>
             <BottomSheet
                 index={1} // expanded sheet
                 snapPoints={snapPoints}
@@ -46,18 +51,29 @@ const SubtaskBottomSheet = ({
                 enablePanDownToClose={true}
                 onClose={handleCloseSheet}
             >
-                <BottomSheetScrollView contentContainerStyle={styles.content}>
-                    <Text style={styles.title}>Add Subtask</Text>
-                    <View style={styles.inputRow}>
+                <BottomSheetScrollView contentContainerStyle={tw`p-5 pb-8 ${isDarkMode ? 'bg-darkBg' : 'bg-white'}`}>
+                    <ThemedText
+                        variant="xl"
+                        fontFamily="poppins-bold"
+                        style={tw`mb-4 text-center`}
+                        color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary}
+                    >
+                        Add Subtask
+                    </ThemedText>
+                    <View style={tw`flex-row items-center mb-4`}>
                         <TextInput
-                            style={[styles.input, { flex: 1}]}
+                            style={tw`flex-1 border rounded-lg px-3 py-2 ${
+                                isDarkMode ? 'bg-darkCardBg border-darkTextSecondary text-darkTextPrimary' : 'bg-white border-darkTextSecondary'
+                            }`}
                             value={currentSubtask.title}
                             onChangeText={(text) => setCurrentSubtask({ ...currentSubtask, title: text })}
                             placeholder="Subtask Title"
+                            placeholderTextColor={theme.colors.darkTextSecondary}
+                            multiline
                         />
                         <SpeechToTextButton onTranscribedText={(text) => setCurrentSubtask({ ...currentSubtask, title: text })}/>
                     </View>
-                    <TouchableOpacity
+                    {/* <TouchableOpacity
                         style={styles.button}
                         onPress={() =>
                             setCurrentSubtask({
@@ -67,38 +83,68 @@ const SubtaskBottomSheet = ({
                         }
                     >
                         <Text style={styles.buttonText}>Priority: {currentSubtask.priority}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={() =>
-                            setCurrentSubtask({
-                                ...currentSubtask,
-                                isRecurrent: !currentSubtask.isRecurrent,
-                            })
-                        }
-                    >
-                        <Text style={styles.buttonText}>
-                            Recurrent: {currentSubtask.isRecurrent ? 'Yes' : 'No'}
-                        </Text>
-                    </TouchableOpacity>
-
-                    <DateTimeSelector date={validSubtaskDate} onDateChange={handleDateChange} />
-
-                    <NotificationPicker
-                        selectedValue={currentSubtask.reminder}
-                        onValueChange={(value) =>
-                            setCurrentSubtask({ ...currentSubtask, reminder: value })
-                        }
-                        options={NOTIFICATION_OPTIONS}
-                    />
-
-                    <View style={styles.actions}>
-                        <TouchableOpacity style={styles.saveButton} onPress={onSave}>
-                            <Ionicons name="checkmark" size={24} color="white" />
+                    </TouchableOpacity> */}
+                    <View style={tw`mb-4`}>
+                        <ThemedText
+                            variant="base"
+                            fontFamily="poppins-semibold"
+                            style={tw`mb-2`}
+                            color={isDarkMode ? theme.colors.darkTextSecondary : theme.colors.textSecondary}
+                        >
+                            Priority:
+                        </ThemedText>
+                        <PrioritySegmentedControl
+                            selectedPriority={currentSubtask.priority}
+                            onSelectPriority={(val) =>
+                                setCurrentSubtask({ ...currentSubtask, priority: val })
+                            }
+                        />
+                    </View>
+                    <View style={tw`mb-1 flex-row`}>
+                        {/* Date and Time selector */}
+                        <View style={tw`flex-2 mr-2 mb-4`}>
+                            <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                                Due Date:
+                            </ThemedText>
+                            <DateTimeSelector date={validSubtaskDate} onDateChange={handleDateChange} />
+                        </View>
+                        {/* Notification Picker */}
+                        <View style={tw`flex-1 ml-2 mb-4`}>
+                            <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                                Reminder:
+                            </ThemedText>
+                            <View 
+                                style={[
+                                    tw`rounded-lg border`,
+                                    { 
+                                        borderColor: isDarkMode ? theme.colors.darkTextSecondary : theme.colors.darkTextSecondary, 
+                                        backgroundColor: isDarkMode ? theme.colors.darkCardBg : theme.colors.white
+                                    }
+                                ]}
+                            >
+                                <NotificationPicker
+                                    selectedValue={currentSubtask.reminder}
+                                    onValueChange={(value) =>
+                                        setCurrentSubtask({ ...currentSubtask, reminder: value })
+                                    }
+                                    options={NOTIFICATION_OPTIONS}
+                                />
+                            </View>
+                        </View>
+                    </View>
+                    {/* Save and Cancel buttons */}
+                    <View style={tw`flex-row justify-end`}>
+                        <TouchableOpacity 
+                            style={tw`${isDarkMode ? 'bg-darkMint' : 'bg-mint'} rounded-full p-3 mr-3`} 
+                            onPress={onSave}
+                        >
+                            <Ionicons name="checkmark" size={theme.fontSize.xl2 * fontScale} color={theme.colors.textPrimary} />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.cancelButton} onPress={handleCloseSheet}>
-                            <Ionicons name="close" size={24} color="white" />
+                        <TouchableOpacity 
+                            style={tw`${isDarkMode ? 'bg-darkCinnabar' : 'bg-cinnabar'} rounded-full p-3`} 
+                            onPress={handleCloseSheet}
+                        >
+                            <Ionicons name="close" size={theme.fontSize.xl2 * fontScale} color={theme.colors.white} />
                         </TouchableOpacity>
                     </View>
                 </BottomSheetScrollView>
@@ -106,62 +152,3 @@ const SubtaskBottomSheet = ({
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    overlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-    },
-    content: {
-        padding: 20,
-        paddingBottom: 30,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        marginTop: 10,
-    },
-    inputRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 20,
-        borderRadius: 5,
-        backgroundColor: '#fff'
-    },
-    button: {
-        backgroundColor: '#007bff',
-        padding: 10,
-        marginBottom: 20,
-        borderRadius: 5,
-    },
-    buttonText: {
-        color: '#fff',
-        textAlign: 'center',
-    },
-    actions: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        marginBottom: 20,
-    },
-    saveButton: {
-        backgroundColor: '#28a745',
-        borderRadius: 30,
-        padding: 10,
-        marginLeft: 10,
-    },
-    cancelButton: {
-        backgroundColor: '#dc3545',
-        borderRadius: 30,
-        padding: 10,
-        marginLeft: 10,
-    },
-});
-
-export default SubtaskBottomSheet;

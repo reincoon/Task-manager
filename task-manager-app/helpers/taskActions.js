@@ -19,25 +19,16 @@ export async function fetchTaskDetails(userId, taskId) {
     const data = taskSnapshot.data();
 
     // Convert main dueDate to Date object
-    // let mainDueDate = new Date(data.dueDate);
     let mainDueDate = safeDate(data.dueDate);
-    // if (isNaN(mainDueDate.getTime())) {
-    //     mainDueDate = new Date();
-    // }
 
     // Convert each subtask's dueDate to Date object
     let fetchedSubtasks = data.subtasks || [];
     fetchedSubtasks = fetchedSubtasks.map(subtask => {
-        // let validDueDate = new Date(subtask.dueDate);
         let validDueDate = safeDate(subtask.dueDate);
-        // if (isNaN(validDueDate.getTime())) {
-        //     // Default to main task's dueDate if subtask dueDate is invalid
-        //     validDueDate = mainDueDate;
-        // }
+
         return {
             ...subtask,
             dueDate: validDueDate,
-            // createdAt: subtask.createdAt ? new Date(subtask.createdAt) : mainDueDate,
             createdAt: subtask.createdAt ? safeDate(subtask.createdAt) : mainDueDate,
         };
     }); 
@@ -60,7 +51,6 @@ export async function fetchTaskDetails(userId, taskId) {
 // Create a new task in Firestore, schedule notification, handle attachments
 export async function createTask({
     userId,
-    // db,
     currentTask,
     setTaskId,
     setOriginalTask,
@@ -75,7 +65,6 @@ export async function createTask({
         const subtasksForDb = subtasks.map(subtask => ({
             ...subtask,
             dueDate: subtask.dueDate.toISOString(),
-            // createdAt: subtask.createdAt ? subtask.createdAt.toISOString() : new Date().toISOString(),
         }));
 
         // Prepare attachments for Firestore
@@ -163,9 +152,7 @@ export async function createTask({
         setOriginalAttachments(attachmentsForDb);
         setDeletedAttachments([]);
         setAddedAttachments([]);
-
     } catch (error) {
-        console.error('Error creating task:', error);
         Alert.alert('Error', 'Failed to create task.');
         throw error;
     }
@@ -175,7 +162,6 @@ export async function createTask({
 export async function saveTask({
     userId,
     taskId,
-    // db,
     originalTask,
     currentTask,
     deletedAttachments,
@@ -248,8 +234,6 @@ export async function saveTask({
         // Convert subtasks' dueDates to ISO strings for Firestore
         updatedSubtasks = updatedSubtasks.map(s => ({
             ...s,
-            // dueDate: s.dueDate.toISOString(),
-            // dueDate: new Date(s.dueDate).toISOString(),
             dueDate: s.dueDate instanceof Date ? s.dueDate.toISOString() : s.dueDate,
         }));
 
@@ -265,7 +249,6 @@ export async function saveTask({
         await updateDoc(taskDocRef, {
             title: title,
             notes: notes.trim() || null,
-            // dueDate: dueDate.toISOString(),
             dueDate: new Date(dueDate).toISOString(),
             notification: notification,
             priority: priority,
@@ -305,7 +288,6 @@ export async function deleteTask(userId, task, navigation, shouldNavigateBack = 
         }
         // Cancel to-do list notifications
         if (task.notificationId) {
-            console.log(`Canceling main task notification: ${task.notificationId}`);
             await cancelTaskNotification(task.notificationId);
         }
 
@@ -313,7 +295,6 @@ export async function deleteTask(userId, task, navigation, shouldNavigateBack = 
         if (task.subtasks) {
             task.subtasks.forEach(async (subtask, index) => {
                 if (subtask.notificationId) {
-                    console.log(`Canceling subtask ${index} notification: ${subtask.notificationId}`);
                     await cancelTaskNotification(subtask.notificationId);
                 } else {
                     console.log(`Subtask ${index} has no notificationId`);
@@ -335,7 +316,6 @@ export async function deleteTask(userId, task, navigation, shouldNavigateBack = 
 
         // Finally delete from Firestore
         const taskDocRef = doc(db, `tasks/${userId}/taskList`, task.id);
-        // const taskDocRef = doc(db, `projects/${userId}/userProjects/${task.projectId}/tasks`, task.id);
         await deleteDoc(taskDocRef);
 
         // Navigate back
@@ -343,7 +323,6 @@ export async function deleteTask(userId, task, navigation, shouldNavigateBack = 
             navigation.goBack();
         }
     } catch (error) {
-        console.error('Error deleting task:', error);
         Alert.alert('Error', 'Failed to delete task.');
         throw error;
     }
@@ -387,7 +366,6 @@ export async function cancelTaskChanges({
         setPriority(originalTask.priority);
         setSubtasks(originalTask.subtasks);
     } catch (error) {
-        console.error("Error cancelling changes:", error);
         Alert.alert('Error', 'Failed to cancel task editing.');
         throw error;
     }
@@ -397,7 +375,6 @@ export async function cancelTaskChanges({
 export async function deleteSubtask({
     userId,
     taskId,
-    // db,
     subtasks,
     index,
     setSubtasks,
@@ -425,7 +402,6 @@ export async function deleteSubtask({
         // Update local state
         setSubtasks(updatedSubtasks);
     } catch (error) {
-        console.error('Error deleting subtask:', error);
         Alert.alert('Error', 'Failed to delete subtask.');
         throw error;
     }
@@ -435,7 +411,6 @@ export async function deleteSubtask({
 export async function addTaskToCalendar({
     userId,
     taskId,
-    // db,
     taskTitle,
     dueDate,
     setTaskNotificationId,
@@ -451,7 +426,6 @@ export async function addTaskToCalendar({
         const existingEventId = data.eventId;
 
         const doAddEvent = async () => {
-            console.log('[addTaskToCalendar] about to add event =>', { taskTitle, dueDate });
             const eventId = await addEventToCalendar(taskTitle, dueDate, `Task: ${taskTitle} due at ${dueDate.toLocaleString()}`, true);
             if (eventId) {
                 await updateDoc(taskDocRef, { eventId });
@@ -467,7 +441,6 @@ export async function addTaskToCalendar({
             await doAddEvent();
         }
     } catch (error) {
-        console.error('Error adding task to calendar:', error);
         Alert.alert('Error', 'Failed to add task to calendar.');
         throw error;
     }
@@ -477,7 +450,6 @@ export async function addTaskToCalendar({
 export async function addSubtaskToCalendar({
     userId,
     taskId,
-    // db,
     subtask,
     index,
     setSubtasks,
@@ -494,7 +466,6 @@ export async function addSubtaskToCalendar({
         let updatedSubtasks = data.subtasks || [];
 
         const doAddSubtaskEvent = async () => {
-            console.log('[addSubtaskToCalendar] about to add subtask =>', subtask);
             const eventId = await addEventToCalendar(subtask.title, subtask.dueDate, `Subtask: ${subtask.title}`, true);
             if (eventId) {
                 updatedSubtasks[index] = {
@@ -524,7 +495,6 @@ export async function addSubtaskToCalendar({
             await doAddSubtaskEvent();
         }
     } catch (error) {
-        console.error('Error adding subtask to calendar:', error);
         Alert.alert('Error', 'Failed to add subtask to calendar.');
         throw error;
     }

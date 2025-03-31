@@ -1,4 +1,5 @@
-import { PRIORITIES } from './priority';
+import { PRIORITIES } from './constants';
+import { theme } from '../twrnc';
 
 // Format a duration given in hours as "Xd Yh Zm"
 export function formatDuration(hours) {
@@ -62,11 +63,6 @@ export function computeStatistics(tasks, projects, filters) {
     if (filters.selectedProject === "All") {
         projects.forEach(project => {
             const projectTasks = filteredTasks.filter(task => task.projectId === project.id);
-            // totalProjects++;
-            // // Completed project is if it has at least one task and all its tasks are closed
-            // if (projectTasks.length > 0 && projectTasks.every(task => task.taskCompletedAt !== null)) {
-            //     completedProjects++;
-            // }
             if (projectTasks.length > 0) {
                 totalProjects++;
                 if (projectTasks.every(task => task.taskCompletedAt !== null)) {
@@ -83,9 +79,6 @@ export function computeStatistics(tasks, projects, filters) {
         // Filtering by a single project
         totalProjects = 1;
         const projectTasks = filteredTasks.filter(task => task.projectId === filters.selectedProject);
-        // if (projectTasks.length > 0 && projectTasks.every(task => task.taskCompletedAt !== null)) {
-        //     completedProjects = 1;
-        // }
         if (projectTasks.length > 0 && projectTasks.every(task => task.taskCompletedAt !== null)) {
             completedProjects = 1;
             const minCreatedAt = new Date(Math.min(...projectTasks.map(task => task.createdAt.getTime())));
@@ -114,7 +107,6 @@ export function computeStatistics(tasks, projects, filters) {
         avgTaskCompletionTime: formatDuration(avgTaskCompletionTime),
         totalSubtasks,
         closedSubtasks,
-        // avgSubtaskCompletionTime: avgSubtaskCompletionTime.toFixed(2),
         avgProjectCompletionTime: formatDuration(avgProjectCompletionTime),
         unassignedOpenTasks,
     };
@@ -176,14 +168,14 @@ export function prepareSubtasksOpenVsClosedData(tasks, filters) {
         {
             name: "Closed",
             population: closed,
-            color: "#2ecc71",
+            color: theme.colors.greenCyan,
             legendFontColor: "#7F7F7F",
             legendFontSize: 12,
         },
         {
             name: "Open",
             population: open,
-            color: "#e74c3c",
+            color: theme.colors.cinnabar,
             legendFontColor: "#7F7F7F",
             legendFontSize: 12,
         }
@@ -209,14 +201,14 @@ export function prepareProjectsOpenVsClosedData(projects, tasks, filters) {
         {
             name: "Closed",
             population: closedProjects,
-            color: "#2ecc71",
+            color: theme.colors.greenCyan,
             legendFontColor: "#7F7F7F",
             legendFontSize: 12,
         },
         {
             name: "Open",
             population: openProjects,
-            color: "#e74c3c",
+            color: theme.colors.cinnabar,
             legendFontColor: "#7F7F7F",
             legendFontSize: 12,
         }

@@ -1,6 +1,5 @@
 // Helpers for uploading files to Supabase Storage (private bucket) and getting a signed URL
 // Helpers for downloading from Supabase to local filesystem, if user wants offline usage
-import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { Alert } from 'react-native';
 import { supabase } from '../supabaseClient';
@@ -45,39 +44,9 @@ const getMimeTypeFromFileName = (fileName) => {
 // Pick a file, upload to 'attachments' bucket in Supabase, return metadata to store in Firestore
 export const uploadFileToSupabase = async (localUri, providedName) => {
     try {
-        // // Pick a file
-        // const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
-        // if (result.canceled) {
-        //     return null;
-        // }
-
-        // const asset = result.assets && result.assets.length > 0 ? result.assets[0] : null;
-        // if (!asset) {
-        //     Alert.alert('Error', 'No file selected.');
-        //     return null;
-        // }
-
-        // const { name, uri } = asset;
-        // let { mimeType } = asset;
-
-        // if (!uri) {
-        //     Alert.alert('Error', 'No file found.');
-        //     return null;
-        // }
-
-        // // If mimeType is missing, infer from extension
-        // if (!mimeType) {
-        //     mimeType = getMimeTypeFromFileName(name);
-        //     console.log(`Inferred mimeType: ${mimeType} for file: ${name}`);
-        // }
-
         // Guess extension from provided name
         const name = providedName || ('file_' + uuidv4());
         let mimeType = getMimeTypeFromFileName(name);
-
-        // // Convert file to a blob
-        // const fileResponse = await fetch(localUri);
-        // const fileBlob = await fileResponse.blob();
 
         // Read the file as a base64 string
         const base64 = await FileSystem.readAsStringAsync(localUri, {
@@ -97,11 +66,9 @@ export const uploadFileToSupabase = async (localUri, providedName) => {
             });
 
         if (uploadError) {
-            console.error('Supabase Upload Error:', uploadError);
             Alert.alert('Supabase Upload Error', uploadError.message);
             return null;
         }
-        console.log('Upload success to Supabase: ', uploadData);
 
         // Generate a signed URL for the file that expires in 72 hours
         const { data: signedData, error: signedError } = await supabase.storage
@@ -109,12 +76,10 @@ export const uploadFileToSupabase = async (localUri, providedName) => {
             .createSignedUrl(uniqueFileName, 60 * 60 * 72);
 
         if (signedError) {
-            console.error('Signed URL Error:', signedError);
             Alert.alert('Signed URL error', signedError.message);
             return null;
         }
         const signedUrl = signedData.signedUrl;
-        console.log('Signed URL: ', signedUrl);
 
         // Return an object with metadata
         return {
@@ -124,7 +89,6 @@ export const uploadFileToSupabase = async (localUri, providedName) => {
             signedUrl, // link to access the file
         };
     } catch (error) {
-        console.log('Error in pickAndUploadFileToSupabase:', error);
         Alert.alert('Error', 'Something went wrong picking or uploading the file.');
         return null;
     }
@@ -138,12 +102,10 @@ export const getSignedUrlFromSupabase = async (supabaseKey) => {
             .createSignedUrl(supabaseKey, 60 * 60 * 72);
         
         if (error) {
-            console.log('Error creating signed URL:', error);
             return null;
         }
         return data.signedUrl;
     } catch (err) {
-        console.log('Error in getSignedUrlFromSupabase:', err);
         return null;
     }
 };
@@ -155,14 +117,11 @@ export const removeFileFromSupabase = async (supabaseKey) => {
             .from('attachments')
             .remove([supabaseKey]);
         if (error) {
-            console.log('Supabase remove error:', error);
             Alert.alert('Supabase Remove Error', error.message);
             return false;
         }
-        console.log('Removed from Supabase:', data);
         return true;
     } catch (err) {
-        console.log('Error removing file from Supabase:', err);
         Alert.alert('Error', 'Failed to remove the file from storage.');
         return false;
     }
@@ -190,7 +149,6 @@ export const downloadFileFromSupabase = async (supabaseKey, localFileName = null
         // local path
         return uri;
     } catch (err) {
-        console.log('downloadFileFromSupabase error:', err);
         return null; 
     }
 };

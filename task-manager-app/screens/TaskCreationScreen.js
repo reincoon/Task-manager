@@ -1,4 +1,4 @@
-import { SafeAreaView, View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { SafeAreaView, View, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import NotificationPicker from '../components/NotificationPicker';
 import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
@@ -6,10 +6,14 @@ import { NOTIFICATION_OPTIONS } from '../helpers/constants';
 import DateTimeSelector from '../components/DateTimeSelector';
 import SubtaskList from '../components/SubtaskList';
 import AttachmentsList from '../components/AttachmentsList';
-import { addAttachmentOfflineAndOnline, removeAttachment, deleteAllAttachmentsFromSupabase } from '../helpers/attachmentHelpers';
+import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/attachmentHelpers';
 import ColourPicker from '../components/ColourPicker';
 import SpeechToTextButton from '../components/SpeechToTextButton';
 import { useTaskCreation } from '../hooks/useTaskCreation';
+import tw, { theme } from '../twrnc';
+import { useTheme } from '../helpers/ThemeContext';
+import ThemedText from '../components/ThemedText';
+import PrioritySegmentedControl from '../components/PrioritySegmentedControl';
 
 export default function TaskCreationScreen ({ navigation }) {
     const {
@@ -45,43 +49,89 @@ export default function TaskCreationScreen ({ navigation }) {
         addSubtaskToCalendarHandler,
         handleCancel,
     } = useTaskCreation(navigation);
+
+    const { isDarkMode, fontScale } = useTheme();
+
+    // Colours
+    const screenBg = isDarkMode ? theme.colors.darkBg : theme.colors.light;
+    const headerColour = isDarkMode ? theme.colors.darkBg : theme.colors.white;
+    const inputBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.white;
+    const inputTextColour = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
     
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[tw`flex-1 p-5`, { backgroundColor: screenBg }]}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={handleCancel} disabled={isCancelling || isUploadingAttachment}>
-                    <Ionicons name="arrow-back" size={24} color="black" />
+            <View 
+                style={[
+                    tw`flex-row items-center border-b border-darkTextSecondary px-4 py-3`, 
+                    { 
+                        backgroundColor: headerColour 
+                    }
+                ]}
+            >
+                {/* Back button / Cancel */}
+                <TouchableOpacity 
+                    onPress={handleCancel} 
+                    disabled={isCancelling || isUploadingAttachment} 
+                    style={tw`mr-3`}
+                >
+                    <Ionicons name="arrow-back" size={theme.fontSize.xl2 * fontScale} color={inputTextColour} />
                 </TouchableOpacity>
-                <Text style={styles.title}>Create To-Do List</Text>
+                {/* Title */}
+                <ThemedText variant="xl2" fontFamily="poppins-bold" style={tw`flex-1 text-center`}>
+                    Create To-Do List
+                </ThemedText>
+                {/* Save button */}
                 <TouchableOpacity 
                     onPress={handleSaveTask}
                     disabled={isSaving || isUploadingAttachment}
+                    style={tw`ml-3`}
                 >
-                    <Ionicons name="save" size={24} color="black" />
+                    <Ionicons name="save" size={theme.fontSize.xl2 * fontScale} color={isDarkMode ? theme.colors.darkMint : theme.colors.greenCyan} />
                 </TouchableOpacity>
             </View>
 
             {/* Main to-do list form */}
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                indicatorStyle={isDarkMode ? 'white' : 'black'}
+                contentContainerStyle={tw`px-6 py-6 pb-16`}
+                keyboardShouldPersistTaps="handled"
+            >
                 {/* Title */}
-                <View style={styles.titleContainer}>
+                <View style={tw`flex-row items-center mb-4`}>
                     <TextInput
-                        style={styles.input}
+                        style={[
+                            tw`flex-1 border px-3 py-2 rounded-lg border-darkTextSecondary`, 
+                            {
+                                backgroundColor: inputBg,
+                                color: inputTextColour,
+                                fontSize: theme.fontSize.base * fontScale,
+                            }
+                        ]}
                         value={taskTitle}
                         onChangeText={setTaskTitle}
                         placeholder="To-Do List Title"
+                        placeholderTextColor={isDarkMode ? theme.colors.gray : theme.colors.darkTextSecondary}
                     />
                     {/* Microphone button */}
                     <SpeechToTextButton onTranscribedText={(text) => setTaskTitle(text)}/>
                 </View>
                 {/* Notes */}
-                <View style={styles.notesContainer}>
+                <View style={tw`flex-row items-start mb-5`}>
                     <TextInput
-                        style={[styles.input, styles.notesInput, { flex: 1, marginRight: 10 }]}
+                        style={[
+                            tw`flex-1 border px-3 py-2 rounded-lg h-32 border-darkTextSecondary`,
+                            {
+                                backgroundColor: inputBg,
+                                color: inputTextColour,
+                                fontSize: theme.fontSize.base * fontScale,
+                                textAlignVertical: 'top',
+                            }
+                        ]}
                         value={notes}
                         onChangeText={setNotes}
                         placeholder="Notes"
+                        placeholderTextColor={isDarkMode ? theme.colors.gray : theme.colors.darkTextSecondary}
                         multiline
                     />
                     <SpeechToTextButton
@@ -90,55 +140,90 @@ export default function TaskCreationScreen ({ navigation }) {
                 </View>
                 
 
-                {/* Color Picker */}
-                <View style={{ marginBottom: 20 }}>
-                    <Text style={{ marginBottom: 10, fontWeight: '600' }}>Category Colour:</Text>
+                {/* Colour Picker */}
+                <View style={tw`mb-3`}>
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                        Category Colour:
+                    </ThemedText>
                     <ColourPicker
                         selectedColour={selectedColour}
                         onSelectColour={setSelectedColour}
                     />
                 </View>
 
-                {/* Due date selector */}
-                <DateTimeSelector date={dueDate} onDateChange={setDueDate} />
-
-                {/* Notification picker */}
-                <View style={{ marginBottom: 20 }}>
-                    <Text style={{ marginBottom: 10, fontWeight: '600' }}>Reminder:</Text>
-                    <NotificationPicker
-                        selectedValue={notification}
-                        onValueChange={setNotification}
-                        options={NOTIFICATION_OPTIONS}
+                <View style={tw`mb-1 flex-row`}>
+                    {/* Due date selector */}
+                    <View style={tw`flex-2 mr-2 mb-5`}>
+                        <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                            Due Date:
+                        </ThemedText>
+                        <DateTimeSelector date={dueDate} onDateChange={setDueDate} />
+                    </View>
+                    {/* Notification picker */}
+                    <View style={tw`flex-1 ml-2 mb-5`}>
+                        <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                            Reminder:
+                        </ThemedText>
+                        <View 
+                            style={[
+                                tw`rounded-lg border border-darkTextSecondary`,
+                                { backgroundColor: inputBg }
+                            ]}
+                        >
+                            <NotificationPicker
+                                selectedValue={notification}
+                                onValueChange={setNotification}
+                                options={NOTIFICATION_OPTIONS}
+                            />
+                        </View>
+                    </View>
+                </View>
+                
+                {/* Add to-do list to calendar */}
+                <TouchableOpacity
+                    style={tw`mb-6 flex-row items-center justify-center p-3 rounded-lg bg-gold`}
+                    onPress={addMainTaskToCalendar}
+                >
+                    <Ionicons name="calendar-outline" size={theme.fontSize.xl * fontScale} color={theme.colors.textPrimary} style={tw`mr-2`} />
+                    <ThemedText variant="base" fontFamily="poppins-semibold" color={theme.colors.textPrimary}>
+                        Add To-Do List to Calendar
+                    </ThemedText>
+                </TouchableOpacity>
+                
+                {/* Priority button */}
+                <View style={tw`mb-4`}>
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                        Priority:
+                    </ThemedText>
+                    <PrioritySegmentedControl
+                        selectedPriority={priority}
+                        onSelectPriority={(val) => setPriority(val)}
                     />
                 </View>
 
-                {/* Priority button */}
-                <TouchableOpacity 
-                    style={styles.button}
-                    onPress={() => setPriority(priority)}
-                >
-                    <Text style={styles.buttonText}>Priority: {priority}</Text>
-                </TouchableOpacity>
-
                 {/* Add subtask button */}
-                <TouchableOpacity
-                    style={[styles.button, { backgroundColor: '#28a745' }]}
-                    onPress={() => {
-                        setShowSubtaskForm(true);
-                        setCurrentSubtask({
-                            title: '',
-                            dueDate: new Date(),
-                            priority: 'Low',
-                            reminder: 'None',
-                            isRecurrent: false,
-                            notificationId: null,
-                            eventId: null,
-                        });
-                    }}
-                >
-                    <Ionicons name="add-circle-outline" size={20} color="white" />
-                    <Text style={styles.buttonText}>Add Subtask</Text>
-                </TouchableOpacity>
+                <View style={tw`mb-4`}>
+                    <TouchableOpacity
+                        style={tw`flex-row items-center justify-center bg-greenCyan p-3 rounded-lg`}
+                        onPress={() => {
+                            setShowSubtaskForm(true);
+                            setCurrentSubtask({
+                                title: '',
+                                dueDate: new Date(),
+                                priority: 'Low',
+                                reminder: 'None',
+                                isRecurrent: false,
+                                notificationId: null,
+                                eventId: null,
+                            });
+                        }}
+                    >
+                        <Ionicons name="add-circle-outline" size={theme.fontSize.xl * fontScale} color={theme.colors.white} style={tw`mr-2`} />
+                        <ThemedText variant="base" fontFamily="poppins-semibold" color={theme.colors.white}>
+                            Add Subtask
+                        </ThemedText>
+                    </TouchableOpacity>
+                </View>
 
                 {/* Subtasks list */}
                 <SubtaskList 
@@ -151,19 +236,11 @@ export default function TaskCreationScreen ({ navigation }) {
                     }}
                     onAddSubtaskToCalendar={(subtask, idx) => addSubtaskToCalendarHandler(subtask, idx)}
                 />
-                {/* Add to-do list to calendar */}
-                <TouchableOpacity
-                    style={[styles.button, { backgroundColor: '#FFA726' }]}
-                    onPress={addMainTaskToCalendar}
-                >
-                    <Ionicons name="calendar-outline" size={20} color="white" />
-                    <Text style={styles.buttonText}>Add To-Do List to Calendar</Text>
-                </TouchableOpacity>
+                
                 {/* Attachments list*/}
                 <AttachmentsList 
                     attachments={attachments}
                     setAttachments={setAttachments}
-                    // onAddAttachment={handleAddAttachment}
                     onAddAttachment={() =>
                         addAttachmentOfflineAndOnline({
                             attachments,
@@ -195,57 +272,3 @@ export default function TaskCreationScreen ({ navigation }) {
         </SafeAreaView>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-        backgroundColor: '#fff',
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    titleContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 20,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        padding: 16,
-    },
-    notesContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 20,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 20,
-        borderRadius: 5,
-    },
-    notesInput: {
-        height: 80,
-        textAlignVertical: 'top',
-    },
-    button: {
-        backgroundColor: '#007bff',
-        padding: 10,
-        marginHorizontal: 20,
-        marginBottom: 20,
-        borderRadius: 5,
-    },
-    buttonText: {
-        color: '#fff',
-        textAlign: 'center',
-    },
-});
-
-// export default TaskCreationScreen;

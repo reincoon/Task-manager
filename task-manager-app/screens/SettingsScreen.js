@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, SafeAreaView, ActivityIndicator } from 'react-native';
 import { auth } from '../firebaseConfig';
 import { handleLogOut, handleDeleteAccount, handleSaveName, handleCancelEdit, handleChangePassword } from '../helpers/authFunctions';
 import EditNameForm from '../components/EditNameForm';
 import GuestView from '../components/GuestView';
+import ThemeToggle from '../components/ThemeToggle';
+import tw, { theme } from '../twrnc';
+import ActionButton from '../components/ActionButton';
+import Slider from '@react-native-community/slider';
+import { useTheme } from '../helpers/ThemeContext';
+import ThemedText from '../components/ThemedText';
+import SettingsStatsHeader from '../components/SettingsStatsHeader';
 
 const SettingsScreen = ({ navigation }) => {
     const [user, setUser] = useState(null);
@@ -11,6 +18,7 @@ const SettingsScreen = ({ navigation }) => {
     const [isEditingName, setIsEditingName] = useState(false);
     const [isAnonymous, setIsAnonymous] = useState(false);
     const [loading, setLoading] = useState(false);
+    const { isDarkMode, toggleTheme, fontScale, setFontScale } = useTheme();
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -29,38 +37,80 @@ const SettingsScreen = ({ navigation }) => {
     }, []);
 
     return (
-        <SafeAreaView style={styles.container}>
-            <Text style={styles.title}>Settings</Text>
+        <SafeAreaView style={tw`${isDarkMode ? 'bg-darkBg' : 'bg-light'} flex-1 p-5`}>
+            {/* Header component */}
+            <SettingsStatsHeader title="Settings" icon="settings-outline" />
+            
             {loading ? (
-                <ActivityIndicator size="large" color="blue" />
+                <ActivityIndicator size="large" color={theme.colors.sky} />
             ) : user ? (
                 <>
-                    <View style={styles.userInfoContainer}>
-                        <Text style={styles.userInfo}>Email: {isAnonymous ? 'Guest' : user.email}</Text>
-                        {isAnonymous ? (
-                            <GuestView
-                                onLogIn={() => navigation.navigate('Login')}
-                                onSignUp={() => navigation.navigate('SignUp')}
-                            />
-                        ) : isEditingName ? (
-                            <EditNameForm
-                                name={name}
-                                setName={setName}
-                                handleSaveName={() => handleSaveName(auth, name, setIsEditingName)}
-                                handleCancelEdit={() =>
-                                    handleCancelEdit(setName, user?.displayName, setIsEditingName)
-                                }
-                            />
-                        ) : (
-                            <>
-                                <Text style={styles.userInfo}>Name: {user.displayName || 'N/A'}</Text>
-                                <Button title="Edit Name" onPress={() => setIsEditingName(true)} color="blue" />
-                                <Button title="Change Password" onPress={() => handleChangePassword(navigation)} color="blue" />
-                                <Button title="Log Out" onPress={() => handleLogOut(auth, setLoading, setUser, setName, setIsAnonymous, navigation, setTasks = () => {})} color="orange" />
-                                <Button title="Delete Account" onPress={() => handleDeleteAccount(auth, setLoading, setUser, setName, setIsAnonymous, navigation)} color="red" />
-                            </>
+                    {/* Account Info Card */}
+                    <View 
+                        style={[
+                            tw`p-5 rounded-xl shadow-lg mb-6 self-center w-4/5`,
+                            {
+                                backgroundColor: isDarkMode ? theme.colors.darkBg : theme.colors.white,
+                                borderColor: isDarkMode ? theme.colors.darkTextSecondary : theme.colors.white,
+                                shadowColor: isDarkMode ? theme.colors.darkSky : theme.colors.darkForest,
+                                borderWidth: 0.5,
+                            },
+                        ]}
+                    >
+                        <ThemedText variant="xl" fontFamily="inter-var" style={tw`mb-2 text-center`}>
+                            Account Info
+                        </ThemedText>
+                        <ThemedText fontFamily="roboto-var" style={tw`mb-1 text-center`}>
+                            Email: {isAnonymous ? 'Guest' : user.email}
+                        </ThemedText>
+
+                        {!isAnonymous && !isEditingName && (
+                            <ThemedText fontFamily="roboto-var" style={tw`mb-1 text-center`}>
+                                Name: {user.displayName || 'N/A'}
+                            </ThemedText>
                         )}
                     </View>
+                    {isAnonymous ? (
+                        <GuestView
+                            onLogIn={() => navigation.navigate('Login')}
+                            onSignUp={() => navigation.navigate('SignUp')}
+                        />
+                    ) : isEditingName ? (
+                        <EditNameForm
+                            name={name}
+                            setName={setName}
+                            handleSaveName={() => handleSaveName(auth, name, setIsEditingName)}
+                            handleCancelEdit={() =>
+                                handleCancelEdit(setName, user?.displayName, setIsEditingName)
+                            }
+                        />
+                    ) : (
+                        <>
+                            <View style={tw`mb-6`}>
+                                <View style={tw`flex-row justify-between px-2`}>
+                                    <ActionButton 
+                                        title="Edit Name" 
+                                        onPress={() => setIsEditingName(true)} 
+                                        bgColor={theme.colors.mint} 
+                                        shadowColor={theme.colors.forest} 
+                                        iconName="pencil-outline" 
+                                        textColor={theme.colors.textPrimary}
+                                        width="49%"
+                                    />
+                                    <ActionButton 
+                                        title="Log Out" 
+                                        onPress={() => handleLogOut(auth, setLoading, setUser, setName, setIsAnonymous, navigation, setTasks = () => {})} 
+                                        bgColor={theme.colors.evergreen} 
+                                        shadowColor={theme.colors.darkMint} 
+                                        iconName="log-out-outline" 
+                                        textColor={theme.colors.white}
+                                        width="49%"
+                                    />
+                                </View>
+                                
+                            </View>
+                        </>
+                    )}
                 </>
             ) : (
                 <GuestView
@@ -68,27 +118,57 @@ const SettingsScreen = ({ navigation }) => {
                     onSignUp={() => navigation.navigate('SignUp')}
                 />
             )}
+
+            {/* Theme toggle */}
+            <View style={tw`mt-4`}>
+                <ThemeToggle isDark={isDarkMode} onToggle={toggleTheme} />
+            </View>
+            {/* Font Size Slider */}
+            <View style={tw`mb-6`}>
+                <ThemedText 
+                    style={tw`mb-2 font-roboto-var text-center`}
+                >
+                    Font Size: {Math.round(theme.fontSize.base * fontScale)}px
+                </ThemedText>
+                <Slider
+                    style={{ width: '90%', height: 40, alignSelf: 'center' }}
+                    minimumValue={0.8}
+                    maximumValue={1.5}
+                    step={0.1}
+                    value={fontScale}
+                    onValueChange={(value) => setFontScale(value)}
+                    minimumTrackTintColor={theme.colors.evergreen}
+                    maximumTrackTintColor={theme.colors.darkTextSecondary}
+                    thumbTintColor={theme.colors.mint}
+                />
+            </View>
+
+            {!isAnonymous && (
+                <View style={tw`mt-8 px-5`}>
+                    <View style={tw`flex-row justify-between`}>                       
+                        <ActionButton 
+                            title="Delete Account" 
+                            onPress={() => handleDeleteAccount(auth, setLoading, setUser, setName, setIsAnonymous, navigation)} 
+                            bgColor={theme.colors.darkCinnabar} 
+                            shadowColor={theme.colors.darkCinnabar} 
+                            iconName="trash-outline"
+                            textColor={theme.colors.white}
+                            width="49%"
+                        />
+                        <ActionButton 
+                            title="Change Password" 
+                            onPress={() => handleChangePassword(navigation)} 
+                            bgColor={theme.colors.sky} 
+                            shadowColor={theme.colors.evergreen} 
+                            iconName="key-outline"
+                            textColor={theme.colors.textPrimary}
+                            width="49%"
+                        />
+                    </View>
+                </View>
+            )}           
         </SafeAreaView>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-    },
-    title: {
-        fontSize: 24,
-        marginBottom: 20,
-        textAlign: 'center',
-    },
-    userInfoContainer: {
-        marginBottom: 20,
-    },
-    userInfo: {
-        fontSize: 16,
-        marginBottom: 10,
-    },
-});
 
 export default SettingsScreen;

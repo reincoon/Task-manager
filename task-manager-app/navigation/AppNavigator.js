@@ -1,7 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import TaskCreationScreen from '../screens/TaskCreationScreen';
 import TaskDetailsScreen from '../screens/TaskDetailsScreen';
@@ -10,6 +9,9 @@ import StatisticsScreen from '../screens/StatisticsScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import { useTheme } from '../helpers/ThemeContext';
+import tw, { theme } from '../twrnc';
+import NavigationIcon from '../components/NavigationICon';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -24,7 +26,7 @@ const HomeStack = () => (
 
 const SettingsStack = () => (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false, gestureDirection: 'horizontal-inverted' }} />
         <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Log In' }} />
         <Stack.Screen name="SignUp" component={SignUpScreen} options={{ title: 'Sign Up' }} />
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} option={{ title: 'Change Password' }} />
@@ -32,26 +34,21 @@ const SettingsStack = () => (
 );
 
 const AppNavigator = () => {
+    const { isDarkMode } = useTheme();
     return (
         <NavigationContainer>
             <Tab.Navigator 
                 screenOptions={({ route }) => ({
                     tabBarIcon: ({ color, size }) => {
-                        let iconName;
-                        if (route.name === 'HomeStack') iconName = 'home-outline';
-                        // if (route.name === 'Calendar') iconName = 'calendar-outline';
-                        if (route.name === 'SettingsStack') iconName = 'settings-outline';
-                        if (route.name === 'Statistics') iconName = 'stats-chart-outline';
-                        return <Ionicons name={iconName} size={size} color={color} />;
+                        return <NavigationIcon routeName={route.name} color={color} size={size} />
                     },
-                    tabBarActiveTintColor: 'blue',
-                    tabBarInactiveTintColor: 'gray',
+                    tabBarActiveTintColor: isDarkMode ? theme.colors.darkMint : theme.colors.teal,
+                    tabBarInactiveTintColor: isDarkMode ? theme.colors.darkTextSecondary : theme.colors.gray,
+                    tabBarStyle: tw`border-t border-darkTextSecondary ${isDarkMode ? 'bg-darkBg' : 'bg-white'}`,
                     headerShown: false,
                 })}
             >
                 <Tab.Screen name="HomeStack" component={HomeStack} options={{ title: 'Home' }} />
-                {/* <Tab.Screen name="Create Task" component={TaskCreationScreen} />
-                <Tab.Screen name="Task Details" component={TaskDetailsScreen} /> */}
                 <Tab.Screen name="Statistics" component={StatisticsScreen} />
                 <Tab.Screen name="SettingsStack" component={SettingsStack} options={{ title: 'Settings' }} />
             </Tab.Navigator>

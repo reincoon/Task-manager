@@ -1,4 +1,4 @@
-import { SafeAreaView, View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { SafeAreaView, View, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import NotificationPicker from '../components/NotificationPicker';
 import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
@@ -8,10 +8,12 @@ import AttachmentsList from '../components/AttachmentsList';
 import SpeechToTextButton from '../components/SpeechToTextButton';
 import ColourPicker from '../components/ColourPicker';
 import { useTaskDetails } from '../hooks/useTaskDetails';
-
+import tw, { theme } from '../twrnc';
+import { useTheme } from '../helpers/ThemeContext';
+import ThemedText from '../components/ThemedText';
 import { NOTIFICATION_OPTIONS } from '../helpers/constants';
-import { cyclePriority } from '../helpers/priority';
 import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/attachmentHelpers';
+import PrioritySegmentedControl from '../components/PrioritySegmentedControl';
 
 export default function TaskDetailsScreen({ route, navigation }) {
     const { taskId } = route.params;
@@ -69,10 +71,17 @@ export default function TaskDetailsScreen({ route, navigation }) {
         addSubtaskToCalendarHandler,
     } = useTaskDetails(taskId, navigation);
     
+    const { isDarkMode, fontScale } = useTheme();
+
+    const screenBg = isDarkMode ? theme.colors.darkBg : theme.colors.light;
+    const headerBg = isDarkMode ? theme.colors.darkBg : theme.colors.white;
+    const inputBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.white;
+    const inputTextColour = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
+
     if (loading) {
         return (
-            <SafeAreaView style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#007bff" />
+            <SafeAreaView style={tw`flex-1 justify-center items-center`}>
+                <ActivityIndicator size="large" color={theme.colors.mint} />
             </SafeAreaView>
         );
     }
@@ -82,138 +91,201 @@ export default function TaskDetailsScreen({ route, navigation }) {
     const progress = totalSubtasks > 0 ? (completedCount / totalSubtasks) * 100 : 0;
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[tw`flex-1 p-5`, { backgroundColor: screenBg }]}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={handleCancel} disabled={isUploadingAttachment}>
-                    <Ionicons name="arrow-back" size={24} color="black" />
+            <View
+                style={[
+                    tw`flex-row items-center border-b px-4 py-3 border-darkTextSecondary`,
+                    { backgroundColor: headerBg }
+                ]}
+            >
+                <TouchableOpacity 
+                    onPress={handleCancel} 
+                    disabled={isUploadingAttachment} 
+                    style={tw`mr-3`}
+                >
+                    <Ionicons name="arrow-back" size={theme.fontSize.xl2 * fontScale} color={inputTextColour} />
                 </TouchableOpacity>
-                <Text style={styles.title}>Edit To-Do List</Text>
+                <ThemedText variant="xl2" fontFamily="poppins-bold" style={tw`flex-1 text-center`}>
+                    Edit To-Do List
+                </ThemedText>
                 <TouchableOpacity 
                     onPress={handleSaveTask}
                     disabled={isSaving || isUploadingAttachment}
+                    style={tw`ml-3`}
                 >
-                    <Ionicons name="save" size={24} color="black" />
+                    <Ionicons name="save" size={theme.fontSize.xl2 * fontScale} color={isDarkMode ? theme.colors.darkMint : theme.colors.greenCyan} />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={true}>
+            <ScrollView 
+                contentContainerStyle={tw`px-6 py-6 pb-16`} 
+                showsVerticalScrollIndicator={true}
+                indicatorStyle={isDarkMode ? 'white' : 'black'}
+            >
                 {/* Display the status */}
-                <View style={styles.statusContainer}>
-                    <Text style={styles.statusText}>
+                <View style={tw`flex-row justify-between items-center mb-4`}>
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mr-3`}>
                         Status: {taskStatus}
-                    </Text>
+                    </ThemedText>
 
                     {/* Button/icon to mark entire list complete */}
                     {taskStatus !== 'Finished' ? (
-                        <TouchableOpacity style={styles.completeButton} onPress={markTaskAsCompletedLocally}>
-                            <Ionicons name="checkmark-circle" size={22} color="white" />
-                            <Text style={styles.completeButtonText}>
+                        <TouchableOpacity
+                            style={tw`flex-row items-center bg-greenCyan px-3 py-2 rounded-lg`}
+                            onPress={markTaskAsCompletedLocally}
+                        >
+                            <Ionicons name="checkmark-circle" size={theme.fontSize.xl2 * fontScale} color={theme.colors.white} />
+                            <ThemedText variant="base" fontFamily="poppins-semibold" color={theme.colors.white} style={tw`ml-2`}>
                                 Mark Complete
-                            </Text>
+                            </ThemedText>
                         </TouchableOpacity>
                     ) : (
-                        <TouchableOpacity style={styles.completeButton} onPress={markTaskAsUnfinishedLocally}>
-                            <Ionicons name="arrow-undo" size={22} color="white" />
-                            <Text style={styles.completeButtonText}>Mark Unfinished</Text>
+                        <TouchableOpacity
+                            style={tw`flex-row items-center bg-orange px-3 py-2 rounded-lg`}
+                            onPress={markTaskAsUnfinishedLocally}
+                        >
+                            <Ionicons name="arrow-undo" size={theme.fontSize.xl2 * fontScale} color={theme.colors.white} />
+                            <ThemedText variant="base" fontFamily="poppins-semibold" color={theme.colors.white} style={tw`ml-2`}>
+                                Mark Unfinished
+                            </ThemedText>
                         </TouchableOpacity>
                     )}
                 </View>
 
                 {/* Progress bar */}
-                <View style={styles.progressBarContainer}>
-                    <View style={[styles.progressBar, { width: `${progress}%` }]} />
+                <View style={tw`h-2 bg-darkTextSecondary rounded-lg overflow-hidden mb-2`}>
+                    <View style={[tw`h-full bg-greenCyan`, { width: `${progress}%` }]} />
                 </View>
-                <Text style={styles.progressText}>
+                <ThemedText variant="xs" fontFamily="poppins-regular" style={tw`mb-4`}>
                     {completedCount} / {totalSubtasks} Subtasks Completed
-                </Text>
+                </ThemedText>
 
                 {/* Title and Notes */}
-                <View style={styles.titleContainer}>
+                <View style={tw`flex-row items-center mb-4`}>
                     <TextInput
-                        style={styles.input}
+                        style={[
+                            tw`flex-1 border px-3 py-2 rounded-lg border-darkTextSecondary`,
+                            { 
+                                backgroundColor: inputBg,
+                                color: inputTextColour, 
+                                fontSize: theme.fontSize.base * fontScale 
+                            }
+                        ]}
                         value={taskTitle}
                         onChangeText={setTaskTitle}
                         placeholder="To-Do List Title"
+                        placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : theme.colors.textSecondary}
                     />
                     <SpeechToTextButton onTranscribedText={(text) => setTaskTitle(text)}/>
                 </View>
-                <View style={styles.notesContainer}>
+                {/* Notes */}
+                <View style={tw`flex-row items-start mb-5`}>
                     <TextInput
-                        style={[styles.input, styles.notesInput, { flex: 1, marginRight: 10 }]}
+                        style={[
+                            tw`flex-1 border border-darkTextSecondary px-3 py-2 rounded-lg h-32`,
+                            {
+                                backgroundColor: inputBg,
+                                color: inputTextColour,
+                                fontSize: theme.fontSize.base * fontScale,
+                                textAlignVertical: 'top'
+                            }
+                        ]}
                         value={notes}
                         onChangeText={setNotes}
                         placeholder="Notes"
+                        placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : theme.colors.textSecondary}
                         multiline
                     />
                     <SpeechToTextButton onTranscribedText={(text) => setNotes(text)} />
                 </View>
                 {/* Colour Picker */}
-                <View style={{ marginBottom: 20 }}>
-                    <Text style={{ marginBottom: 10, fontWeight: '600' }}>
+                <View style={tw`mb-3`}>
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
                         Category Colour:
-                    </Text>
+                    </ThemedText>
                     <ColourPicker
                         selectedColour={selectedColour}
                         onSelectColour={setSelectedColour}
                     />
                 </View>
-                {/* Due Date selector */}
-                <DateTimeSelector date={dueDate} onDateChange={setDueDate} />
-                {/* Notification picker */}
-                <View style={{ marginBottom: 20 }}>
-                    <Text style={{ marginBottom: 10, fontWeight: '600' }}>Reminder:</Text>
-                    <NotificationPicker
-                        selectedValue={notification}
-                        onValueChange={setNotification}
-                        options={NOTIFICATION_OPTIONS}
-                    />
+                <View style={tw`mb-1 flex-row`}>
+                    <View style={tw`flex-2 mr-2 mb-5`}>
+                        {/* Due Date selector */}
+                        <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                            Due Date:
+                        </ThemedText>
+                        <DateTimeSelector date={dueDate} onDateChange={setDueDate} />
+                    </View>
+                    <View style={tw`flex-1 ml-2 mb-5`}>
+                        {/* Notification picker */}
+                        <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                            Reminder:
+                        </ThemedText>
+                        <View style={[tw`rounded-lg border border-darkTextSecondary`, { backgroundColor: inputBg }]}>
+                            <NotificationPicker
+                                selectedValue={notification}
+                                onValueChange={setNotification}
+                                options={NOTIFICATION_OPTIONS}
+                            />
+                        </View>
+                    </View>
                 </View>
-                {/* Priority button */}
-                <TouchableOpacity 
-                    style={styles.button}
-                    onPress={() => setPriority(cyclePriority(priority))}
-                >
-                    <Text style={styles.buttonText}>Priority: {priority}</Text>
-                </TouchableOpacity>
-                {/* Add subtask button */}
-                <TouchableOpacity
-                    style={[styles.button, { backgroundColor: '#28a745' }]}
-                    onPress={() => {
-                        setEditingSubtaskIndex(null);
-                        setCurrentSubtask({
-                            title: '',
-                            dueDate: new Date(),
-                            priority: 'Low',
-                            reminder: 'None',
-                            isRecurrent: false,
-                            notificationId: null,
-                            eventId: null,
-                            isCompleted: false,
-                        });
-                        setShowSubtaskForm(true);
-                    }}
-                >
-                    <Ionicons name="add-circle-outline" size={20} color="white" />
-                    <Text style={styles.buttonText}>Add Subtask</Text>
-                </TouchableOpacity>
-
-                {/* Delete To-Do List */}
-                <TouchableOpacity
-                    style={[styles.button, { backgroundColor: 'red' }]}
-                    onPress={handleDeleteTask}
-                >
-                    <Ionicons name="trash-outline" size={20} color="white" />
-                    <Text style={styles.buttonText}>Delete Task</Text>
-                </TouchableOpacity>
                 {/* Add to-do list to calendar */}
                 <TouchableOpacity
-                    style={[styles.button, { backgroundColor: '#FFA726' }]}
+                    style={tw`mb-6 flex-row items-center justify-center p-3 rounded-lg bg-gold`}
                     onPress={addMainTaskToCalendarHandler}
                 >
-                    <Ionicons name="calendar-outline" size={20} color="white" />
-                    <Text style={styles.buttonText}>Add To-Do List to Calendar</Text>
+                    <Ionicons name="calendar-outline" size={theme.fontSize.xl * fontScale} color={theme.colors.textPrimary} style={tw`mr-2`} />
+                    <ThemedText variant="base" fontFamily="poppins-semibold" color={theme.colors.textPrimary}>
+                        Add To-Do List to Calendar
+                    </ThemedText>
                 </TouchableOpacity>
+                {/* Priority Control */}
+                <View style={tw`mb-4`}>
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
+                        Priority:
+                    </ThemedText>
+                    <PrioritySegmentedControl selectedPriority={priority} onSelectPriority={setPriority} />
+                </View>
+                {/* Separator */}
+                <View style={tw`my-4 border-b border-darkTextSecondary`} />
+                {/* Delete To-Do List */}
+                <TouchableOpacity
+                    style={tw`mb-6 flex-row items-center justify-center p-3 rounded-lg ${isDarkMode ? 'bg-darkCinnabar' : 'bg-cinnabar'}`}
+                    onPress={handleDeleteTask}
+                >
+                    <Ionicons name="trash" size={theme.fontSize.xl * fontScale} color={theme.colors.white} />
+                    <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`text-center ml-1`} color={theme.colors.white}>
+                        Delete To-Do List
+                    </ThemedText>
+                </TouchableOpacity>
+                {/* Add subtask button */}
+                <View style={tw`mb-4`}>
+                    <TouchableOpacity
+                        style={tw`flex-row items-center justify-center bg-greenCyan p-3 rounded-lg`}
+                        onPress={() => {
+                            setEditingSubtaskIndex(null);
+                            setCurrentSubtask({
+                                title: '',
+                                dueDate: new Date(),
+                                priority: 'Low',
+                                reminder: 'None',
+                                isRecurrent: false,
+                                notificationId: null,
+                                eventId: null,
+                                isCompleted: false,
+                            });
+                            setShowSubtaskForm(true);
+                        }}
+                    >
+                        <Ionicons name="add-circle-outline" size={theme.fontSize.xl * fontScale} color={theme.colors.white} style={tw`mr-2`} />
+                        <ThemedText variant="base" fontFamily="poppins-semibold" color={theme.colors.white}>
+                            Add Subtask
+                        </ThemedText>
+                    </TouchableOpacity>
+                </View>
+                
                 {/* List of subtasks */}
                 <SubtaskList 
                     subtasks={subtasks} 
@@ -260,101 +332,3 @@ export default function TaskDetailsScreen({ route, navigation }) {
         </SafeAreaView>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-        backgroundColor: '#fff',
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        padding: 16,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 20,
-        borderRadius: 5,
-    },
-    titleContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 20,
-    },
-    notesContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 20,
-    },
-    notesInput: {
-        height: 80,
-        textAlignVertical: 'top',
-    },
-    button: {
-        backgroundColor: '#007bff',
-        padding: 10,
-        marginHorizontal: 20,
-        marginBottom: 20,
-        borderRadius: 5,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    buttonText: {
-        color: '#fff',
-        textAlign: 'center',
-        marginLeft: 5,
-    },
-    subtaskItem: {
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
-        padding: 10,
-    },
-    statusText: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginRight: 10,
-    },
-    completeButton: {
-        backgroundColor: '#28a745',
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 5,
-        paddingHorizontal: 8,
-        borderRadius: 5,
-    },
-    completeButtonText: {
-        color: '#fff',
-        marginLeft: 5,
-    },
-    progressBarContainer: {
-        height: 10,
-        backgroundColor: '#eee',
-        borderRadius: 5,
-        overflow: 'hidden',
-        marginVertical: 5,
-    },
-    progressBar: {
-        height: '100%',
-        backgroundColor: '#28a745',
-    },
-    progressText: {
-        marginBottom: 15,
-        fontWeight: '500',
-    },
-});

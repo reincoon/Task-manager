@@ -14,6 +14,7 @@ export default function useProjects(userId) {
             const fetchedProjects = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
+                color: doc.data().color || '#000000',
             }));
             setProjects(fetchedProjects);
         }, (error) => {

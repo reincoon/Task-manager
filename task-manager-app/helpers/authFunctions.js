@@ -63,12 +63,6 @@ const transferTasks = async (anonymousUid, newUid, setTasks) => {
     const anonymousTasksRef = collection(db, `tasks/${anonymousUid}/taskList`);
     const newTasksRef = collection(db, `tasks/${newUid}/taskList`);
     const tasksSnapshot = await getDocs(anonymousTasksRef);
-    // const taskPromises = tasksSnapshot.docs.map(async (taskDoc) => {
-    //     const taskData = taskDoc.data();
-    //     await setDoc(doc(newTasksRef, taskDoc.id), taskData);
-    //     await deleteDoc(doc(anonymousTasksRef, taskDoc.id));
-    // });
-    // await Promise.all(taskPromises);
     if (!tasksSnapshot.empty) {
         const taskPromises = tasksSnapshot.docs.map(async (taskDoc) => {
             const taskData = taskDoc.data();
