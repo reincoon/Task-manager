@@ -6,6 +6,9 @@ import AddProjectButton from './AddProjectButton';
 import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
 import ThemedText from './ThemedText';
+import { CopilotStep, walkthroughable } from 'react-native-copilot';
+
+const WalkthroughableView = walkthroughable(View);
 
 export default function HomeHeader({ menuRef, showMenu, hideMenu, onMenuOption, viewMode, onAddProjectPress, onTutorialPress }) {
     const { isDarkMode } = useTheme();
@@ -40,39 +43,49 @@ export default function HomeHeader({ menuRef, showMenu, hideMenu, onMenuOption, 
                         <Entypo name="info-with-circle" size={theme.fontSize.xl3} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
                     </TouchableOpacity>
                     {/* Menu icon for sorting/grouping */}
-                    <Menu
-                        ref={menuRef}
-                        anchor={
-                            <TouchableOpacity onPress={showMenu} style={tw`mx-2`}>
-                                <Ionicons name="ellipsis-horizontal" size={theme.fontSize.xl3} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
-                            </TouchableOpacity>
-                        }
-                        onRequestClose={hideMenu}
-                    >
-                        {/* <MenuItem onPress={() => onMenuOption('List View')}>List View</MenuItem>
-                        <MenuItem onPress={() => onMenuOption('Kanban View')}>Kanban View</MenuItem> */}
-                        <MenuItem onPress={() => onMenuOption('Sort by Project')}>Group by Project</MenuItem>
-                        <MenuItem onPress={() => onMenuOption('Sort by Priority')}>Group by Priority</MenuItem>
-                        <MenuItem onPress={() => onMenuOption('Sort by Date')}>Sort by Date</MenuItem>
-                        <MenuItem onPress={() => onMenuOption('Sort Alphabetically')}>Sort Alphabetically</MenuItem>
-                        <MenuItem onPress={() => onMenuOption('Sort by Colour')}>Sort by Colour</MenuItem>
-                    </Menu>
+                    <CopilotStep text="Tap here for grouping and sort options." order={4} name="menuOptionsStep">
+                        <WalkthroughableView>
+                            <Menu
+                                ref={menuRef}
+                                anchor={
+                                    <TouchableOpacity onPress={showMenu} style={tw`mx-2`}>
+                                        <Ionicons name="ellipsis-horizontal" size={theme.fontSize.xl3} color={isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary} />
+                                    </TouchableOpacity>
+                                }
+                                onRequestClose={hideMenu}
+                            >
+                                <MenuItem onPress={() => onMenuOption('Sort by Project')}>Group by Project</MenuItem>
+                                <MenuItem onPress={() => onMenuOption('Sort by Priority')}>Group by Priority</MenuItem>
+                                <MenuItem onPress={() => onMenuOption('Sort by Date')}>Sort by Date</MenuItem>
+                                <MenuItem onPress={() => onMenuOption('Sort Alphabetically')}>Sort Alphabetically</MenuItem>
+                                <MenuItem onPress={() => onMenuOption('Sort by Colour')}>Sort by Colour</MenuItem>
+                            </Menu>
+                        </WalkthroughableView>
+                    </CopilotStep>
                 </View>
             </View>
             {/* Add project button */}
             <View style={tw`mt-4 flex-row justify-between items-center`}>
                 {/* View toggle */}
-                <TouchableOpacity onPress={handleTogglePress} style={tw`flex-row items-center`}>
-                    {viewMode === 'list' ? (
-                        <MaterialIcons name="view-list" size={theme.fontSize.xl2} color={toggleColor} />
-                    ) : (
-                        <MaterialIcons name="view-kanban" size={theme.fontSize.xl2} color={toggleColor} />
-                    )}
-                    <ThemedText variant="sm" style={tw`ml-1`} color={toggleColor}>
-                        {viewMode === 'list' ? "List View" : "Kanban View"}
-                    </ThemedText>
-                </TouchableOpacity>
-                <AddProjectButton onPress={onAddProjectPress} label="Add Project" />
+                <CopilotStep text="Tap here to change view between list and kanban." order={3} name="viewToggleStep">
+                    <WalkthroughableView>
+                        <TouchableOpacity onPress={handleTogglePress} style={tw`flex-row items-center`}>
+                            {viewMode === 'list' ? (
+                                <MaterialIcons name="view-list" size={theme.fontSize.xl2} color={toggleColor} />
+                            ) : (
+                                <MaterialIcons name="view-kanban" size={theme.fontSize.xl2} color={toggleColor} />
+                            )}
+                            <ThemedText variant="sm" style={tw`ml-1`} color={toggleColor}>
+                                {viewMode === 'list' ? "List View" : "Kanban View"}
+                            </ThemedText>
+                        </TouchableOpacity>
+                    </WalkthroughableView>
+                </CopilotStep>
+                <CopilotStep text="Tap here to create a new project." order={2} name="createProjectStep">
+                    <WalkthroughableView>
+                        <AddProjectButton onPress={onAddProjectPress} label="Add Project" />
+                    </WalkthroughableView>
+                </CopilotStep>
             </View>
         </View>
     );

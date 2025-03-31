@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import NotificationPicker from './NotificationPicker';
 import { NOTIFICATION_OPTIONS } from '../helpers/constants';
@@ -68,7 +68,7 @@ export default function SubtaskBottomSheet({
                             value={currentSubtask.title}
                             onChangeText={(text) => setCurrentSubtask({ ...currentSubtask, title: text })}
                             placeholder="Subtask Title"
-                            placeholderTextColor={isDarkMode ? theme.colors.darkTextSecondary : theme.colors.darkTextSecondary}
+                            placeholderTextColor={theme.colors.darkTextSecondary}
                             multiline
                         />
                         <SpeechToTextButton onTranscribedText={(text) => setCurrentSubtask({ ...currentSubtask, title: text })}/>

@@ -1,16 +1,14 @@
 import { useState } from 'react';
-import { SafeAreaView, TextInput, KeyboardAvoidingView, Platform, View, TouchableOpacity, Text, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView, TextInput, KeyboardAvoidingView, Platform, View, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-// import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
-// import { CommonActions } from '@react-navigation/native';
 import { handleUpgradeAnonymousAccount } from '../helpers/authFunctions';
 import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
 import ThemedText from '../components/ThemedText';
 import SignUpInHeader from '../components/SignUpInHeader';
 
-const SignUpScreen = ({ navigation, route }) => {
+export default function SignUpScreen({ navigation, route }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
@@ -44,7 +42,7 @@ const SignUpScreen = ({ navigation, route }) => {
                     <SignUpInHeader title="Sign Up" icon="person-add-outline" navigation={navigation} />
                     
                     {loading ? (
-                        <ActivityIndicator size="large" color="#007BFF" />
+                        <ActivityIndicator size="large" color={theme.colors.teal} />
                     ) : (
                         <>
                             {/* Name Field */}
@@ -67,9 +65,7 @@ const SignUpScreen = ({ navigation, route }) => {
                                             color: isDarkMode
                                                 ? theme.colors.darkTextPrimary
                                                 : theme.colors.textPrimary,
-                                            borderColor: isDarkMode
-                                                ? theme.colors.darkTextSecondary
-                                                : '#ccc',
+                                            borderColor: theme.colors.darkTextSecondary,
                                         },
                                     ]}
                                     placeholder="Name"
@@ -82,9 +78,7 @@ const SignUpScreen = ({ navigation, route }) => {
                             </View>
                             {/* Email Field */}
                             <View
-                                style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                                    isDarkMode ? 'border-darkTextSecondary' : 'border-darkTextSecondary'
-                                }`}
+                                style={tw`flex-row items-center border rounded-md mb-4 px-3 border-darkTextSecondary`}
                             >
                                 <Ionicons
                                     name="mail-outline"
@@ -100,9 +94,7 @@ const SignUpScreen = ({ navigation, route }) => {
                                             color: isDarkMode
                                                 ? theme.colors.darkTextPrimary
                                                 : theme.colors.textPrimary,
-                                            borderColor: isDarkMode
-                                                ? theme.colors.darkTextSecondary
-                                                : '#ccc',
+                                            borderColor: theme.colors.darkTextSecondary,
                                         },
                                     ]}
                                     placeholder="Email"
@@ -118,9 +110,7 @@ const SignUpScreen = ({ navigation, route }) => {
 
                             {/* Password Field */}
                             <View
-                                style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                                    isDarkMode ? 'border-darkTextSecondary' : 'border-darkTextSecondary'
-                                }`}
+                                style={tw`flex-row items-center border rounded-md mb-4 px-3 border-darkTextSecondary`}
                             >
                                 <Ionicons
                                     name="lock-closed-outline"
@@ -136,9 +126,7 @@ const SignUpScreen = ({ navigation, route }) => {
                                             color: isDarkMode
                                                 ? theme.colors.darkTextPrimary
                                                 : theme.colors.textPrimary,
-                                            borderColor: isDarkMode
-                                                ? theme.colors.darkTextSecondary
-                                                : '#ccc',
+                                            borderColor: theme.colors.darkTextSecondary,
                                         },
                                     ]}
                                     placeholder="Password"
@@ -153,9 +141,7 @@ const SignUpScreen = ({ navigation, route }) => {
 
                             {/* Confirm Password Field */}
                             <View
-                                style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                                    isDarkMode ? 'border-darkTextSecondary' : 'border-darkTextSecondary'
-                                }`}
+                                style={tw`flex-row items-center border border-darkTextSecondary rounded-md mb-4 px-3`}
                             >
                                 <Ionicons
                                     name="lock-closed-outline"
@@ -171,9 +157,7 @@ const SignUpScreen = ({ navigation, route }) => {
                                             color: isDarkMode
                                                 ? theme.colors.darkTextPrimary
                                                 : theme.colors.textPrimary,
-                                            borderColor: isDarkMode
-                                                ? theme.colors.darkTextSecondary
-                                                : '#ccc',
+                                            borderColor: theme.colors.darkTextSecondary,
                                         },
                                     ]}
                                     placeholder="Confirm Password"
@@ -187,13 +171,13 @@ const SignUpScreen = ({ navigation, route }) => {
                             </View>
                             {/* Sign up button */}
                             <TouchableOpacity onPress={handleSignUp} style={tw`py-3 rounded-md mb-4 ${isDarkMode ? 'bg-darkForest' : 'bg-forest'}`}>
-                                <ThemedText variant="lg" style={tw`text-center font-poppins-semibold text-white`}>
+                                <ThemedText variant="lg" fontFamily="poppins-semibold" color={theme.colors.white} style={tw`text-center`}>
                                     Sign Up
                                 </ThemedText>
                             </TouchableOpacity>
                             {/* Link to Login screen */}
-                            <TouchableOpacity onPress={() => navigation.navigate('Login')} style={tw`mb-4`}>
-                                <ThemedText variant="sm" style={tw`text-center font-roboto-var ${isDarkMode ? 'text-sky' : 'text-forest'}`}>
+                            <TouchableOpacity onPress={() => navigation.navigate('Login')} style={tw`mb-4 self-center`}>
+                                <ThemedText variant="sm" fontFamily="roboto-var" color={isDarkMode ? theme.colors.sky : theme.colors.forest} style={tw`text-center}`}>
                                     Already have an account? Log in
                                 </ThemedText>
                             </TouchableOpacity>
@@ -204,5 +188,3 @@ const SignUpScreen = ({ navigation, route }) => {
         </SafeAreaView>
     );
 };
-
-export default SignUpScreen;

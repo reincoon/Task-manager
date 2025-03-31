@@ -8,7 +8,6 @@ export default function EditNameForm({ name, setName, handleSaveName, handleCanc
     const { isDarkMode, fontScale } = useTheme();
 
     return (
-        // <View style={tw`flex-row items-center mb-4`}>
         <View style={tw`w-full p-4 bg-transparent`}>
             <TextInput 
                 style={[

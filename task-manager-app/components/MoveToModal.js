@@ -1,5 +1,4 @@
-import {Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-// import Modal from 'react-native-modal';
+import {Modal, View, TouchableOpacity } from 'react-native';
 import { useTheme } from '../helpers/ThemeContext';
 import tw, { theme } from '../twrnc';
 import ThemedText from './ThemedText';
@@ -39,14 +38,6 @@ const MoveToModal = ({ visible, onClose, onMove, columns, currentColumnKey, grou
             visible={visible}
             onRequestClose={onClose}
         >
-        {/*  <Modal
-            isVisible={visible}
-            onBackdropPress={onClose}
-            onBackButtonPress={onClose}
-            animationIn="slideInUp"
-            animationOut="slideOutDown"
-            backdropTransitionOutTiming={0}
-        > */}
             <View style={[tw`flex-1 justify-center items-center`, { backgroundColor: overlayBg }]}>
                 <View style={[tw`w-80% rounded-xl p-6 items-center`, { backgroundColor: modalBg }]}>
                     <ThemedText 
@@ -91,46 +82,5 @@ const MoveToModal = ({ visible, onClose, onMove, columns, currentColumnKey, grou
         </Modal>
     );
 };
-
-const styles = StyleSheet.create({
-    modalBackground: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    modalContainer: {
-        width: '80%',
-        backgroundColor: '#fff',
-        borderRadius: 10,
-        padding: 20,
-        alignItems: 'center',
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 20,
-    },
-    button: {
-        width: '100%',
-        padding: 12,
-        backgroundColor: '#007bff',
-        borderRadius: 5,
-        marginVertical: 5,
-        alignItems: 'center',
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-    },
-    cancelButton: {
-        marginTop: 15,
-        padding: 10,
-    },
-    cancelButtonText: {
-        color: '#007bff',
-        fontSize: 16,
-    },
-});
 
 export default MoveToModal;

@@ -57,15 +57,15 @@ const SettingsScreen = ({ navigation }) => {
                             },
                         ]}
                     >
-                        <ThemedText variant="xl" style={tw`mb-2 font-inter-var text-center`}>
+                        <ThemedText variant="xl" fontFamily="inter-var" style={tw`mb-2 text-center`}>
                             Account Info
                         </ThemedText>
-                        <ThemedText style={tw`mb-1 font-roboto-var text-center`}>
+                        <ThemedText fontFamily="roboto-var" style={tw`mb-1 text-center`}>
                             Email: {isAnonymous ? 'Guest' : user.email}
                         </ThemedText>
 
                         {!isAnonymous && !isEditingName && (
-                            <ThemedText style={tw`mb-1 font-roboto-var text-center`}>
+                            <ThemedText fontFamily="roboto-var" style={tw`mb-1 text-center`}>
                                 Name: {user.displayName || 'N/A'}
                             </ThemedText>
                         )}
@@ -138,7 +138,7 @@ const SettingsScreen = ({ navigation }) => {
                     value={fontScale}
                     onValueChange={(value) => setFontScale(value)}
                     minimumTrackTintColor={theme.colors.evergreen}
-                    maximumTrackTintColor="#ccc"
+                    maximumTrackTintColor={theme.colors.darkTextSecondary}
                     thumbTintColor={theme.colors.mint}
                 />
             </View>

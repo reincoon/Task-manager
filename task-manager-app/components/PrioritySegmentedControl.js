@@ -9,10 +9,6 @@ export default function PrioritySegmentedControl({ selectedPriority, onSelectPri
     const { isDarkMode, fontScale } = useTheme();
 
     // Colours
-    // const defaultBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.grayHd; 
-    // const selectedBg = isDarkMode ? theme.colors.darkCinnabar : theme.colors.cinnabar; 
-    // const defaultTextColour = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
-    // const selectedTextColour = theme.colors.white;
     const unselectedBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.darkTextSecondary;
     const unselectedText = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
 
@@ -41,7 +37,6 @@ export default function PrioritySegmentedControl({ selectedPriority, onSelectPri
                             fontFamily="poppins-semibold"
                             style={{
                                 color: textColour,
-                                fontSize: theme.fontSize.sm * fontScale,
                                 alignSelf: 'center',
                             }}
                         >

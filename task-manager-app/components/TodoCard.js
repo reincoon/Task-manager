@@ -1,6 +1,4 @@
-// import { useRef } from 'react';
-// import { Menu, MenuItem, MenuDivider } from 'react-native-material-menu';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { calculateTaskStatus, toggleTaskCompletion, updateTaskStatusInFirestore } from '../helpers/subtaskCompletionHelpers';
 import tw, { theme } from '../twrnc';
@@ -8,7 +6,7 @@ import { useTheme } from '../helpers/ThemeContext';
 import ThemedText from './ThemedText';
 
 // TodoCard component shows details about a single to-do list:
-const TodoCard = ({ 
+export default function TodoCard({ 
     task, 
     projectName, 
     onPress, 
@@ -17,7 +15,7 @@ const TodoCard = ({
     showMoveButton, 
     onMoveTask,
     userId,
-}) => {
+}) {
     const { isDarkMode, fontScale } = useTheme();
 
     // Count number of subtasks and attachments
@@ -48,7 +46,6 @@ const TodoCard = ({
             await updateTaskStatusInFirestore(true, userId, task.id);
             Alert.alert('Success', 'To-Do list marked as finished.');
         } catch (error) {
-            console.error('Error marking task complete:', error);
             Alert.alert('Error', 'Failed to mark this list as finished.');
         }
     }
@@ -72,32 +69,17 @@ const TodoCard = ({
         }
     };
 
-    // const cardBg = isDarkMode ? 'bg-gray-800' : theme.colors.white;
-    // const textColor = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
-    const cardBg = isDarkMode ? theme.colors.darkCardBg : theme.colors.white;
-    // const textColor = isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary;
-    // const cardShadow = isDarkMode
-    //     ? tw`border border-gray-700`
-    //     : tw`shadow-md shadow-gray-400`;
-
     return (
         <View 
             style={[
                 tw`p-4 rounded-xl my-1 self-center border shadow-md w-92%`, 
-                // tw`${cardShadow}`, 
                 { 
-                    // width: '92%', 
-                    backgroundColor: cardBg,
+                    backgroundColor: isDarkMode ? theme.colors.darkCardBg : theme.colors.white,
                     borderColor: isDarkMode ? theme.colors.textSecondary : theme.colors.white, 
-                }]}
+                }
+            ]}
         >
             {/* Colour indicator */}
-            {/* <View
-                style={[
-                    tw`mr-3`,
-                    { width: 8, borderRadius: 4, backgroundColor: task.colour || '#95A5A6' },
-                ]}
-            /> */}
             <View 
                 style={[
                     tw`absolute left-0 top-0 bottom-0 w-3 rounded-l-xl`, 
@@ -119,9 +101,6 @@ const TodoCard = ({
                 </ThemedText>
                 {/* Status */}
                 <View style={tw`flex-row items-center mt-1`}>
-                    {/* <ThemedText variant="sm" style={[{ color: textColor }, tw`mt-1`]}>
-                        Status: {status}
-                    </ThemedText> */}
                     <ThemedText variant="sm" fontFamily="poppins-bold">Status: </ThemedText>
                     <ThemedText variant="sm">{status}</ThemedText>
                 </View>
@@ -172,7 +151,6 @@ const TodoCard = ({
                     </ThemedText>
                 </ThemedText>
                 
-
                 {/* Subtask and attachment counts */}
                 <ThemedText variant="xs">Subtasks: {subtaskCount}</ThemedText>
                 <ThemedText variant="xs">Attachments: {attachmentCount}</ThemedText>
@@ -199,83 +177,10 @@ const TodoCard = ({
             )}
             {/* Delete icon */}
             {onDeleteTask && (
-                // <View style={styles.footerRow}>
                 <TouchableOpacity style={tw`absolute bottom-3 right-5`} onPress={onDeleteTask} >
                     <Ionicons name="trash-outline" size={theme.fontSize.xl3 * fontScale} color={theme.colors.cinnabar} />
                 </TouchableOpacity>
-                // </View>
             )}
         </View>
     );
 };
-
-export default TodoCard;
-
-const styles = StyleSheet.create({
-    card: {
-        flexDirection: 'row',
-        padding: 10,
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: '#ddd',
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 2,
-        alignItems: 'center',
-        position: 'relative',
-    },
-    colourIndicator: {
-        margin: 5,
-        width: 10,
-        height: '100%',
-        borderTopLeftRadius: 8,
-        borderBottomLeftRadius: 8,
-    },
-    cardTouchable: {
-        flex: 1,
-        paddingRight: 34,
-    },
-    title: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-    },
-    details: {
-        marginTop: 4,
-        fontSize: 12,
-        color: '#555',
-    },
-    footerRow: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        marginTop: 8,
-    },
-    moveButton: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        padding: 4,
-    },
-    completeIcon: {
-        position: 'absolute',
-        top: 48,
-        right: 8,
-        padding: 4,
-    },
-    progressBarContainer: {
-        width: '100%',
-        height: 6,
-        backgroundColor: '#eee',
-        borderRadius: 3,
-        marginTop: 4,
-        overflow: 'hidden',
-    },
-    progressBar: {
-        height: '100%',
-        backgroundColor: '#28a745',
-    },
-});

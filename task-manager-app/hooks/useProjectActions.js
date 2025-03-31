@@ -23,7 +23,6 @@ export default function useProjectActions(userId, {
                 `Project "${projectName}" created. Assign tasks to it manually.`
             );
         } catch (err) {
-            console.error(err);
             Alert.alert('Error', err.message);
         } finally {
             // Reset states
@@ -39,23 +38,6 @@ export default function useProjectActions(userId, {
         setNewProjectName(actualName.trim());
         setIsEditModalVisible(true);
     };
-
-    // const editProject = async (projectId, newName) => {
-    //     if (!newName.trim()) {
-    //         Alert.alert('Error', 'Project name cannot be empty.');
-    //         return;
-    //     }
-    //     try {
-    //         await updateProjectName(userId, projectId, newName);
-    //         Alert.alert('Success', 'Project renamed.');
-    //     } catch (err) {
-    //         Alert.alert('Error', 'Failed to rename project.');
-    //     } finally {
-    //         setIsEditModalVisible(false);
-    //         setEditingProjId(null);
-    //         setNewProjectName('');
-    //     }
-    // };
 
     return { createNewProject, openEditProjectModal };
 }

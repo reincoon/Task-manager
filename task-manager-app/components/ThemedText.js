@@ -1,6 +1,6 @@
 import { Text } from 'react-native';
 import { useTheme } from '../helpers/ThemeContext';
-import tw, { theme } from '../twrnc';
+import { theme } from '../twrnc';
 
 export default function ThemedText({ variant = 'base', fontFamily = 'poppins-regular', color, style, children, ...props }) {
     const { isDarkMode, fontScale } = useTheme();

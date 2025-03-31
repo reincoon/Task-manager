@@ -1,7 +1,10 @@
-import { TouchableOpacity, StyleSheet, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
+import { CopilotStep, walkthroughable } from 'react-native-copilot';
+
+const WalkthroughableView = walkthroughable(View);
 
 export default function FloatingActionButton({ onPress }) {
     const { isDarkMode, fontScale } = useTheme();
@@ -21,28 +24,11 @@ export default function FloatingActionButton({ onPress }) {
                 }]} 
             onPress={onPress}
         >
-            <Ionicons name="add" size={theme.fontSize.xl3 * fontScale} color={isDarkMode ? theme.colors.darkMagenta : theme.colors.lavender} />
+            <CopilotStep text="Tap here to create a new todo list." order={1} name="todoListStep">
+                <WalkthroughableView>
+                    <Ionicons name="add" size={theme.fontSize.xl3 * fontScale} color={isDarkMode ? theme.colors.darkMagenta : theme.colors.lavender} />
+                </WalkthroughableView>
+            </CopilotStep>
         </TouchableOpacity>
     );
 };
-
-// const styles = StyleSheet.create({
-//     fab: {
-//         position: 'absolute',
-//         bottom: 16,
-//         right: 16,
-//         backgroundColor: 'blue',
-//         width: 56,
-//         height: 56,
-//         borderRadius: 28,
-//         justifyContent: 'center',
-//         alignItems: 'center',
-//         shadowColor: '#000',
-//         shadowOffset: { width: 0, height: 2 },
-//         shadowOpacity: 0.3,
-//         shadowRadius: 4,
-//         elevation: 5,
-//     },
-// });
-
-// export default FloatingActionButton;  

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { transcribeAudio } from "../helpers/transcriptionHelpers";
@@ -54,7 +54,6 @@ export default function SpeechToTextButton({ onTranscribedText }) {
                 onTranscribedText(transcription);
             }
         } catch (error) {
-            console.error('stopRecording error:', error);
             setIsProcessing(false);
             Alert.alert('Could not upload/transcribe: ' + error.message);
         }
@@ -88,23 +87,3 @@ export default function SpeechToTextButton({ onTranscribedText }) {
         </TouchableOpacity>
     );
 }
-
-const styles = StyleSheet.create({
-    button: {
-        backgroundColor: '#007bff',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 6,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginHorizontal: 5,
-    },
-    recording: {
-        backgroundColor: '#e53935',
-        opacity: 0.7,
-    },
-    buttonText: {
-        color: '#fff',
-        fontWeight: '600',
-    },
-});

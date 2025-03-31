@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Picker } from '@react-native-picker/picker';
-import { View, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedText from './ThemedText';
 import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
 
-const NotificationPicker = ({ selectedValue, onValueChange, options }) => {
+export default function NotificationPicker({ selectedValue, onValueChange, options }) {
     const [showPicker, setShowPicker] = useState(false);
     const { isDarkMode } = useTheme();
 
@@ -45,7 +45,7 @@ const NotificationPicker = ({ selectedValue, onValueChange, options }) => {
                 animationType="fade"
                 onRequestClose={onCloseModal}
             >
-                <View style={[tw`flex-1 justify-center`, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                <View style={tw`flex-1 justify-center bg-darkBg/50`}>
                     <View style={[tw`mx-6 p-3 rounded-lg`, { backgroundColor: bgColour }]}>
                         <View style={tw`flex-row justify-end`}>
                             <TouchableOpacity onPress={onCloseModal} style={tw`p-1`}>
@@ -71,23 +71,6 @@ const NotificationPicker = ({ selectedValue, onValueChange, options }) => {
                     </View>
                 </View>
             </Modal>
-            {/* <Picker selectedValue={selectedValue} onValueChange={onValueChange} style={styles.picker}>
-                {options.map((option) => (
-                    <Picker.Item key={option} label={option} value={option} />
-                ))}
-            </Picker> */}
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        backgroundColor: '#fff',
-        borderRadius: 5,
-    },
-    picker: {
-        width: '100%',
-    },
-});
-
-export default NotificationPicker;

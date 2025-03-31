@@ -1,7 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import TaskCreationScreen from '../screens/TaskCreationScreen';
 import TaskDetailsScreen from '../screens/TaskDetailsScreen';
@@ -12,6 +11,7 @@ import SignUpScreen from '../screens/SignUpScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import { useTheme } from '../helpers/ThemeContext';
 import tw, { theme } from '../twrnc';
+import NavigationIcon from '../components/NavigationICon';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -40,12 +40,7 @@ const AppNavigator = () => {
             <Tab.Navigator 
                 screenOptions={({ route }) => ({
                     tabBarIcon: ({ color, size }) => {
-                        let iconName;
-                        if (route.name === 'HomeStack') iconName = 'home-outline';
-                        // if (route.name === 'Calendar') iconName = 'calendar-outline';
-                        if (route.name === 'SettingsStack') iconName = 'settings-outline';
-                        if (route.name === 'Statistics') iconName = 'stats-chart-outline';
-                        return <Ionicons name={iconName} size={size} color={color} />;
+                        return <NavigationIcon routeName={route.name} color={color} size={size} />
                     },
                     tabBarActiveTintColor: isDarkMode ? theme.colors.darkMint : theme.colors.teal,
                     tabBarInactiveTintColor: isDarkMode ? theme.colors.darkTextSecondary : theme.colors.gray,
@@ -54,8 +49,6 @@ const AppNavigator = () => {
                 })}
             >
                 <Tab.Screen name="HomeStack" component={HomeStack} options={{ title: 'Home' }} />
-                {/* <Tab.Screen name="Create Task" component={TaskCreationScreen} />
-                <Tab.Screen name="Task Details" component={TaskDetailsScreen} /> */}
                 <Tab.Screen name="Statistics" component={StatisticsScreen} />
                 <Tab.Screen name="SettingsStack" component={SettingsStack} options={{ title: 'Settings' }} />
             </Tab.Navigator>

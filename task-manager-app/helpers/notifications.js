@@ -25,7 +25,6 @@ export const scheduleNotification = async (title, message, time) => {
         });
         return notificationId;
     } catch (error) {
-        console.error('Error scheduling notification:', error);
         return null;
     }
 };

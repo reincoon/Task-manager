@@ -23,7 +23,6 @@ export default function useTasks(userId) {
             setRawTasks(sortedTasks);
             setLoading(false);
         }, (error) => {
-            console.error("Snapshot listener error:", error);
             setLoading(false);
         });
         return () => {

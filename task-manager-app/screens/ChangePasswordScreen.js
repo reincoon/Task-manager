@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { SafeAreaView, TextInput, View, Alert, TouchableOpacity } from 'react-native';
+import { SafeAreaView, TextInput, View, Alert } from 'react-native';
 import { reauthenticateWithCredential, EmailAuthProvider, updatePassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
-import ThemedText from '../components/ThemedText';
 import ActionButton from '../components/ActionButton';
-import { Ionicons } from '@expo/vector-icons';
 import SignUpInHeader from '../components/SignUpInHeader';
 
 export default function ChangePasswordScreen({ navigation }) {

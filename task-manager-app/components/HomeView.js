@@ -72,7 +72,9 @@ export default function HomeView({
                 onTutorialPress={onTutorialPress}
             />
             {viewMode === 'list' ? renderListView() : renderKanbanView()}
+            
             <FloatingActionButton onPress={() => navigation.navigate('TaskCreationScreen')} />
+                
             <ProjectModal
                 visible={showProjectModal}
                 onCancel={() => {

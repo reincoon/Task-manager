@@ -1,11 +1,16 @@
-import { View, SafeAreaView, ScrollView, ActivityIndicator, Platform, Dimensions, RefreshControl } from 'react-native';
+import { View, SafeAreaView, ScrollView, ActivityIndicator, Dimensions, RefreshControl } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import DropDownPicker from 'react-native-dropdown-picker';
-import { Picker } from "@react-native-picker/picker";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { BarChart, PieChart, LineChart } from "react-native-chart-kit";
 import { collection, getDocs} from "firebase/firestore";
-import { computeStatistics, prepareBarChartData, prepareTrendLineDataForMetric, prepareClosedSubtasksByPriority, prepareSubtasksOpenVsClosedData, prepareProjectsOpenVsClosedData } from "../helpers/statisticsHelpers";
+import { 
+    computeStatistics, 
+    prepareBarChartData, 
+    prepareTrendLineDataForMetric, 
+    prepareClosedSubtasksByPriority, 
+    prepareSubtasksOpenVsClosedData, 
+    prepareProjectsOpenVsClosedData 
+} from "../helpers/statisticsHelpers";
 import { TREND_OPTIONS } from '../helpers/constants';
 import { db, auth } from '../firebaseConfig';
 import { PRIORITIES } from '../helpers/constants';
@@ -14,7 +19,6 @@ import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
 import SettingsStatsHeader from '../components/SettingsStatsHeader';
 import ThemedText from '../components/ThemedText';
-import ActionButton from '../components/ActionButton';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import RNDatePicker from '../components/RNDatePicker';
 
@@ -30,12 +34,6 @@ export default function StatisticsScreen() {
     // Filter states
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
-    const [showStartPicker, setShowStartPicker] = useState(false);
-    const [showEndPicker, setShowEndPicker] = useState(false);
-    // const [selectedProject, setSelectedProject] = useState("All");
-    // const [selectedPriority, setSelectedPriority] = useState("All");
-    // const [selectedTrendMetric, setSelectedTrendMetric] = useState("To-Do lists Completed");
-    // const [selectedPieMetric, setSelectedPieMetric] = useState("To-Do Lists");
 
     // For project dropdown
     const [openProjectDropdown, setOpenProjectDropdown] = useState(false);
@@ -83,7 +81,11 @@ export default function StatisticsScreen() {
             const projectsSnapshot = await getDocs(collection(db, `projects/${userId}/userProjects`));
             const projectsData = projectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setProjects(projectsData);
-    
+            // Update dropdown items
+            setProjectItems([
+                { label: 'All', value: 'All' },
+                ...projectsData.map(proj => ({ label: proj.name, value: proj.id }))
+            ]);
             // Fetch tasks
             const tasksSnapshot = await getDocs(collection(db, `tasks/${userId}/taskList`));
             const tasksData = tasksSnapshot.docs.map(doc => {
@@ -253,7 +255,7 @@ export default function StatisticsScreen() {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >        
                 {/* Filter Section */}
-                <View style={tw`p-4 rounded-xl shadow mb-4 ${isDarkMode ? theme.colors.darkBg : theme.colors.white}`}>
+                <View style={[tw`p-4 rounded-xl shadow mb-4 ${isDarkMode ? theme.colors.darkBg : theme.colors.white}`, { zIndex: 2000, elevation: 2000}]}>
                     <ThemedText variant="xl2" style={tw`font-bold mb-3 text-center`}>
                         Filters
                     </ThemedText>
@@ -262,27 +264,6 @@ export default function StatisticsScreen() {
                         {/* Start Date */}
                         <View style={tw`w-[48%]`}>
                             <ThemedText variant="sm" style={tw`mb-1`}>Start Date:</ThemedText>
-                            {/* <ActionButton
-                                title={startDate ? startDate.toLocaleDateString() : 'Select Start Date'}
-                                onPress={() => setShowStartPicker(true)}
-                                bgColor={isDarkMode ? theme.colors.darkMint : theme.colors.mint}
-                                shadowColor={theme.colors.forest}
-                                textColor={theme.colors.textPrimary}
-                                iconName="calendar-outline"
-                                width="100%"
-                            />
-                            {showStartPicker && (
-                                <DateTimePicker
-                                    value={startDate || new Date()}
-                                    mode="date"
-                                    display="default"
-                                    onChange={(event, date) => {
-                                        setShowStartPicker(false);
-                                        if (date) setStartDate(date);
-                                    }}
-                                    style={tw`mt-2 mx-3`}
-                                />
-                            )} */}
                             <RNDatePicker
                                 date={startDate}
                                 onConfirm={(selected) => setStartDate(selected)}
@@ -296,27 +277,6 @@ export default function StatisticsScreen() {
                             <ThemedText variant="sm" style={tw`mb-1`}>
                                 End Date:
                             </ThemedText>
-                            {/* <ActionButton
-                                title={endDate ? endDate.toLocaleDateString() : 'Select End Date'}
-                                onPress={() => setShowEndPicker(true)}
-                                bgColor={isDarkMode ? theme.colors.darkSky : theme.colors.sky}
-                                shadowColor={theme.colors.forest}
-                                textColor={theme.colors.textPrimary}
-                                iconName="calendar-outline"
-                                width="100%"
-                            />
-                            {showEndPicker && (
-                                <DateTimePicker
-                                    value={endDate || new Date()}
-                                    mode="date"
-                                    display="default"
-                                    onChange={(event, date) => {
-                                        setShowEndPicker(false);
-                                        if (date) setEndDate(date);
-                                    }}
-                                    style={tw`mt-2 mx-3`}
-                                />
-                            )} */}
                             <RNDatePicker
                                 date={endDate}
                                 onConfirm={(selected) => setEndDate(selected)}
@@ -341,8 +301,8 @@ export default function StatisticsScreen() {
                             setItems={setProjectItems}
                             listMode="SCROLLVIEW"
                             nestedScrollEnabled={true}
-                            style={tw`${isDarkMode ? theme.colors.textSecondary : theme.colors.white}`}
-                            dropDownContainerStyle={tw`${isDarkMode ? theme.colors.textSecondary : theme.colors.white}`}
+                            style={isDarkMode ? theme.colors.textSecondary : theme.colors.white}
+                            dropDownContainerStyle={isDarkMode ? theme.colors.textSecondary : theme.colors.white}
                             placeholder="Select a Project"
                             textStyle={{
                                 fontSize: theme.fontSize.base * fontScale,
@@ -372,106 +332,6 @@ export default function StatisticsScreen() {
                     />
                 </View>
 
-                {/* Filter buttons
-                <View style={tw`p-4 rounded-xl mb-4 shadow ${isDarkMode ? theme.colors.darkBg : theme.colors.white}`}>
-                    <ThemedText variant="lg" style={tw`font-bold mb-2 text-center`}>
-                        Project Filter
-                    </ThemedText>
-                    <View style={tw`flex-row flex-wrap`}>
-                        <ActionButton
-                            title="All"
-                            onPress={() => setSelectedProject('All')}
-                            bgColor={selectedProject === 'All' ? theme.colors.darkMint : theme.colors.mint}
-                            shadowColor={theme.colors.forest}
-                            textColor={theme.colors.textPrimary}
-                            width="30%"
-                        />
-                        {projects.map(p => (
-                            <ActionButton
-                                key={p.id}
-                                title={p.name}
-                                onPress={() => setSelectedProject(p.id)}
-                                bgColor={selectedProject === p.id ? theme.colors.darkSky : theme.colors.sky}
-                                shadowColor={theme.colors.forest}
-                                textColor={theme.colors.textPrimary}
-                                width="30%"
-                            />
-                        ))}
-                    </View>
-
-                    <ThemedText variant="lg" style={tw`font-bold mt-4 mb-2 text-center`}>
-                        Priority Filter
-                    </ThemedText>
-                    <View style={tw`flex-row flex-wrap`}>
-                        <ActionButton
-                            title="All"
-                            onPress={() => setSelectedPriority('All')}
-                            bgColor={selectedPriority === 'All' ? theme.colors.darkMint : theme.colors.mint}
-                            shadowColor={theme.colors.forest}
-                            textColor={theme.colors.textPrimary}
-                            width="30%"
-                        />
-                        {PRIORITIES.map(pr => (
-                            <ActionButton
-                                key={pr}
-                                title={pr}
-                                onPress={() => setSelectedPriority(pr)}
-                                bgColor={selectedPriority === pr ? theme.colors.darkForest : theme.colors.forest}
-                                shadowColor={theme.colors.forest}
-                                textColor={theme.colors.textPrimary}
-                                width="30%"
-                            />
-                        ))}
-                    </View>
-                </View> */}
-
-        
-{/*             
-                    <Text style={styles.filterLabel}>Project:</Text>
-                    <Picker
-                        selectedValue={selectedProject}
-                        style={styles.picker}
-                        onValueChange={(itemValue) => setSelectedProject(itemValue)}
-                    >
-                        <Picker.Item label="All" value="All" />
-                        {projects.map(p => (
-                            <Picker.Item key={p.id} label={p.name} value={p.id} />
-                        ))}
-                    </Picker>
-            
-                    <Text style={styles.filterLabel}>Priority:</Text>
-                    <Picker
-                        selectedValue={selectedPriority}
-                        style={styles.picker}
-                        onValueChange={(itemValue) => setSelectedPriority(itemValue)}
-                    >
-                        <Picker.Item label="All" value="All" />
-                        {PRIORITIES.map(p => (
-                            <Picker.Item key={p} label={p} value={p} />
-                        ))}
-                    </Picker>
-                </View> */}
-        
-                {/* Statistics Summary */}
-                {/* <View style={tw`px-2 rounded-xl mb-4 shadow ${isDarkMode ? theme.colors.darkBg : theme.colors.white}`}>
-                    <ThemedText variant="xl" style={tw`font-bold mb-3 text-center`}>Summary</ThemedText>
-                    <ThemedText variant="lg" style={tw`my-2`}>Total Projects: {stats.totalProjects}</ThemedText>
-                    <ThemedText variant="lg" style={tw`my-2`}>Completed Projects: {stats.completedProjects}</ThemedText>
-                    <ThemedText variant="lg" style={tw`my-2`}>
-                        Average Project Completion Time: {stats.avgProjectCompletionTime}
-                    </ThemedText>
-                    <ThemedText variant="lg" style={tw`my-2`}>Total To-Do Lists: {stats.totalTasks}</ThemedText>
-                    <ThemedText variant="lg" style={tw`my-2`}>Closed To-Do Lists: {stats.closedTasks}</ThemedText>
-                    <ThemedText variant="lg" style={tw`my-2`}>Opened To-Do Lists: {stats.openTasks}</ThemedText>
-                    <ThemedText variant="lg" style={tw`my-2`}>
-                        Opened To-Do Lists unassigned to a project: {stats.unassignedOpenTasks}
-                    </ThemedText>
-                    <ThemedText variant="lg" style={tw`my-2`}>
-                        Average To-Do List Completion Time: {stats.avgTaskCompletionTime}
-                    </ThemedText>
-                    <ThemedText variant="lg" style={tw`my-2`}>Total Subtasks: {stats.totalSubtasks}</ThemedText>
-                    <ThemedText variant="lg" style={tw`my-2`}>Closed Subtasks: {stats.closedSubtasks}</ThemedText>
-                </View> */}
                 <View style={tw`p-4 rounded-xl shadow mb-4 ${isDarkMode ? theme.colors.darkBg : theme.colors.white}`}>
                     <ThemedText variant="xl" style={tw`font-bold mb-3 text-center`}>
                         Summary
@@ -507,15 +367,6 @@ export default function StatisticsScreen() {
                     <ThemedText variant="xl" style={tw`font-bold mb-3 text-center`}>
                         Pie Chart Metric:
                     </ThemedText>
-                    {/* <Picker
-                        selectedValue={selectedPieMetric}
-                        style={styles.picker}
-                        onValueChange={(itemValue) => setSelectedPieMetric(itemValue)}
-                    >
-                        <Picker.Item label="To-Do Lists Open vs Closed" value="To-Do Lists" />
-                        <Picker.Item label="Subtasks Open vs Closed" value="Subtasks" />
-                        <Picker.Item label="Projects Open vs Closed" value="Projects" />
-                    </Picker> */}
                     <SegmentedControl
                         values={pieSegments}
                         selectedIndex={pieIndex}
@@ -526,22 +377,7 @@ export default function StatisticsScreen() {
                         fontStyle={{ color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary }}
                         activeFontStyle={{ color: theme.colors.textPrimary, fontWeight: 'bold' }}
                     />
-                    {/* <View style={tw`flex-row flex-wrap justify-center mb-2`}>
-                        {['To-Do Lists', 'Subtasks', 'Projects'].map(metric => (
-                            <ActionButton
-                                key={metric}
-                                title={metric}
-                                onPress={() => setSelectedPieMetric(metric)}
-                                bgColor={selectedPieMetric === metric ? theme.colors.mint : theme.colors.sky}
-                                shadowColor={theme.colors.forest}
-                                textColor={theme.colors.textPrimary}
-                                width="30%"
-                            />
-                        ))}
-                    </View> */}
-
                     <ThemedText variant="lg" style={tw`text-center font-bold mt-4`}>
-                        {/* {selectedPieMetric}: Open vs Closed */}
                         {pieSegments[pieIndex]}: Open vs Closed
                     </ThemedText>
                     <PieChart
@@ -558,7 +394,7 @@ export default function StatisticsScreen() {
                 </View>
 
                 {/* Closed To-Do Lists by Priority */}
-                <View style={tw`p-4 rounded-xl mb-4 shadow ${isDarkMode ? theme.colors.darkBg : theme.colors.white}`}>
+                <View style={tw`p-4 rounded-xl mb-4 shadow ${isDarkMode ? 'bg-darkBg' : 'bg-white'}`}>
                     <ThemedText variant="lg" style={tw`text-center font-bold mb-2`}>
                         Closed To-Do Lists by Priority
                     </ThemedText>
@@ -575,7 +411,7 @@ export default function StatisticsScreen() {
                 </View>
 
                 {/* Closed Subtasks by Priority */}
-                <View style={tw`p-4 rounded-xl mb-4 shadow ${isDarkMode ? theme.colors.darkBg : theme.colors.white}`}>
+                <View style={tw`p-4 rounded-xl mb-4 shadow ${isDarkMode ? 'bg-darkBg' : 'bg-white'}`}>
                     <ThemedText variant="lg" style={tw`text-center font-bold mb-2`}>
                         Closed Subtasks by Priority
                     </ThemedText>
@@ -592,38 +428,23 @@ export default function StatisticsScreen() {
                 </View>
 
                 {/* Trend Graph Customisation */}
-                <View style={tw`p-4 rounded-xl mb-4 shadow ${isDarkMode ? theme.colors.darkBg : theme.colors.white}`}>
-                    <ThemedText variant="xl" style={tw`font-bold mb-3 text-center`}>
+                <View style={tw`p-4 rounded-xl mb-4 shadow ${isDarkMode ? 'bg-darkBg' : 'bg-white'}`}>
+                    <ThemedText variant="xl" fontFamily="poppins-bold" style={tw`mb-3 text-center`}>
                         Trend Metric:
                     </ThemedText>
-                    {/* <View style={tw`flex-row flex-wrap justify-center mb-2`}>
-                        {TREND_OPTIONS.map(opt => (
-                            <ActionButton
-                                key={opt.value}
-                                title={opt.label}
-                                onPress={() => setSelectedTrendMetric(opt.value)}
-                                bgColor={selectedTrendMetric === opt.value ? theme.colors.mint : theme.colors.sky}
-                                shadowColor={theme.colors.forest}
-                                textColor={theme.colors.textPrimary}
-                                width="45%"
-                            />
-                        ))}
-                    </View> */}
                     <SegmentedControl
                         values={TREND_OPTIONS.map(opt => opt.label)}
                         selectedIndex={trendIndex}
                         onChange={event => setTrendIndex(event.nativeEvent.selectedSegmentIndex)}
                         style={tw`mb-2 rounded`}
                         backgroundColor={isDarkMode ? '#444444' : '#DDDDDD'}
-                        // tintColor={isDarkMode ? theme.colors.darkMint : theme.colors.mint}
                         tintColor={theme.colors.darkMagenta}
                         fontStyle={{ color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary }}
                         activeFontStyle={{ color: theme.colors.darkTextPrimary, fontWeight: 'bold' }}
                     />
 
                     {/* Trend chart */}
-                    <ThemedText variant="lg" style={tw`text-center font-bold mt-4`}>
-                        {/* {selectedTrendMetric} (Past 7 Days) */}
+                    <ThemedText variant="lg" fontFamily="poppins-bold" style={tw`text-center mt-4`}>
                         {TREND_OPTIONS[trendIndex].label} (Past 7 Days)
                     </ThemedText>
                     <LineChart
@@ -640,51 +461,8 @@ export default function StatisticsScreen() {
                         bezier
                         style={tw`mt-2 self-center`}
                     />
-                    {/* <Picker
-                        selectedValue={selectedTrendMetric}
-                        style={styles.picker}
-                        onValueChange={(itemValue) => setSelectedTrendMetric(itemValue)}
-                    >
-                        {TREND_OPTIONS.map((opt) => (
-                            <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
-                        ))}
-                    </Picker> */}
                 </View>
-                {/* Trend chart
-                <Text style={styles.chartTitle}>Trend: {selectedTrendMetric} (Past 7 Days)</Text>
-                <LineChart
-                    data={trendData}
-                    width={screenWidth - 20}
-                    height={220}
-                    yAxisSuffix={
-                        selectedTrendMetric === "Avg Project Completion Time" || "Avg To-Do List Completion Time" ? "h" : ""
-                    }
-                    chartConfig={{
-                        backgroundColor: "#fff",
-                        backgroundGradientFrom: "#fff",
-                        backgroundGradientTo: "#fff",
-                        decimalPlaces: 0,
-                        color: (opacity = 1) => `rgba(0,0,255,${opacity})`,
-                        labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
-                        propsForVerticalLabels: { fontSize: 10, rotation: 347 },
-                    }}
-                    bezier
-                    style={styles.chart}
-                /> */}
             </ScrollView>
         </SafeAreaView>
     );
 };
-
-// const styles = StyleSheet.create({
-//     container: { flex: 1, padding: 10, backgroundColor: "#f5f5f5" },
-//     loading: { flex: 1, justifyContent: "center", alignItems: "center" },
-//     header: { fontSize: 24, fontWeight: "bold", marginVertical: 10, textAlign: "center" },
-//     filterContainer: { backgroundColor: "#fff", padding: 10, borderRadius: 8, marginBottom: 10 },
-//     filterLabel: { fontWeight: "bold", marginTop: 10 },
-//     picker: { height: 140, width: "100%" },
-//     statsContainer: { backgroundColor: "#fff", padding: 10, borderRadius: 8, marginBottom: 10 },
-//     statItem: { fontSize: 16, marginVertical: 2 },
-//     chartTitle: { fontSize: 18, fontWeight: "bold", marginVertical: 10, textAlign: "center" },
-//     chart: { marginVertical: 8, borderRadius: 8 },
-// });

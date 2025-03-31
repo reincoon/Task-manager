@@ -83,7 +83,6 @@ export async function getProjectColourFromDB(userId, projectId) {
     }
 }
 
-
 // Update project colour
 export async function updateProjectColour(userId, projectId, newColour) {
     if (!userId || !projectId || !newColour) {

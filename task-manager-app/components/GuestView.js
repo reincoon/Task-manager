@@ -15,17 +15,6 @@ const GuestView = ({ onLogIn, onSignUp }) => {
             </ThemedText>
     
             <View style={tw`flex-row justify-between mt-2`}>
-                {/* <TouchableOpacity onPress={onLogIn} style={tw`flex-row items-center py-3 px-4 rounded-md ${isDarkMode ? 'bg-darkSky' : 'bg-sky'}`}>
-                    <Ionicons 
-                        name="log-in-outline" 
-                        size={theme.fontSize.xl * fontScale} 
-                        color={theme.colors.textPrimary} 
-                        style={tw`mr-2`}
-                    />
-                    <ThemedText variant="lg" style={tw`text-textPrimary`}>
-                        Log In
-                    </ThemedText>
-                </TouchableOpacity> */}
                 <ActionButton 
                     title="Log In" 
                     onPress={onLogIn} 
@@ -35,18 +24,6 @@ const GuestView = ({ onLogIn, onSignUp }) => {
                     textColor={theme.colors.textPrimary} 
                     width="48%" 
                 />
-        
-                {/* <TouchableOpacity onPress={onSignUp} style={tw`flex-row items-center py-3 px-4 rounded-md ${isDarkMode ? 'bg-darkMint' : 'bg-mint'}`}>
-                    <Ionicons 
-                        name="person-add-outline" 
-                        size={theme.fontSize.xl * fontScale} 
-                        color={theme.colors.textPrimary} 
-                        style={tw`mr-2`}
-                    />
-                    <ThemedText variant="lg" style={tw`text-textPrimary`}>
-                        Sign Up
-                    </ThemedText>
-                </TouchableOpacity> */}
                 <ActionButton 
                     title="Sign Up" 
                     onPress={onSignUp} 

@@ -1,15 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { auth } from '../firebaseConfig';
-// import { createProject } from '../helpers/firestoreHelpers';
 import { deleteTask as deleteTaskHelper } from '../helpers/taskActions';
 import useTasks from '../hooks/useTasks';
 import useProjects from '../hooks/useProjects';
 import useSortedTasks from '../hooks/useSortedTasks';
 import HomeView from '../components/HomeView';
 import useProjectActions from '../hooks/useProjectActions';
+import { useCopilot } from 'react-native-copilot';
+import tw, { theme } from '../twrnc';
 
-const HomeScreen = ({ navigation }) => {
+export default function HomeScreen({ navigation }) {
+    const { start } = useCopilot();
+
     const [sortOption, setSortOption] = useState(null);
     const [viewMode, setViewMode] = useState('list');
     const [showProjectModal, setShowProjectModal] = useState(false);
@@ -79,9 +82,6 @@ const HomeScreen = ({ navigation }) => {
         setIsEditModalVisible,
     });
 
-    // const handleAddProjectFromList = (open = true) => {
-    //     setShowProjectModal(open);
-    // };
     const openProjectModal = () => {
         setShowProjectModal(true);
     };
@@ -90,16 +90,10 @@ const HomeScreen = ({ navigation }) => {
         setShowProjectModal(false);
     };
     
-
-    if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#0000ff" />
-            </View>
-        );
-    }
     const handleTutorialPress = () => {
-        Alert.alert('Tutorial', 'Here would be some helpful instructions.');
+        setTimeout(() => {
+            start();
+        }, 300);
     };
 
     // Helper function to delete a todo list passed as a prop
@@ -108,16 +102,15 @@ const HomeScreen = ({ navigation }) => {
             await deleteTaskHelper(userId, item, navigation, false);
             Alert.alert('Deleted', 'Task deleted successfully');
         } catch (err) {
-            console.error('Error deleting task:', err);
             Alert.alert('Error', 'Could not delete task');
         }
     };
     
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={tw`flex-1 bg-light`}>
             {loading ? 
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#0000ff" />
+                <View style={tw`flex-1 justify-center items-center`}>
+                    <ActivityIndicator size="large" color={theme.colors.teal} />
                 </View>
             : null}
             <HomeView
@@ -144,17 +137,3 @@ const HomeScreen = ({ navigation }) => {
         </SafeAreaView>
     )
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f5f5f5',
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-});
-
-export default HomeScreen;

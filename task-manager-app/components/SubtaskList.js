@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { formatDateTime } from '../helpers/date';
 import { Ionicons } from '@expo/vector-icons';
 import { toggleSubtaskCompletionLocal } from '../helpers/subtaskCompletionHelpers';
@@ -6,22 +6,15 @@ import ThemedText from './ThemedText';
 import tw, { theme } from '../twrnc';
 import { useTheme } from '../helpers/ThemeContext';
 
-const SubtaskList = ({ 
+export default function SubtaskList({ 
     subtasks, 
     onEditSubtask, 
     onDeleteSubtask, 
     onAddSubtaskToCalendar,
-    // userId,
-    // taskId,
     setSubtasks,
-}) => {
+}) {
     const { isDarkMode, fontScale } = useTheme();
 
-    // if (!subtasks || subtasks.length === 0) {
-    //     return null;
-    // };
-
-    // const handleToggleCompletion = async (index) => {
     const handleToggleCompletion = async (index) => {
         try {
             const updatedSubtasks = await toggleSubtaskCompletionLocal({ subtasks, subtaskIndex: index });
@@ -52,7 +45,7 @@ const SubtaskList = ({
                                 <ThemedText 
                                     variant="xs"
                                     style={
-                                        item.isCompleted ? tw`line-through text-darkTextSecondary` : tw`text-darkTextSecondary`
+                                        item.isCompleted ? tw`line-through text-darkTextSecondary` : (isDarkMode? tw`text-darkMint` : tw`text-evergreen`)
                                     }
                                 >
                                     Due: {formatDateTime(item.dueDate)}
@@ -60,7 +53,7 @@ const SubtaskList = ({
                                 <ThemedText
                                     variant="xs"
                                     style={
-                                        item.isCompleted ? tw`line-through text-darkTextSecondary` : tw`text-darkTextSecondary`
+                                        item.isCompleted ? tw`line-through text-darkTextSecondary` : (isDarkMode? tw`text-darkMint` : tw`text-evergreen`)
                                     }
                                 >
                                     Reminder: {item.reminder}
@@ -77,7 +70,7 @@ const SubtaskList = ({
                                 )}
                                 {/* Completion timestamp */}
                                 {item.isCompleted && item.completedAt && (
-                                    <ThemedText variant="xs" style={isDarkMode ? tw`text-darkTextSecondary` : tw`text-textSecondary`}>
+                                    <ThemedText variant="xs" style={isDarkMode ? tw`text-mint` : tw`text-textSecondary`}>
                                         Completed at: {new Date(item.completedAt).toLocaleString()}
                                     </ThemedText>
                                 )}
@@ -109,25 +102,6 @@ const SubtaskList = ({
                             
                         </View>
                     </View>
-
-                    //     {/* <Text>{item.title} (Priority: {item.priority})</Text>
-                    //     <Text>Due: {formatDateTime(item.dueDate)}</Text>
-                    //     {item.reminder !== 'None' && <Text>Reminder: {item.reminder}</Text>}
-                    //     {item.isRecurrent && <Text>Recurrent: Yes</Text>}
-                    //     <View style={{ flexDirection: 'row', marginTop: 5 }}>
-                    //         <TouchableOpacity style={{ marginRight: 10 }} onPress={() => onEditSubtask(index)}>
-                    //             <Ionicons name="pencil-outline" size={20} color="blue" />
-                    //         </TouchableOpacity>
-                    //         <TouchableOpacity onPress={() => onDeleteSubtask(index)}>
-                    //             <Ionicons name="trash-outline" size={20} color="red" />
-                    //         </TouchableOpacity>
-                    //         {onAddSubtaskToCalendar && (
-                    //             <TouchableOpacity onPress={() => onAddSubtaskToCalendar(item, index)}>
-                    //                 <Ionicons name="calendar-outline" size={20} color="#007bff" />
-                    //             </TouchableOpacity>
-                    //         )}
-                    //     </View>
-                    // </View> */}
                 ))
             ) : (
                 <ThemedText variant="base" fontFamily="poppins-regular" style={tw`text-center`}>
@@ -137,25 +111,3 @@ const SubtaskList = ({
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    subtaskItem: {
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
-        padding: 10,
-    },
-    subTaskRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    subInfo: {
-        fontSize: 12,
-        color: '#666',
-    },
-    completedText: {
-        textDecorationLine: 'line-through',
-        color: '#999',
-    },
-});
-
-export default SubtaskList;

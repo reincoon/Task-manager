@@ -1,4 +1,4 @@
-import { SafeAreaView, View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { SafeAreaView, View, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import NotificationPicker from '../components/NotificationPicker';
 import SubtaskBottomSheet from '../components/SubtaskBottomSheet';
@@ -6,7 +6,7 @@ import { NOTIFICATION_OPTIONS } from '../helpers/constants';
 import DateTimeSelector from '../components/DateTimeSelector';
 import SubtaskList from '../components/SubtaskList';
 import AttachmentsList from '../components/AttachmentsList';
-import { addAttachmentOfflineAndOnline, removeAttachment, deleteAllAttachmentsFromSupabase } from '../helpers/attachmentHelpers';
+import { addAttachmentOfflineAndOnline, removeAttachment } from '../helpers/attachmentHelpers';
 import ColourPicker from '../components/ColourPicker';
 import SpeechToTextButton from '../components/SpeechToTextButton';
 import { useTaskCreation } from '../hooks/useTaskCreation';
@@ -192,20 +192,6 @@ export default function TaskCreationScreen ({ navigation }) {
                 
                 {/* Priority button */}
                 <View style={tw`mb-4`}>
-                    {/* <TouchableOpacity 
-                        style={tw`flex-row items-center justify-center bg-orange p-3 rounded-lg`}
-                        onPress={() => setPriority(priority)}
-                    >
-                        <Ionicons 
-                            name="warning-outline" 
-                            size={theme.fontSize.xl * fontScale} 
-                            color={theme.colors.textPrimary}
-                            style={tw`mr-2`}
-                        />
-                        <ThemedText variant="base" fontFamily="poppins-semibold" color={theme.colors.textPrimary}>
-                            Priority: {priority}
-                        </ThemedText>
-                    </TouchableOpacity> */}
                     <ThemedText variant="base" fontFamily="poppins-semibold" style={tw`mb-2`}>
                         Priority:
                     </ThemedText>
@@ -255,7 +241,6 @@ export default function TaskCreationScreen ({ navigation }) {
                 <AttachmentsList 
                     attachments={attachments}
                     setAttachments={setAttachments}
-                    // onAddAttachment={handleAddAttachment}
                     onAddAttachment={() =>
                         addAttachmentOfflineAndOnline({
                             attachments,
@@ -287,57 +272,3 @@ export default function TaskCreationScreen ({ navigation }) {
         </SafeAreaView>
     );
 };
-
-// const styles = StyleSheet.create({
-//     container: {
-//         flex: 1,
-//         padding: 20,
-//         backgroundColor: '#fff',
-//     },
-//     header: {
-//         flexDirection: 'row',
-//         justifyContent: 'space-between',
-//         alignItems: 'center',
-//         marginBottom: 20,
-//     },
-//     titleContainer: {
-//         flexDirection: 'row',
-//         alignItems: 'flex-start',
-//         marginBottom: 20,
-//     },
-//     title: {
-//         fontSize: 24,
-//         fontWeight: 'bold',
-//         marginBottom: 20,
-//         padding: 16,
-//     },
-//     notesContainer: {
-//         flexDirection: 'row',
-//         alignItems: 'flex-start',
-//         marginBottom: 20,
-//     },
-//     input: {
-//         borderWidth: 1,
-//         borderColor: '#ccc',
-//         padding: 10,
-//         marginBottom: 20,
-//         borderRadius: 5,
-//     },
-//     notesInput: {
-//         height: 80,
-//         textAlignVertical: 'top',
-//     },
-//     button: {
-//         backgroundColor: '#007bff',
-//         padding: 10,
-//         marginHorizontal: 20,
-//         marginBottom: 20,
-//         borderRadius: 5,
-//     },
-//     buttonText: {
-//         color: '#fff',
-//         textAlign: 'center',
-//     },
-// });
-
-// export default TaskCreationScreen;

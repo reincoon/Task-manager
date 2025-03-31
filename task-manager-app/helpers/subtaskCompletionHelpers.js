@@ -117,7 +117,6 @@ export async function updateTaskStatusInFirestore(isFinished, userId, taskId) {
         const taskDocRef = doc(db, `tasks/${userId}/taskList`, taskId);
         await updateDoc(taskDocRef, { manuallyFinished: isFinished });
     } catch (err) {
-        console.error("Error updating task status:", err);
         Alert.alert("Error", "Failed to update task status.");
     }
 };

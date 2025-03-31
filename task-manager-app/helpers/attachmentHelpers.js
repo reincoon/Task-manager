@@ -93,7 +93,6 @@ export const addAttachmentOfflineAndOnline = async ({ attachments, setAttachment
             setAddedAttachments([...addedAttachments, newAttachment]);
             resolve();
         } catch (error) {
-            console.log('DocumentPicker error:', error);
             Alert.alert('Error', 'Failed to pick the file');
             reject(err);
         }
@@ -121,7 +120,6 @@ export const removeAttachment = async ({ attachments, setAttachments, index, sho
             }
         }
     } catch (error) {
-        console.log('Error removing attachment:', error);
         Alert.alert('Error', 'Failed to remove the attachment');
     }
 };
@@ -171,13 +169,12 @@ export const handleOpenLocalFile = async (
         } else {
             const isAvailable = await Sharing.isAvailableAsync();
             if (isAvailable) {
-                    await Sharing.shareAsync(localUri, { dialogTitle: 'Open File' });
+                await Sharing.shareAsync(localUri, { dialogTitle: 'Open File' });
             } else {
-                    Alert.alert('Unsupported', 'File type not supported in-app. Try an external app.');
+                Alert.alert('Unsupported', 'File type not supported in-app. Try an external app.');
             }
         }
     } catch (err) {
-        console.log('Error opening local file:', err);
         Alert.alert('Error', 'Could not open local file.');
     }
 };
@@ -212,13 +209,4 @@ export const doDownloadSupabaseFile = async ({
         return downloadedUri;
     }
     return null;
-};
-
-// Clean-up function to delete all attachments from Supabase storage
-export const deleteAllAttachmentsFromSupabase = async (attachments) => {
-    for (const attachment of attachments) {
-        if (attachment.supabaseKey) {
-            await removeFileFromSupabase(attachment.supabaseKey);
-        }
-    }
 };

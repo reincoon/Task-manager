@@ -9,7 +9,7 @@ import ThemedText from '../components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import SignUpInHeader from '../components/SignUpInHeader';
 
-const LoginScreen = ({ navigation }) => {
+export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const { isDarkMode, fontScale } = useTheme();
@@ -47,7 +47,7 @@ const LoginScreen = ({ navigation }) => {
                     >
                         <Ionicons
                         name="mail-outline"
-                        size={20}
+                        size={theme.fontSize.xl}
                         color={isDarkMode ? theme.colors.darkTextSecondary : '#888'}
                         style={tw`mr-2`}
                         />
@@ -57,7 +57,7 @@ const LoginScreen = ({ navigation }) => {
                                 { 
                                     fontSize: theme.fontSize.base * fontScale,
                                     color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
-                                    borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc',
+                                    borderColor: theme.colors.darkTextSecondary,
                                 },
                             ]}
                             placeholder="Email"
@@ -71,23 +71,21 @@ const LoginScreen = ({ navigation }) => {
 
                     {/* Password Field */}
                     <View
-                        style={tw`flex-row items-center border rounded-md mb-4 px-3 ${
-                            isDarkMode ? 'border-darkTextSecondary' : 'border-darkTextSecondary'
-                        }`}
+                        style={tw`flex-row items-center border rounded-md mb-4 px-3 border-darkTextSecondary`}
                     >
                         <Ionicons
                         name="lock-closed-outline"
-                        size={20}
+                        size={theme.fontSize.xl}
                         color={isDarkMode ? theme.colors.darkTextSecondary : '#888'}
                         style={tw`mr-2`}
                         />
                         <TextInput
                             style={[
-                                tw`flex-1 border p-3 rounded-md m-1 font-roboto-var`,
+                                tw`flex-1 border border-darkTextSecondary p-3 rounded-md m-1 font-roboto-var`,
                                 { 
                                     fontSize: theme.fontSize.base * fontScale,
                                     color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary,
-                                    borderColor: isDarkMode ? theme.colors.darkTextSecondary : '#ccc',
+                                    // borderColor: theme.colors.darkTextSecondary,
                                 },
                             ]}
                             placeholder="Password"
@@ -99,37 +97,13 @@ const LoginScreen = ({ navigation }) => {
                     </View>
                     {/* Login button */}
                     <TouchableOpacity onPress={handleLogin} style={tw`py-3 rounded-md mb-4 ${isDarkMode ? 'bg-darkForest' : 'bg-evergreen'}`}>
-                        {/* <Text 
-                            style={[
-                                tw`text-center font-poppins-semibold`,
-                                { 
-                                    fontSize: theme.fontSize.lg * fontScale,
-                                    color: theme.colors.textPrimary
-                                },
-                            ]}
-                        >
-                            Log In
-                        </Text> */}
-
-                        <ThemedText variant="lg" style={tw`text-center font-poppins-semibold text-white`}>
+                        <ThemedText variant="lg" fontFamily="poppins-semibold" color={theme.colors.white} style={tw`text-center`}>
                             Log In
                         </ThemedText>
                     </TouchableOpacity>
-                    {/* <Text 
-                        style={[
-                            tw`text-center font-roboto-var`,
-                            { 
-                                fontSize: theme.fontSize.sm * fontScale, 
-                                color: isDarkMode ? theme.colors.darkTextPrimary : theme.colors.textPrimary 
-                            },
-                        ]}
-                        onPress={() => navigation.navigate('SignUp')}
-                    >
-                        Don't have an account? Sign Up
-                    </Text> */}
                     {/* Sign Up Link */}
                     <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-                        <ThemedText variant="sm" style={tw`text-center font-roboto-var ${isDarkMode ? 'text-sky' : 'text-forest'}`}>
+                        <ThemedText variant="sm" fontFamily="roboto-var" style={tw`text-center ${isDarkMode ? 'text-sky' : 'text-forest'}`}>
                             Don't have an account? Sign Up
                         </ThemedText>
                     </TouchableOpacity>
@@ -138,30 +112,3 @@ const LoginScreen = ({ navigation }) => {
         </SafeAreaView>
     );
 };
-
-// const styles = StyleSheet.create({
-//     container: {
-//         flex: 1,
-//         padding: 20,
-//         justifyContent: 'center',
-//     },
-//     title: {
-//         fontSize: 24,
-//         fontWeight: 'bold',
-//         marginBottom: 20,
-//     },
-//     input: {
-//         borderWidth: 1,
-//         borderColor: '#ccc',
-//         padding: 10,
-//         marginBottom: 20,
-//         borderRadius: 5,
-//     },
-//     link: {
-//         marginTop: 20,
-//         color: 'blue',
-//         textAlign: 'center',
-//     },
-// });
-
-export default LoginScreen;  
